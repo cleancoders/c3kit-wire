@@ -1,6 +1,8 @@
 # Wire
 
-![Wire](https://github.com/cleancoders/c3kit/blob/main/img/wire_200.png)
+![Wire](https://github.com/cleancoders/c3kit/blob/master/img/wire_200.png?raw=true)
+
+A library component of [c3kit - Clean Coders Clojure Kit](https://github.com/cleancoders/c3kit).
 
 _"If you look very closely at just one wire in the cage, you cannot see the other wires."_ - Marilyn Frye
 
@@ -17,3 +19,13 @@ Wire is a toolset for building rich-client web applications, clojure on the serv
  * __dragndrop.cljs__ : simple client side drag and drop
  * __js.cljs__ : common js fns and features
  * __util.cljs__ : misc utilities
+
+# Development
+
+    # Run the JVM tests
+    clj -M:test:spec
+    clj -M:test:spec -a         # auto runner
+
+    # Compile and Run JS tests
+    clj -M:test:cljs once
+    clj -M:test:cljs            # auto runner
