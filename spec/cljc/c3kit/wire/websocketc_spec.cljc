@@ -35,7 +35,7 @@
   (with now (time/now))
   (stub-now @now)
   (with state (sut/create (stub :message-handler {:invoke (fn [_] @message-handler-result)})))
-  #?(:clj (with request {:params {:connection-id "client-123" :csrf-token "csrf-blah"} :session/key "csrf-blah"}))
+  #?(:clj (with request {:params {:connection-id "client-123" :ws-csrf-token "csrf-blah"} :session/key "csrf-blah"}))
   (around [it]
     (with-redefs [sut/-create-timeout! (stub :sut/create-timeout {:return :fake-timeout})
                   sut/-cancel-timeout! (stub :sut/cancel-timeout)
@@ -417,7 +417,7 @@
   #?(:clj
      (context "server"
 
-       (with request {:params {:connection-id "client-123" :csrf-token "csrf-blah"} :session/key "csrf-blah"})
+       (with request {:params {:connection-id "client-123" :ws-csrf-token "csrf-blah"} :session/key "csrf-blah"})
        (around [it] (with-redefs [httpkit/send! (stub :httpkit/send! {:invoke (fn [& _] @send!-result)})] (it)))
        (before (reset! message-handler-result nil)
                (reset! send!-result true))
@@ -425,8 +425,8 @@
        (context "ring handler"
 
          (it "invalid csrf"
-           (let [response1 (sut/handler @state (assoc-in @request [:params :csrf-token] nil))
-                 response2 (sut/handler @state (assoc-in @request [:params :csrf-token] "wrong"))]
+           (let [response1 (sut/handler @state (assoc-in @request [:params :ws-csrf-token] nil))
+                 response2 (sut/handler @state (assoc-in @request [:params :ws-csrf-token] "wrong"))]
              (should= 403 (:status response1))
              (should= 403 (:status response2))
              (should= "Invalid anti-forgery token" (:body response1))

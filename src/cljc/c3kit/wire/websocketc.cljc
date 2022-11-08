@@ -160,7 +160,7 @@
 
      (defn- maybe-invalid-csrf-token [request]
        (let [expected (:session/key request)
-             actual (-> request :params :csrf-token)]
+             actual (-> request :params :ws-csrf-token)]
          (when (or (nil? actual) (not= expected actual))
            {:status 403 :body "Invalid anti-forgery token"})))
 
@@ -232,7 +232,7 @@
        (send-internal-message client (-connection-cursor client) :ws/error (js->clj e :keywordize-keys true)))
 
      (defn -add-connection! [client path csrf-token cid socket]
-       (swap! client assoc :connection (connection cid socket) :path path :csrf-token csrf-token))
+       (swap! client assoc :connection (connection cid socket) :path path :ws-csrf-token csrf-token))
 
      (defn- -ping-inactive-connections-and-set-timeout! [state interval]
        (-ping-inactive-connections! state)

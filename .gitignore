@@ -1,7 +1,11 @@
+*.iml
+.cpcache
+.specljs-timestamp
 /checkouts
 /classes
 /lib
+/node_modules
 /target
-.cpcache
-.specljs-timestamp
-*.iml
+package-lock.json
+package.json
+

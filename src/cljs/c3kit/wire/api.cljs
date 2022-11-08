@@ -9,12 +9,12 @@
     ))
 
 (def config (atom {
-                   :version            "undefined"
-                   :redirect-fn        cc/redirect!
-                   :anti-forgery-token nil
-                   :csrf-token         nil
-                   :ws-on-reconnected  nil
-                   :ws-uri-path        "/user/websocket"
+                   :version           "undefined"
+                   :redirect-fn       cc/redirect!
+                   :ajax-prep-fn      nil
+                   :ws-csrf-token     nil
+                   :ws-on-reconnected nil
+                   :ws-uri-path       "/user/websocket"
                    }))
 
 (defn configure! [& options] (swap! config merge (ccc/->options options)))

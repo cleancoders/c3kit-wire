@@ -76,11 +76,11 @@
   ;(log/info "received message: " message)
   (push-handler message))
 
-(defn connect! [] (wsc/connect! client (:ws-uri-path @api/config) (:csrf-token @api/config)))
+(defn connect! [] (wsc/connect! client (:ws-uri-path @api/config) (:ws-csrf-token @api/config)))
 
 (defn start! []
   (when-not client
-    (if (:csrf-token @api/config)
+    (if (:ws-csrf-token @api/config)
       (do (set! client (wsc/create message-handler :atom-fn reagent/atom))
           (connect!))
       (log/error "CSRF Token missing.  Unable to start websocket."))))

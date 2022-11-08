@@ -11,7 +11,9 @@
     [c3kit.wire.flash :as flash]
     [c3kit.wire.spec-helper :as helper]
     [speclj.core]
-    [c3kit.apron.corec :as ccc]))
+    [c3kit.apron.corec :as ccc]
+    [speclj.stub :as stub]
+    [cljs-http.client :as http]))
 
 (def handler :undefined)
 
@@ -79,31 +81,48 @@
       (should-have-invoked :timeout))                       ; presumably to re-invoke the api call
     )
 
+  (it "params-type"
+    (should= :transit-params (sut/params-key {:params {:foo "bar"}}))
+    (should= :transit-params (sut/params-key {:params {:foo "bar"} :options {:params-type :transit}}))
+    (should= :query-params (sut/params-key {:params {:foo "bar"} :options {:params-type :query}}))
+    (should= :form-params (sut/params-key {:params {:foo "bar"} :options {:params-type :form}}))
+    (should= :edn-params (sut/params-key {:params {:foo "bar"} :options {:params-type :edn}}))
+    (should= :json-params (sut/params-key {:params {:foo "bar"} :options {:params-type :json}}))
+    (should= :multipart-params (sut/params-key {:params {:foo "bar"} :options {:params-type :multipart}}))
+    )
+
   (context "requests"
 
     (helper/stub-ajax)
 
-    (it "save-destination"
-      (sut/save-destination "/foo")
-      (should-have-invoked :ajax/post! {:with ["/api/v1/save-destination" {:destination "/foo"} :*]}))
-
-    (it "params key"
-      (let [get  (sut/request-map (sut/build-ajax-call "GET" ccc/noop "/some/url" {:foo "bar"} ccc/noop []))
-            post (sut/request-map (sut/build-ajax-call "POST" ccc/noop "/some/url" {:foo "bar"} ccc/noop []))]
-        (should= {:foo "bar"} (:query-params get))
-        (should-not-contain :form-params get)
-        (should= {:foo "bar"} (:form-params post))
-        (should-not-contain :query-params post)))
-
     (it "headers"
-      (let [req  (sut/request-map (sut/build-ajax-call "GET" ccc/noop "/some/url" {} ccc/noop [{:headers {"foo" "bar"}}]))]
+      (let [req (sut/request-map (sut/build-ajax-call "GET" ccc/noop "/some/url" {} ccc/noop [:headers {"foo" "bar"}]))]
         (should-contain "foo" (:headers req))
         (should= "bar" (get-in req [:headers "foo"]))))
 
-    (it "with-credentials?"
-      (let [req  (sut/request-map (sut/build-ajax-call "GET" ccc/noop "/some/url" {} ccc/noop [{:with-credentials? false}]))]
-        (should-contain :with-credentials? req)
-        (should= false (:with-credentials? req))))
+    (it "params default to transit"
+      (let [req (sut/request-map (sut/build-ajax-call "GET" ccc/noop "/some/url" {:foo "bar"} ccc/noop []))]
+        (should= {:transit-params {:foo "bar"}} req)))
+
+    (it "pass-through-keys"
+      (let [req (sut/request-map {:options {:accept            "accept"
+                                            :basic-auth        "basic-auth"
+                                            :content-type      "content-type"
+                                            :default-headers   "default-headers"
+                                            :headers           "headers"
+                                            :method            "method"
+                                            :oauth-token       "oauth-token"
+                                            :with-credentials? "with-credentials?"
+                                            :transit-opts      "transit-opts"}})]
+        (should= "accept" (:accept req))
+        (should= "basic-auth" (:basic-auth req))
+        (should= "content-type" (:content-type req))
+        (should= "default-headers" (:default-headers req))
+        (should= "headers" (:headers req))
+        (should= "method" (:method req))
+        (should= "oauth-token" (:oauth-token req))
+        (should= "with-credentials?" (:with-credentials? req))
+        (should= "transit-opts" (:transit-opts req))))
 
     )
 
@@ -116,5 +135,37 @@
         (capture-logs
           (sut/triage-response response ajax-call))
         (should-have-invoked :unexpected-response-handler {:with [response]})))
+    )
+
+  (context "main api"
+
+    (around [it] (with-redefs [sut/-do-ajax-request (stub :-do-ajax-request)] (it)))
+
+    (it "get!"
+      (sut/get! "/endpoint" {:foo "bar"} ccc/noop)
+      (let [[call] (stub/last-invocation-of :-do-ajax-request)]
+        (should= "GET" (:method call))
+        (should= http/get (:method-fn call))))
+
+    (it "post!"
+      (sut/post! "/endpoint" {:foo "bar"} ccc/noop)
+      (let [[call] (stub/last-invocation-of :-do-ajax-request)]
+        (should= "POST" (:method call))
+        (should= http/post (:method-fn call))))
+
+    (it "request!"
+      (sut/request! :foo "/endpoint" {:foo "bar"} ccc/noop)
+      (let [[call] (stub/last-invocation-of :-do-ajax-request)]
+        (should= "FOO" (:method call))))
+
+    )
+
+  (context "prep-fns"
+
+    (it "wrap-csrf"
+      (with-redefs [api/config (delay {:ajax-prep-fn (sut/prep-csrf "X-CSRF-Token" "foobar")})]
+        (let [request (sut/request-map (sut/build-ajax-call "GET" ccc/noop "/endpoint" {} ccc/noop []))]
+          (should= "foobar" (get-in request [:headers "X-CSRF-Token"])))))
+
     )
   )
