@@ -11,7 +11,7 @@
 (def config (atom {
                    :version           "undefined"
                    :redirect-fn       cc/redirect!
-                   :ajax-prep-fn      nil
+                   :ajax-prep-fn      nil ;; (fn [ajax-call] modified-ajax-call)
                    :ws-csrf-token     nil
                    :ws-on-reconnected nil
                    :ws-uri-path       "/user/websocket"

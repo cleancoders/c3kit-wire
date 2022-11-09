@@ -1,5 +1,5 @@
 {
- :paths   ["src/clj" "src/cljc"]
+ :paths   ["src/clj" "src/cljc" "src/cljs"]
  :deps    {
            cljs-http/cljs-http         {:mvn/version "0.1.46"}
            cljsjs/react                {:mvn/version "17.0.2-0"}
@@ -16,7 +16,7 @@
                                   org.clojure/clojurescript      {:mvn/version "1.10.764"}
                                   com.cleancoders.c3kit/scaffold {:local/root "../scaffold"}}
                   :override-deps {com.cleancoders.c3kit/apron {:local/root "../apron"}}
-                  :extra-paths   ["dev" "src/cljs" "spec/clj" "spec/cljc" "spec/cljs"]}
+                  :extra-paths   ["dev" "spec/clj" "spec/cljc" "spec/cljs"]}
            :spec {:main-opts ["-m" "speclj.main" "-c"]}
            :cljs {:main-opts ["-m" "c3kit.scaffold.cljs"]}
            }
