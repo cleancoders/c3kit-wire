@@ -43,14 +43,17 @@
     (assoc-in ajax-call [:options :headers header] token)))
 
 (defn params-key [ajax-call]
-  (case (get-in ajax-call [:options :params-type])
-    nil :transit-params
-    :transit :transit-params
-    :query :query-params
-    :form :form-params
-    :edn :edn-params
-    :json :json-params
-    :multipart :multipart-params))
+  (let [method (:method ajax-call)]
+    (if (or (= "GET" method) (= "HEAD" method))
+      :query-params
+      (case (get-in ajax-call [:options :params-type])
+        nil :transit-params
+        :transit :transit-params
+        :query :query-params
+        :form :form-params
+        :edn :edn-params
+        :json :json-params
+        :multipart :multipart-params))))
 
 ;; Keys used by cljs-http
 (def pass-through-keys [:accept
@@ -67,15 +70,18 @@
   (let [prep      (or (:ajax-prep-fn @api/config) identity)
         ajax-call (prep ajax-call)
         {:keys [options params]} ajax-call
-        request   (select-keys options pass-through-keys)
-        p-key     (params-key ajax-call)]
-    (assoc request p-key params)))
+        request   (select-keys options pass-through-keys)]
+    (if params
+      (let [p-key (params-key ajax-call)]
+        (assoc request p-key params))
+      request)))
 
 (defn -do-ajax-request [{:keys [method method-fn url params] :as ajax-call}]
   (log/debug "<" method url params)
   (go
     (swap! active-ajax-requests inc)
-    (let [response (async/<! (method-fn url (request-map ajax-call)))]
+    (let [request  (request-map ajax-call)
+          response (async/<! (method-fn url request))]
       (log/debug ">" method url (:error-code response) (:status response) (:status (:body response)))
       (triage-response response ajax-call)
       (swap! active-ajax-requests dec))))
@@ -105,6 +111,7 @@
 ;;  *** - see c3kit.wire.api for list of general API options
 ;;  *** - see pass-through-keys for a list of cljs-http optional keys
 ;;  :on-http-error  - (fn [response]...) invoked when the HTTP status code is unexpected
+;;  :params-type - specify the delivery format for params :transit (default)|:query|:form|:edn|:json|:multipart
 
 (defn get! [url params handler & opt-args]
   (-do-ajax-request (build-ajax-call "GET" http/get url params handler opt-args)))

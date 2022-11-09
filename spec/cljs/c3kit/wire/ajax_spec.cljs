@@ -91,6 +91,12 @@
     (should= :multipart-params (sut/params-key {:params {:foo "bar"} :options {:params-type :multipart}}))
     )
 
+  (it "GET and HEAD use :query-params because they can't have body"
+    (should= :query-params (sut/params-key {:params {:foo "bar"} :method "GET"}))
+    (should= :query-params (sut/params-key {:params {:foo "bar"} :method "HEAD"}))
+    (should= :query-params (sut/params-key {:params {:foo "bar"}  :method "GET" :options {:params-type :transit}}))
+    (should= :query-params (sut/params-key {:params {:foo "bar"}  :method "HEAD" :options {:params-type :transit}})))
+
   (context "requests"
 
     (helper/stub-ajax)
@@ -101,7 +107,7 @@
         (should= "bar" (get-in req [:headers "foo"]))))
 
     (it "params default to transit"
-      (let [req (sut/request-map (sut/build-ajax-call "GET" ccc/noop "/some/url" {:foo "bar"} ccc/noop []))]
+      (let [req (sut/request-map (sut/build-ajax-call "POST" ccc/noop "/some/url" {:foo "bar"} ccc/noop []))]
         (should= {:transit-params {:foo "bar"}} req)))
 
     (it "pass-through-keys"
