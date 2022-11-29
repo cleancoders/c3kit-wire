@@ -516,12 +516,12 @@
 
          (it "not secure"
            (let [location (clj->js {:host "site.com" :protocol "http:"})]
-             (should= "ws://site.com/path?connection-id=conn-abc&csrf-token=csrf-123"
+             (should= "ws://site.com/path?connection-id=conn-abc&ws-csrf-token=csrf-123"
                       (sut/-connection-uri location "/path" "conn-abc" "csrf-123"))))
 
          (it "secure"
            (let [location (clj->js {:host "site.com:443" :protocol "https:"})]
-             (should= "wss://site.com:443/path2?connection-id=conn-xyz&csrf-token=csrf-987"
+             (should= "wss://site.com:443/path2?connection-id=conn-xyz&ws-csrf-token=csrf-987"
                       (sut/-connection-uri location "/path2" "conn-xyz" "csrf-987"))))
 
          )

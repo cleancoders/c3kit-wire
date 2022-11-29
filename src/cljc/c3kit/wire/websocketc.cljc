@@ -204,7 +204,7 @@
        ([location path connection-id csrf-token]
         (let [protocol (if (= "https:" (.-protocol location)) "wss:" "ws:")
               host (.-host location)]
-          (str protocol "//" host path "?connection-id=" connection-id "&csrf-token=" csrf-token))))
+          (str protocol "//" host path "?connection-id=" connection-id "&ws-csrf-token=" csrf-token))))
 
      (defn -connection-cursor [state] (cursor state [:connection]))
      (defn- connections [state] [(-connection-cursor state)])
