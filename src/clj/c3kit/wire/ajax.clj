@@ -7,8 +7,8 @@
     [c3kit.wire.apic :as apic]
     [c3kit.wire.flash :as flash]
     [c3kit.wire.flashc :as flashc]
-    [ring.util.response :as response]
-    ))
+    [cognitect.transit :as transit]
+    [ring.util.response :as response]))
 
 (defn response [body] (response/response body))
 
@@ -73,6 +73,16 @@
             (assoc-in [:body :flash] messages))
         response))))
 
+(defn wrap-transit-params [handler]
+  (fn [request]
+    (if (= "application/transit+json" (get-in request [:headers "content-type"]))
+      (let [body   (:body request)
+            params (cond (nil? body) {}
+                         (string? body) (utilc/<-transit body)
+                         :else (with-open [in body] (transit/read (transit/reader in :json {}))))]
+        (handler (assoc request :params params)))
+      (handler request))))
+
 (defn wrap-api-transit-response [handler]
   (fn [request]
     (when-let [response (handler request)]
@@ -91,7 +101,8 @@
       wrap-catch-api-errors
       ;wrap-transfer-flash-to-api
       wrap-add-api-version
-      wrap-api-transit-response))
+      wrap-api-transit-response
+      wrap-transit-params))
 
 
 
