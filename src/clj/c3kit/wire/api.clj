@@ -26,7 +26,7 @@
 ;    (assoc app :api/version timestamp)))
 
 (defn version-from-js-file [js-path]
-  (let [url (or (io/resource js-path) (throw (ex-info "No JS file. Did you forget to do 'lein cljs'?" {:js-path js-path})))
+  (let [url (or (io/resource js-path) (throw (ex-info "No JS file. Did you forget to build it?" {:js-path js-path})))
         file (io/file (.getFile url))]
     (str (.lastModified file))))
 
