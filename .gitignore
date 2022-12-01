@@ -1,5 +1,6 @@
 *.iml
 .cpcache
+.idea
 .specljs-timestamp
 /checkouts
 /classes
@@ -7,4 +8,3 @@
 /node_modules
 /target
 package-lock.json
-

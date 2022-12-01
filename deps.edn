@@ -2,18 +2,18 @@
  :paths   ["src/clj" "src/cljc" "src/cljs"]
  :deps    {
            cljs-http/cljs-http         {:mvn/version "0.1.46"}
-           cljsjs/react                {:mvn/version "17.0.2-0"}
+           cljsjs/react                {:mvn/version "17.0.2-0"} ; A new major version of cljsjs is available, but reagent.dom/render is not yet compatible with it.
            cljsjs/react-dom            {:mvn/version "17.0.2-0"}
-           com.cleancoders.c3kit/apron {:git/url "git@github.com:cleancoders/c3kit-apron.git" :git/sha "7dbb1127415f9d92b2353f2b92e3cce152e40b6e"}
+           com.cleancoders.c3kit/apron {:git/url "git@github.com:cleancoders/c3kit-apron.git" :git/sha "e6951a75934aad9380da075fe63ddacb20d67c8a"}
            http-kit/http-kit           {:mvn/version "2.5.1"}
            org.clojure/clojure         {:mvn/version "1.11.1"}
-           org.clojure/core.async      {:mvn/version "1.3.610"}
-           reagent/reagent             {:mvn/version "1.1.0"}
+           org.clojure/core.async      {:mvn/version "1.6.673"}
+           reagent/reagent             {:mvn/version "1.1.1"}
            ring/ring                   {:mvn/version "1.8.1"}
            }
  :aliases {
            :test {:extra-deps    {speclj/speclj                  {:mvn/version "3.4.1"}
-                                  org.clojure/clojurescript      {:mvn/version "1.10.764"}
+                                  org.clojure/clojurescript      {:mvn/version "1.11.60"}
                                   com.cleancoders.c3kit/scaffold {:local/root "../scaffold"}}
                   :override-deps {com.cleancoders.c3kit/apron {:local/root "../apron"}}
                   :extra-paths   ["dev" "spec/clj" "spec/cljc" "spec/cljs"]}
