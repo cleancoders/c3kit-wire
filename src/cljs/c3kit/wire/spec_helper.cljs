@@ -8,7 +8,7 @@
     [c3kit.wire.js :as wjs]
     [c3kit.wire.websocket :as ws]
     [cljs.pprint :as pp]
-    [cljsjs.react.dom.test-utils]                           ;; Brings in js/ReactTestUtils
+    [cljsjs.react.dom.test-utils] ;; Brings in js/ReactTestUtils
     [clojure.string :as str]
     [reagent.core :as reagent]
     [reagent.dom :as dom]
@@ -60,7 +60,7 @@
   ([component root]
    (swap! render-roots conj root)
 
-	 ;; TODO - MDM: This should be removed.
+   ;; TODO - MDM: This should be removed.
    (set! (.-Slider js/window) (clj->js {:default (fn [] nil)}))
    (set! js/jwplayer (fn [elem_id] (clj->js {:setup  ccc/noop
                                              :remove ccc/noop})))
@@ -211,6 +211,22 @@
 (defn mouse-leave!
   ([thing] (mouse-leave thing) (flush))
   ([root selector] (mouse-leave root selector) (flush)))
+
+(defn focus
+  ([thing] ((.-focus simulator) (resolve-node :focus thing)))
+  ([root selector] (focus (resolve-node :focus root selector))))
+
+(defn focus!
+  ([thing] (focus thing) (flush))
+  ([root selector] (focus root selector) (flush)))
+
+(defn blur
+  ([thing] ((.-blur simulator) (resolve-node :blur thing)))
+  ([root selector] (blur (resolve-node :blur root selector))))
+
+(defn blur!
+  ([thing] (blur thing) (flush))
+  ([root selector] (blur root selector) (flush)))
 
 (defn change
   ([thing]
