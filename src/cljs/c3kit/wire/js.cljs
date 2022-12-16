@@ -9,12 +9,9 @@
 ; Key Codes
 (def BACKSPACE 8)
 (def TAB 9)
-(defn TAB? [e] (= (e-key-code e) TAB))
 (def ENTER 13)
-(defn ENTER? [e] (= (e-key-code e) ENTER))
 (def SHIFT 16)
 (def ESC 27)
-(defn ESC? [e] (= (e-key-code e) ESC))
 (def SPACE 32)
 (def LEFT 37)
 (def UP 38)
@@ -22,6 +19,20 @@
 (def DOWN 40)
 (def DELETE 46)
 (def COMMA 188)
+
+(defn- KEY? [key-code e] (= (e-key-code e) key-code))
+(def BACKSPACE? (partial KEY? BACKSPACE))
+(def TAB? (partial KEY? TAB))
+(def ENTER? (partial KEY? ENTER))
+(def SHIFT? (partial KEY? SHIFT))
+(def ESC? (partial KEY? ESC))
+(def SPACE? (partial KEY? SPACE))
+(def LEFT? (partial KEY? LEFT))
+(def UP? (partial KEY? UP))
+(def RIGHT? (partial KEY? RIGHT))
+(def DOWN? (partial KEY? DOWN))
+(def DELETE? (partial KEY? DELETE))
+(def COMMA? (partial KEY? COMMA))
 
 (defn nod
   "Give an event the nod, as if saying: Good job, your work is done."
