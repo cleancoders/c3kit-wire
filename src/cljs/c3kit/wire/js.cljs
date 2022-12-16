@@ -39,6 +39,12 @@
   (nip e)
   (nod e))
 
+(defn query-selector [selector] (.querySelector js/document selector))
+(defn resolve-node [thing]
+  (if (string? thing)
+    (query-selector thing)
+    thing))
+
 (defn ancestor-where [pred node]
   (cond
     (nil? node) nil
@@ -83,7 +89,8 @@
 (defn e-wheel-click? [e] (= 1 (o-get e "button")))
 (defn e-right-click? [e] (= 2 (o-get e "button")))
 
-(defn focus! [node] (when node (.focus node)))
+(defn focus! [thing] (some-> thing resolve-node (.focus)))
+(defn blur! [thing] (some-> thing resolve-node (.blur)))
 
 (defn nod-n-do
   "Return function to suppress browser event with nod and call the supplied function with args."
