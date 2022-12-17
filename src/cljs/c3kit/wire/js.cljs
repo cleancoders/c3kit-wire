@@ -229,7 +229,8 @@
 (defn stroke-rect! [ctx [x1 y1] [x2 y2]] (.strokeRect ctx x1 y1 x2 y2))
 (defn fill-text! [ctx text [x y]] (.fillText ctx text x y))
 
-(defn scroll-into-view [node-id]
-  (.scrollIntoView (.getElementById js/document node-id) (clj->js {:behavior "smooth"})))
+(defn scroll-into-view
+  ([node-id] (scroll-into-view node-id {:behavior "smooth"}))
+  ([node-id options] (.scrollIntoView (.getElementById js/document node-id) (clj->js options))))
 
 (defn scroll-to-top [] (.scrollTo js/window (clj->js {:behavior "smooth" :top 0})))
