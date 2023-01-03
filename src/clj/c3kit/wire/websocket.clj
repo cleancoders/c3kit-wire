@@ -1,21 +1,20 @@
 (ns c3kit.wire.websocket
-  (:import (clojure.lang ExceptionInfo))
-  (:require
-    [c3kit.apron.app :as app]
-    [c3kit.apron.log :as log]
-    [c3kit.apron.schema :as schema]
-    [c3kit.apron.util :as util]
-    [c3kit.wire.api :as api]
-    [c3kit.wire.apic :as apic]
-    [c3kit.wire.websocketc :as wsc]
-    ))
+  (:require [c3kit.apron.app :as app]
+            [c3kit.apron.log :as log]
+            [c3kit.apron.schema :as schema]
+            [c3kit.apron.util :as util]
+            [c3kit.wire.api :as api]
+            [c3kit.wire.apic :as apic]
+            [c3kit.wire.websocketc :as wsc])
+  (:import (clojure.lang ExceptionInfo)))
 
 (def server (app/resolution :ws/server))
 
 (defn connected-ids [] (set (keys (:connections @@server))))
 
-(def get-handler (delay #(wsc/handler @server %)))
-(def post-handler (delay #(wsc/handler @server %)))
+(defn handler
+  ([request] (wsc/handler @server request))
+  ([request options] (wsc/handler @server request options)))
 
 (defn- log-message [{:keys [kind connection-id]}]
   (log/trace (str "websocket call: " kind " client: " connection-id))
@@ -114,7 +113,7 @@
   (log/report "Starting websocket")
   (when (app/development?) (development!))
   (let [handler (if (app/development?) (refresh-handler) message-handler)
-        server (wsc/create handler)]
+        server  (wsc/create handler)]
     (assoc app :ws/server server)))
 
 (defn stop [app]
