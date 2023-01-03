@@ -45,7 +45,7 @@
   (if-let [handler (:message-handler @server)]
     (let [handler-msg (assoc message :connection-id (:id @connection))
           handler-msg (if-let [request (:request @connection)] (assoc handler-msg :request request) handler-msg)
-          result (handler handler-msg)]
+          result      (handler handler-msg)]
       (when (:reply? handler-msg)
         (let [reply (response (:request-id handler-msg) result)]
           (send-to! server connection (:socket @connection) reply))))
@@ -107,7 +107,7 @@
 (defn connection-request! [server conn-atom kind params responder]
   (let [connection (swap! conn-atom (fn [conn]
                                       (let [request-counter (inc (:request-counter conn 0))
-                                            conn (assoc conn :request-counter request-counter)]
+                                            conn            (assoc conn :request-counter request-counter)]
                                         (if responder
                                           (let [timeout (when-let [timeout-millis (:request-timeout @server)]
                                                           (-create-timeout! server conn request-counter timeout-millis))]
@@ -119,7 +119,7 @@
   (let [options (when options (ccc/->options options))]
     (if (:open? @connection)
       (let [message (connection-request! state connection kind params handler)
-            socket (:socket @connection)]
+            socket  (:socket @connection)]
         (-activity! connection)
         (if socket
           (send-to! state connection socket message)
@@ -158,11 +158,12 @@
            true
            (handle-failed-send! server connection-id))))
 
-     (defn- maybe-invalid-csrf-token [request]
-       (let [expected (:session/key request)
-             actual (-> request :params :ws-csrf-token)]
+     (defn- maybe-invalid-csrf-token [request {:keys [read-csrf]}]
+       (let [read-csrf-fn (or read-csrf :session/key)
+             expected     (read-csrf-fn request)
+             actual       (-> request :params :ws-csrf-token)]
          (when (or (nil? actual) (not= expected actual))
-           {:status 403 :body "Invalid anti-forgery token"})))
+           {:status 403 :body "Invalid websocket CSRF token"})))
 
      (defn- maybe-invalid-connection-id [connection-id] (when-not connection-id {:status 403 :body "Invalid connection id"}))
 
@@ -203,7 +204,7 @@
        ([path connection-id csrf-token] (-connection-uri (.-location js/window) path connection-id csrf-token))
        ([location path connection-id csrf-token]
         (let [protocol (if (= "https:" (.-protocol location)) "wss:" "ws:")
-              host (.-host location)]
+              host     (.-host location)]
           (str protocol "//" host path "?connection-id=" connection-id "&ws-csrf-token=" csrf-token))))
 
      (defn -connection-cursor [state] (cursor state [:connection]))
@@ -281,14 +282,14 @@
   :ping-interval	 	- (default: 30) seconds between keep-alive pings on inactive connections. nil -> no pings
   "
   [message-handler & args]
-  (let [options (ccc/->options args)
-        atom-fn (:atom-fn options atom)
-        server (merge default-options
-                      (select-keys options (keys default-options))
-                      #?(:clj  {:connections {}
-                                :scheduler   (-new-scheduler)}
-                         :cljs {:connection nil})
-                      {:message-handler message-handler})
+  (let [options    (ccc/->options args)
+        atom-fn    (:atom-fn options atom)
+        server     (merge default-options
+                          (select-keys options (keys default-options))
+                          #?(:clj  {:connections {}
+                                    :scheduler   (-new-scheduler)}
+                             :cljs {:connection nil})
+                          {:message-handler message-handler})
         state-atom (atom-fn server)]
     (when-let [interval (:ping-interval @state-atom)]
       (add-ping-task! state-atom interval))
@@ -299,18 +300,21 @@
      "Ring handler to open websocket connections in the specified server state atom.
 
      server  - server state atom (from create)
-     request - ring request"
-     [server request]
-     (let [connection-id (-> request :params :connection-id)]
-       (or (maybe-invalid-csrf-token request)
-           (maybe-invalid-connection-id connection-id)
-           (httpkit/as-channel request {:on-receive (partial -data-received server connection-id)
-                                        :on-close   (partial -channel-on-close server connection-id)
-                                        :on-open    (partial -open-connection! server request connection-id)
-                                        ;; Maybe delete the two below.  They don't seem used.
-                                        ;:init       (partial -channel-init server connection-id)
-                                        ;:on-ping    (partial -channel-on-ping server connection-id)
-                                        }))))
+     request - ring request
+     options -
+       :read-csrf - function to read the csrf token from a request"
+     ([server request] (handler server request {}))
+     ([server request options]
+      (let [connection-id (-> request :params :connection-id)]
+        (or (maybe-invalid-csrf-token request options)
+            (maybe-invalid-connection-id connection-id)
+            (httpkit/as-channel request {:on-receive (partial -data-received server connection-id)
+                                         :on-close   (partial -channel-on-close server connection-id)
+                                         :on-open    (partial -open-connection! server request connection-id)
+                                         ;; Maybe delete the two below.  They don't seem used.
+                                         ;:init       (partial -channel-init server connection-id)
+                                         ;:on-ping    (partial -channel-on-ping server connection-id)
+                                         })))))
    :cljs
    (defn connect!
      "Open a websocket connection to the server.
@@ -321,8 +325,8 @@
      [client path csrf-token]
      (log/debug "websocket connect!")
      (let [connection-id (str (ccc/new-uuid))
-           uri (-connection-uri path connection-id csrf-token)
-           socket (new js/WebSocket uri)]
+           uri           (-connection-uri path connection-id csrf-token)
+           socket        (new js/WebSocket uri)]
        (-add-connection! client path csrf-token connection-id socket)
        (.addEventListener socket "open" (partial -handle-open client))
        (.addEventListener socket "message" (partial -data-received client))

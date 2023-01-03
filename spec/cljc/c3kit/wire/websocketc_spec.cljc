@@ -20,7 +20,7 @@
 (def send!-result (atom true))
 
 (defn pings []
-  (let [sends (stub/invocations-of :socket/send!)
+  (let [sends    (stub/invocations-of :socket/send!)
         messages (map #(sut/unpack (second %)) sends)]
     (count (filter #(= :ws/ping (:kind %)) messages))))
 
@@ -37,12 +37,12 @@
   (with state (sut/create (stub :message-handler {:invoke (fn [_] @message-handler-result)})))
   #?(:clj (with request {:params {:connection-id "client-123" :ws-csrf-token "csrf-blah"} :session/key "csrf-blah"}))
   (around [it]
-    (with-redefs [sut/-create-timeout! (stub :sut/create-timeout {:return :fake-timeout})
-                  sut/-cancel-timeout! (stub :sut/cancel-timeout)
+    (with-redefs [sut/-create-timeout!                           (stub :sut/create-timeout {:return :fake-timeout})
+                  sut/-cancel-timeout!                           (stub :sut/cancel-timeout)
                   #?(:clj httpkit/send! :cljs sut/-socket-send!) (stub :socket/send! {:invoke (fn [& _] @send!-result)})
                   #?(:cljs js/setTimeout) #?(:cljs (stub :js/setTimeout {:return :fake-timeout}))
-                  #?(:clj sut/-schedule-with-delay) #?(:clj (stub :-schedule-with-delay {:return :fake-delay-task}))
-                  #?(:clj sut/-new-scheduler) #?(:clj (stub :-new-scheduler {:return :fake-scheduler}))]
+                  #?(:clj sut/-schedule-with-delay) #?(:clj      (stub :-schedule-with-delay {:return :fake-delay-task}))
+                  #?(:clj sut/-new-scheduler) #?(:clj            (stub :-new-scheduler {:return :fake-scheduler}))]
       (capture-logs
         (it))))
 
@@ -70,7 +70,7 @@
                (sut/response 321 :stuff)))
 
     (it "request? / response?"
-      (let [request (sut/request 111 :bar :params true)
+      (let [request  (sut/request 111 :bar :params true)
             response (sut/response 222 :payload)]
         (should= true (sut/request? request))
         (should= true (sut/response? response))
@@ -92,7 +92,7 @@
 
       (it "no callback"
         (let [conn-atom (atom (sut/connection "ABC" :socket))
-              request (sut/connection-request! @state conn-atom :foo "param" nil)]
+              request   (sut/connection-request! @state conn-atom :foo "param" nil)]
           (should= 1 (:request-id request))
           (should= :foo (:kind request))
           (should= "param" (:params request))
@@ -102,7 +102,7 @@
 
       (it "with callback"
         (let [conn-atom (atom (sut/connection "ABC" :socket))
-              request (sut/connection-request! @state conn-atom :foo "param" :a-responder)]
+              request   (sut/connection-request! @state conn-atom :foo "param" :a-responder)]
           (should= 1 (:request-id request))
           (should= :foo (:kind request))
           (should= "param" (:params request))
@@ -117,7 +117,7 @@
 
       (it "removes pending responders from connection"
         (let [conn-atom (atom (sut/connection "ABC" :socket))
-              _ (sut/connection-request! @state conn-atom :foo "param" :a-responder)
+              _         (sut/connection-request! @state conn-atom :foo "param" :a-responder)
               [responder-fn timeout] (sut/connection-responder! conn-atom 1)]
           (should= :a-responder responder-fn)
           (should-not-contain 1 (:responders @conn-atom))))
@@ -151,7 +151,7 @@
 
     (it "ping task"
       (should-contain :ping-task @@state)
-      #?(:clj (should= :fake-delay-task (:ping-task @@state))
+      #?(:clj  (should= :fake-delay-task (:ping-task @@state))
          :cljs (should= :fake-timeout (:ping-task @@state))))
 
     (it "nil ping-interval"
@@ -217,7 +217,7 @@
       #?(:clj  (sut/call! @state "conn-abc" :test "params" (stub :test-responder))
          :cljs (sut/call! @state :test "params" (stub :test-responder)))
       (let [[socket message-str] (stub/last-invocation-of :socket/send!)
-            message (sut/unpack message-str)
+            message    (sut/unpack message-str)
             request-id (:request-id message)]
         #?(:clj  (sut/-data-received @state "conn-abc" "a-socket" (utilc/->edn (sut/response request-id "a payload")))
            :cljs (sut/-data-received @state (clj->js {:data (utilc/->edn (sut/response request-id "a payload"))}))))
@@ -246,15 +246,15 @@
     (context "timeout!"
 
       (it "removes the responder"
-        (let [conn-atom (atom (sut/connection "ABC" :socket))
-              request (sut/connection-request! @state conn-atom :foo "param" :a-responder)
+        (let [conn-atom  (atom (sut/connection "ABC" :socket))
+              request    (sut/connection-request! @state conn-atom :foo "param" :a-responder)
               request-id (:request-id request)]
           (sut/-timeout! @state conn-atom request-id)
           (should-not-contain request-id (:responders @conn-atom))))
 
       (it "sends internal message"
-        (let [conn-atom (atom (sut/connection "ABC" :socket))
-              request (sut/connection-request! @state conn-atom :foo "param" :a-responder)
+        (let [conn-atom  (atom (sut/connection "ABC" :socket))
+              request    (sut/connection-request! @state conn-atom :foo "param" :a-responder)
               request-id (:request-id request)]
           (sut/-timeout! @state conn-atom request-id)
           (should-have-invoked :message-handler)
@@ -266,7 +266,7 @@
         #?(:clj  (sut/call! @state "conn-abc" :test "params" (stub :test-responder))
            :cljs (sut/call! @state :test "params" (stub :test-responder)))
         (let [[_ message-str] (stub/last-invocation-of :socket/send!)
-              message (sut/unpack message-str)
+              message  (sut/unpack message-str)
               response (sut/response (:request-id message) "a payload")]
           #?(:clj  (sut/-data-received @state "conn-abc" "a-socket" response)
              :cljs (sut/-data-received @state (clj->js {:data (utilc/->edn response)})))
@@ -364,7 +364,7 @@
 
     (it "activity?"
       (let [connection (atom (sut/connection "id" "a-socket"))
-            moment (-> 5 seconds ago)]
+            moment     (-> 5 seconds ago)]
         (should= false (sut/-activity-since? connection moment))
         (sut/-activity! connection)
         (should= true (sut/-activity-since? connection moment))
@@ -429,8 +429,8 @@
                  response2 (sut/handler @state (assoc-in @request [:params :ws-csrf-token] "wrong"))]
              (should= 403 (:status response1))
              (should= 403 (:status response2))
-             (should= "Invalid anti-forgery token" (:body response1))
-             (should= "Invalid anti-forgery token" (:body response2))))
+             (should= "Invalid websocket CSRF token" (:body response1))
+             (should= "Invalid websocket CSRF token" (:body response2))))
 
          (it "invalid connection-id"
            (let [response (sut/handler @state (assoc-in @request [:params :connection-id] nil))]
@@ -448,6 +448,14 @@
                ;(should-contain :on-ping options)
                (should-contain :on-close options)
                (should-contain :on-open options))))
+
+         (it "socket response with read-csrf option"
+           (with-redefs [httpkit/as-channel (stub :httpkit/as-channel {:return :channel})]
+             (let [request  (-> @request
+                                (assoc-in [:foo :bar] "custom-csrf")
+                                (assoc-in [:params :ws-csrf-token] "custom-csrf"))
+                   response (sut/handler @state request {:read-csrf (comp :bar :foo)})]
+               (should= :channel response))))
          )
 
        (context "on-open"
