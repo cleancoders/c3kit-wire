@@ -142,6 +142,7 @@
 (defn node-size [node] [(node-width node) (node-height node)])
 (defn node-value [node] (.-value node))
 (defn node-parent [node] (.-parentNode node))
+(defn node-placeholder [node] (.-placeholder node))
 (defn node-children [node] (array-seq (.-childNodes node)))
 (defn node-clone [node deep?] (.cloneNode node deep?))
 (defn node-append-child [node child] (.appendChild node child))

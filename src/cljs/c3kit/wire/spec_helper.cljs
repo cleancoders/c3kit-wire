@@ -307,6 +307,12 @@
   ([root selector]
    (.-value (resolve-node :value root selector))))
 
+(defn placeholder
+  ([thing]
+   (.-placeholder (resolve-node :placeholder thing)))
+  ([root selector]
+   (.-placeholder (resolve-node :placeholder root selector))))
+
 (defn checked?
   ([thing]
    (.-checked (resolve-node :checked? thing)))
