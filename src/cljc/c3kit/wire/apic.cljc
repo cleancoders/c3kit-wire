@@ -1,10 +1,8 @@
 (ns c3kit.wire.apic
-  (:require
-    [c3kit.apron.corec :as corec]
-    [c3kit.apron.log :as log]
-    [c3kit.apron.schema :as schema]
-    [c3kit.wire.flashc :as flashc]
-    ))
+  (:require [c3kit.apron.corec :as corec]
+            [c3kit.apron.log :as log]
+            [c3kit.apron.schema :as schema]
+            [c3kit.wire.flashc :as flashc]))
 
 (def response-schema
   {:status  {:type :keyword}
@@ -60,5 +58,3 @@
 (defn fail? [response] (= :fail (:status response)))
 (defn redirect? [response] (= :redirect (:status response)))
 (defn payload [response] (:payload response))
-
-

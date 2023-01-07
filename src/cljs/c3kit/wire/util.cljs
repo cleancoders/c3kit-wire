@@ -1,11 +1,10 @@
 (ns c3kit.wire.util
-  (:require
-    [c3kit.apron.log :as log]
-    [clojure.string :as str]
-    [clojure.walk :as walk]
-    [goog.dom :as dom]
-    [goog.dom.forms :as form]
-    ))
+  (:require [c3kit.apron.corec :as ccc]
+            [c3kit.apron.log :as log]
+            [clojure.string :as str]
+            [clojure.walk :as walk]
+            [goog.dom :as dom]
+            [goog.dom.forms :as form]))
 
 (defn errors->strings [errors]
   (map
@@ -33,16 +32,15 @@
     result))
 
 (defn with-react-keys [col]
-  (doall
-    (map
-      (fn [[n i]]
-        (if (satisfies? IWithMeta n)
-          (let [m (meta n)]
-            (if (:key m)
-              n
-              (with-meta n (assoc m :key i))))
-          (with-meta [:span n] {:key i})))
-      (partition 2 (interleave col (range))))))
+  (ccc/map-all
+    (fn [[n i]]
+      (if (satisfies? IWithMeta n)
+        (let [m (meta n)]
+          (if (:key m)
+            n
+            (with-meta n (assoc m :key i))))
+        (with-meta [:span n] {:key i})))
+    (partition 2 (interleave col (range)))))
 
 (defn keyed-list [& args] (with-react-keys args))
 

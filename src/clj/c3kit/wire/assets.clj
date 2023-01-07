@@ -1,9 +1,7 @@
 (ns c3kit.wire.assets
-  (:require
-    [c3kit.apron.app :as app]
-    [c3kit.apron.util :as util]
-    [clojure.java.io :as io]
-    ))
+  (:require [c3kit.apron.app :as app]
+            [c3kit.apron.util :as util]
+            [clojure.java.io :as io]))
 
 (def fingerprinted-regex #"(.*)(\.fp[a-z0-9]{32})(\.?[^\./]*)?")
 (def path-regex #"(.*?)(\.[^\./]*)?")
@@ -51,6 +49,5 @@
   requests for /stylesheets/my.css"
   [handler]
   (fn [request]
-    (let [request (resolve-fingerprint-in request)]
-      (handler request))))
+    (-> request resolve-fingerprint-in handler)))
 

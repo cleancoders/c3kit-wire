@@ -1,13 +1,9 @@
 (ns c3kit.wire.api
-  (:require
-    [c3kit.apron.app :as app]
-    [c3kit.apron.corec :as ccc]
-    [c3kit.apron.log :as log]
-    [c3kit.apron.schema :as schema]
-    [c3kit.wire.apic :as apic]
-    [clojure.java.io :as io]
-    [clojure.string :as str]
-    ))
+  (:require [c3kit.apron.corec :as ccc]
+            [c3kit.apron.schema :as schema]
+            [c3kit.wire.apic :as apic]
+            [clojure.java.io :as io]
+            [clojure.string :as str]))
 
 (def default-config {
                      :ajax-on-ex  'c3kit.wire.ajax/default-ajax-ex-handler ;; (fn [request e])
@@ -26,7 +22,7 @@
 ;    (assoc app :api/version timestamp)))
 
 (defn version-from-js-file [js-path]
-  (let [url (or (io/resource js-path) (throw (ex-info "No JS file. Did you forget to build it?" {:js-path js-path})))
+  (let [url  (or (io/resource js-path) (throw (ex-info "No JS file. Did you forget to build it?" {:js-path js-path})))
         file (io/file (.getFile url))]
     (str (.lastModified file))))
 
@@ -37,9 +33,7 @@
       (apic/flash-warn "Validation errors...")))
 
 (defn maybe-validation-errors [entity]
-  (when-let [error-map (schema/error-message-map entity)]
-    (validation-errors-response error-map)))
+  (some-> entity schema/error-message-map validation-errors-response))
 
 (defn maybe-entity-errors [entity]
-  (when-let [errors (schema/messages entity)]
-    (apic/fail nil (str/join " , " errors))))
+  (some->> entity schema/messages (str/join " , ") (apic/fail nil)))

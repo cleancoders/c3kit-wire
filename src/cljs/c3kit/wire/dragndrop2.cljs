@@ -1,12 +1,12 @@
 (ns c3kit.wire.dragndrop2
-  (:require
-    [c3kit.apron.corec :as ccc]
-    [c3kit.apron.log :as log]
-    [c3kit.wire.fake-hiccup :as fake-hiccup]
-    [c3kit.wire.js :as wjs]
-    [goog.events.EventHandler]
-    [goog.fx.DragDrop]
-    [goog.fx.DragDropGroup])
+  (:require [c3kit.apron.corec :as ccc]
+            [c3kit.apron.log :as log]
+            [c3kit.wire.fake-hiccup :as fake-hiccup]
+            [c3kit.wire.js :as wjs]
+            [clojure.string :as str]
+            [goog.events.EventHandler]
+            [goog.fx.DragDrop]
+            [goog.fx.DragDropGroup])
   (:import (goog History)))
 
 (def drag-threshold 5)
@@ -58,9 +58,9 @@
 (defn -dispatch-event [dnd group type event]
   (loop [listeners (get-in @dnd [:groups group :listeners type])]
     (if-let [listener (first listeners)]
-      (if (= false (listener event))
-        false
-        (recur (rest listeners)))
+      (if (listener event)
+        (recur (rest listeners))
+        false)
       true)))
 
 (defn- update-drag-node-position [dnd js-event]
@@ -72,8 +72,7 @@
     (wjs/o-set drag-style "top" (str (- y offset-y) "px"))))
 
 (defn- handle-drag [dnd js-event]
-  (let [state @dnd
-        {:keys [group member node]} (:active-drag state)]
+  (let [{:keys [group member node]} (:active-drag @dnd)]
     (when (-dispatch-event dnd group :drag (drag-event group member node js-event))
       (update-drag-node-position dnd js-event))))
 
@@ -98,7 +97,7 @@
 (defn- append-dragger [doc drag-node drag-class drag-style]
   (wjs/node-id= drag-node "_dragndrop-drag-node_")
   (wjs/o-set drag-style "position" "absolute")
-  (wjs/o-set drag-style "pointer-events" "none")            ;; allow wheel events to scroll containers, but prevents mouse-over
+  (wjs/o-set drag-style "pointer-events" "none") ;; allow wheel events to scroll containers, but prevents mouse-over
   (when drag-class (wjs/node-add-class drag-node drag-class))
   (wjs/node-append-child (wjs/doc-body doc) drag-node))
 
@@ -109,8 +108,8 @@
 (defn- create-drag-node [dnd group node]
   (if-let [hiccup-fn (get-in @dnd [:groups group :hiccup])]
     (let [drag-node (hiccup-fn node)
-          classes   (->> (clojure.string/split (wjs/node-classes node) #" ")
-                         (remove #(clojure.string/blank? %)))]
+          classes   (->> (str/split (wjs/node-classes node) #" ")
+                         (remove str/blank?))]
       (doseq [class classes] (when class (wjs/node-add-class drag-node class)))
       drag-node)
     (wjs/node-clone node true)))

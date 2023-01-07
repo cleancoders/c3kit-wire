@@ -1,14 +1,13 @@
 (ns c3kit.wire.ajax
-  (:require
-    [c3kit.apron.log :as log]
-    [c3kit.apron.util :as util]
-    [c3kit.apron.utilc :as utilc]
-    [c3kit.wire.api :as api]
-    [c3kit.wire.apic :as apic]
-    [c3kit.wire.flash :as flash]
-    [c3kit.wire.flashc :as flashc]
-    [cognitect.transit :as transit]
-    [ring.util.response :as response]))
+  (:require [c3kit.apron.log :as log]
+            [c3kit.apron.util :as util]
+            [c3kit.apron.utilc :as utilc]
+            [c3kit.wire.api :as api]
+            [c3kit.wire.apic :as apic]
+            [c3kit.wire.flash :as flash]
+            [c3kit.wire.flashc :as flashc]
+            [cognitect.transit :as transit]
+            [ring.util.response :as response]))
 
 (defn response [body] (response/response body))
 
@@ -86,15 +85,13 @@
 (defn wrap-api-transit-response [handler]
   (fn [request]
     (when-let [response (handler request)]
-      (let [json-response (update response :body utilc/->transit)]
-        (if (contains? (:headers response) "Content-Type")
-          json-response
-          (response/content-type json-response "application/transit+json; charset=utf-8"))))))
+      (cond-> (update response :body utilc/->transit)
+              (not (contains? (:headers response) "Content-Type"))
+              (response/content-type "application/transit+json; charset=utf-8")))))
 
 (defn wrap-add-api-version [handler]
   (fn [request]
-    (when-let [response (handler request)]
-      (assoc-in response [:body :version] (api/version)))))
+    (some-> request handler (assoc-in [:body :version] (api/version)))))
 
 (defn wrap-ajax [handler]
   (-> handler

@@ -1,44 +1,34 @@
 (ns c3kit.wire.ajax-spec
-  (:require-macros [speclj.core :refer [describe context it should-not-be-nil should-be-nil should= should-not
-                                        should-not= should-have-invoked after before with-stubs with around
-                                        should-contain should-not-contain stub should-not-have-invoked should-have-invoked]]
-                   [c3kit.apron.log :refer [capture-logs]])
-  (:require
-    [c3kit.apron.log :as log]
-    [c3kit.wire.ajax :as sut]
-    [c3kit.wire.api :as api]
-    [c3kit.wire.js :as cc]
-    [c3kit.wire.flash :as flash]
-    [c3kit.wire.spec-helper :as helper]
-    [speclj.core]
-    [c3kit.apron.corec :as ccc]
-    [speclj.stub :as stub]
-    [cljs-http.client :as http]))
-
-(def handler :undefined)
+  (:require-macros [c3kit.apron.log :refer [capture-logs]]
+                   [speclj.core :refer [around context describe it should should-contain
+                                        should-have-invoked should-not should= stub with-stubs]])
+  (:require [c3kit.apron.corec :as ccc]
+            [c3kit.apron.log :as log]
+            [c3kit.wire.ajax :as sut]
+            [c3kit.wire.api :as api]
+            [c3kit.wire.flash :as flash]
+            [c3kit.wire.js :as cc]
+            [c3kit.wire.spec-helper :as helper]
+            [cljs-http.client :as http]
+            [speclj.core]
+            [speclj.stub :as stub]))
 
 (describe "AJAX"
-
   (with-stubs)
 
-  (context "response"
-
-    (it "server-down?"
-      (should= false (sut/server-down? {:status     200
-                                        :success    true
-                                        :error-code :no-error
-                                        :error-text ""}))
-      (should= true (sut/server-down? {:status     0
-                                       :success    false
-                                       :error-code :http-error
-                                       :error-text " [0]"}))
-      (should= true (sut/server-down? {:status     502
-                                       :success    false
-                                       :error-code :http-error
-                                       :error-text "Bad Gateway [502]"}))
-      )
-
-    )
+  (it "server-down?"
+    (should-not (sut/server-down? {:status     200
+                                   :success    true
+                                   :error-code :no-error
+                                   :error-text ""}))
+    (should (sut/server-down? {:status     0
+                               :success    false
+                               :error-code :http-error
+                               :error-text " [0]"}))
+    (should (sut/server-down? {:status     502
+                               :success    false
+                               :error-code :http-error
+                               :error-text "Bad Gateway [502]"})))
 
   (context "triage-response"
 
@@ -59,7 +49,6 @@
     (it "unknown"
       (sut/triage-response {:error-code :no-error :status 123} {})
       (should-have-invoked :handle-unknown))
-
     )
 
   (context "handle server-down"
@@ -78,7 +67,7 @@
 
     (it "timeout"
       (sut/handle-server-down {})
-      (should-have-invoked :timeout))                       ; presumably to re-invoke the api call
+      (should-have-invoked :timeout)) ; presumably to re-invoke the api call
     )
 
   (it "params-type"
@@ -88,17 +77,15 @@
     (should= :form-params (sut/params-key {:params {:foo "bar"} :options {:params-type :form}}))
     (should= :edn-params (sut/params-key {:params {:foo "bar"} :options {:params-type :edn}}))
     (should= :json-params (sut/params-key {:params {:foo "bar"} :options {:params-type :json}}))
-    (should= :multipart-params (sut/params-key {:params {:foo "bar"} :options {:params-type :multipart}}))
-    )
+    (should= :multipart-params (sut/params-key {:params {:foo "bar"} :options {:params-type :multipart}})))
 
   (it "GET and HEAD use :query-params because they can't have body"
     (should= :query-params (sut/params-key {:params {:foo "bar"} :method "GET"}))
     (should= :query-params (sut/params-key {:params {:foo "bar"} :method "HEAD"}))
-    (should= :query-params (sut/params-key {:params {:foo "bar"}  :method "GET" :options {:params-type :transit}}))
-    (should= :query-params (sut/params-key {:params {:foo "bar"}  :method "HEAD" :options {:params-type :transit}})))
+    (should= :query-params (sut/params-key {:params {:foo "bar"} :method "GET" :options {:params-type :transit}}))
+    (should= :query-params (sut/params-key {:params {:foo "bar"} :method "HEAD" :options {:params-type :transit}})))
 
   (context "requests"
-
     (helper/stub-ajax)
 
     (it "headers"
@@ -129,19 +116,15 @@
         (should= "oauth-token" (:oauth-token req))
         (should= "with-credentials?" (:with-credentials? req))
         (should= "transit-opts" (:transit-opts req))))
-
     )
 
-  (context "options"
-
-    (it "on-http-error"
-      (let [ajax-call (sut/build-ajax-call "POST" ccc/noop "/some/url" {} ccc/noop
-                                           [:on-http-error (stub :unexpected-response-handler)])
-            response  {:status 413 :body "foo"}]
-        (capture-logs
-          (sut/triage-response response ajax-call))
-        (should-have-invoked :unexpected-response-handler {:with [response]})))
-    )
+  (it "on-http-error"
+    (let [ajax-call (sut/build-ajax-call "POST" ccc/noop "/some/url" {} ccc/noop
+                                         [:on-http-error (stub :unexpected-response-handler)])
+          response  {:status 413 :body "foo"}]
+      (capture-logs
+        (sut/triage-response response ajax-call))
+      (should-have-invoked :unexpected-response-handler {:with [response]})))
 
   (context "main api"
 
@@ -166,12 +149,8 @@
 
     )
 
-  (context "prep-fns"
-
-    (it "wrap-csrf"
-      (with-redefs [api/config (delay {:ajax-prep-fn (sut/prep-csrf "X-CSRF-Token" "foobar")})]
-        (let [request (sut/request-map (sut/build-ajax-call "GET" ccc/noop "/endpoint" {} ccc/noop []))]
-          (should= "foobar" (get-in request [:headers "X-CSRF-Token"])))))
-
-    )
+  (it "wrap-csrf"
+    (with-redefs [api/config (delay {:ajax-prep-fn (sut/prep-csrf "X-CSRF-Token" "foobar")})]
+      (let [request (sut/request-map (sut/build-ajax-call "GET" ccc/noop "/endpoint" {} ccc/noop []))]
+        (should= "foobar" (get-in request [:headers "X-CSRF-Token"])))))
   )

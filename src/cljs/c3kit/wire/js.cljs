@@ -1,10 +1,9 @@
 (ns c3kit.wire.js
-  (:import [goog History])
-  (:require
-    [goog.object :as gobject]
-    [c3kit.apron.log :as log]))
+  (:require [c3kit.apron.log :as log]
+            [goog.object :as gobject])
+  (:import (goog History)))
 
-(defn e-key-code [e] (-> e .-keyCode))
+(defn e-key-code [e] (.-keyCode e))
 
 ; Key Codes
 (def BACKSPACE 8)
@@ -51,10 +50,7 @@
   (nod e))
 
 (defn query-selector [selector] (.querySelector js/document selector))
-(defn resolve-node [thing]
-  (if (string? thing)
-    (query-selector thing)
-    thing))
+(defn resolve-node [thing] (cond-> thing (string? thing) query-selector))
 
 (defn ancestor-where [pred node]
   (cond
@@ -93,7 +89,7 @@
 
 (defn e-target [e] (.-target e))
 (defn e-text [e] (-> e .-target .-value))
-(defn e-type [e] (-> e .-type))
+(defn e-type [e] (.-type e))
 (defn e-checked? [e] (-> e .-target .-checked))
 (defn e-coordinates [e] [(.-clientX e) (.-clientY e)])
 (defn e-left-click? [e] (= 0 (o-get e "button")))
@@ -123,7 +119,6 @@
   (fn [e]
     (nix e)
     (apply a-fn args)))
-
 
 (defn document ([] js/document) ([node] (.-ownerDocument node)))
 (defn doc-body [doc] (.-body doc))
@@ -191,17 +186,17 @@
 
 (defn download-data [data content-type filename]
   (let [blob (new js/Blob (clj->js [data]) (clj->js {:type content-type}))
-        url (.createObjectURL js/URL blob)]
+        url  (.createObjectURL js/URL blob)]
     (download url filename)
     (timeout 100 #(.revokeObjectURL js/URL url))))
 
 (defn copy-to-clipboard-fallback [text]
   (let [textarea (.createElement js/document "textarea")
-        body (.-body js/document)]
+        body     (.-body js/document)]
     (set! (.-textContent textarea) text)
     (.appendChild body textarea)
     (let [selection (.getSelection js/document)
-          range (.createRange js/document)]
+          range     (.createRange js/document)]
       (.selectNode range textarea)
       (.removeAllRanges selection)
       (.addRange selection range)

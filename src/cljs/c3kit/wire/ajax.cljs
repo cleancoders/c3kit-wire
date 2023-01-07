@@ -1,16 +1,14 @@
 (ns c3kit.wire.ajax
   (:require-macros [cljs.core.async.macros :refer [go]])
-  (:require
-    [c3kit.apron.corec :as ccc]
-    [c3kit.apron.log :as log]
-    [c3kit.wire.api :as api]
-    [c3kit.wire.flash :as flash]
-    [c3kit.wire.js :as cc]
-    [cljs-http.client :as http]
-    [cljs.core.async :as async]
-    [clojure.string :as str]
-    [reagent.core :as reagent]
-    ))
+  (:require [c3kit.apron.corec :as ccc]
+            [c3kit.apron.log :as log]
+            [c3kit.wire.api :as api]
+            [c3kit.wire.flash :as flash]
+            [c3kit.wire.js :as cc]
+            [cljs-http.client :as http]
+            [cljs.core.async :as async]
+            [clojure.string :as str]
+            [reagent.core :as reagent]))
 
 (declare -do-ajax-request)
 (defn handle-server-down [ajax-call]
@@ -19,16 +17,14 @@
   (cc/timeout 3000 #(-do-ajax-request ajax-call)))
 
 (defn handle-http-error [response ajax-call]
-  (if-let [handler (:on-http-error (:options ajax-call))]
-    (handler response)
-    (log/error "Unexpected AJAX response: " response ajax-call)))
+  (or (some-> ajax-call :options :on-http-error (ccc/invoke response))
+      (log/error "Unexpected AJAX response: " response ajax-call)))
 
 (def active-ajax-requests (reagent/atom 0))
 (defn activity? [] (not= 0 @active-ajax-requests))
 
-(defn server-down? [response]
-  (and (= :http-error (:error-code response))
-       (contains? #{0 502} (:status response))))
+(defn server-down? [{:keys [error-code status]}]
+  (and (= :http-error error-code) (#{0 502} status)))
 
 (defn triage-response [response ajax-call]
   (cond (server-down? response) (handle-server-down ajax-call)
@@ -43,17 +39,16 @@
     (assoc-in ajax-call [:options :headers header] token)))
 
 (defn params-key [ajax-call]
-  (let [method (:method ajax-call)]
-    (if (or (= "GET" method) (= "HEAD" method))
-      :query-params
-      (case (get-in ajax-call [:options :params-type])
-        nil :transit-params
-        :transit :transit-params
-        :query :query-params
-        :form :form-params
-        :edn :edn-params
-        :json :json-params
-        :multipart :multipart-params))))
+  (if (#{"GET" "HEAD"} (:method ajax-call))
+    :query-params
+    (case (-> ajax-call :options :params-type)
+      nil :transit-params
+      :transit :transit-params
+      :query :query-params
+      :form :form-params
+      :edn :edn-params
+      :json :json-params
+      :multipart :multipart-params)))
 
 ;; Keys used by cljs-http
 (def pass-through-keys [:accept
@@ -67,22 +62,18 @@
                         :with-credentials?])
 
 (defn request-map [ajax-call]
-  (let [prep      (or (:ajax-prep-fn @api/config) identity)
-        ajax-call (prep ajax-call)
-        {:keys [options params]} ajax-call
-        request   (select-keys options pass-through-keys)]
-    (if params
-      (let [p-key (params-key ajax-call)]
-        (assoc request p-key params))
-      request)))
+  (let [prep (or (:ajax-prep-fn @api/config) identity)
+        {:keys [options params] :as ajax-call} (prep ajax-call)]
+    (cond-> (select-keys options pass-through-keys)
+            params (assoc (params-key ajax-call) params))))
 
 (defn -do-ajax-request [{:keys [method method-fn url params] :as ajax-call}]
   (log/debug "<" method url params)
   (go
     (swap! active-ajax-requests inc)
-    (let [request  (request-map ajax-call)
-          response (async/<! (method-fn url request))]
-      (log/debug ">" method url (:error-code response) (:status response) (:status (:body response)))
+    (let [request (request-map ajax-call)
+          {:keys [error-code status body] :as response} (async/<! (method-fn url request))]
+      (log/debug ">" method url error-code status (:status body))
       (triage-response response ajax-call)
       (swap! active-ajax-requests dec))))
 

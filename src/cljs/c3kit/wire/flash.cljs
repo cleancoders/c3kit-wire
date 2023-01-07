@@ -1,12 +1,10 @@
 (ns c3kit.wire.flash
-  (:require
-    [c3kit.apron.corec :refer [conjv]]
-    [c3kit.apron.log :as log]
-    [c3kit.wire.flashc :as flashc]
-    [c3kit.wire.js :as wjs]
-    [c3kit.wire.util :as util]
-    [reagent.core :as reagent]
-    ))
+  (:require [c3kit.apron.corec :refer [conjv]]
+            [c3kit.apron.log :as log]
+            [c3kit.wire.flashc :as flashc]
+            [c3kit.wire.js :as wjs]
+            [c3kit.wire.util :as util]
+            [reagent.core :as reagent]))
 
 (def flash-timeout-millis (atom 5000))
 
@@ -16,7 +14,7 @@
 
 (defn first-msg [] (-> @state first flashc/text))
 (defn last-msg [] (-> @state last flashc/text))
-(defn all-msg [] (->> @state (map :text)))
+(defn all-msg [] (map :text @state))
 
 (defn flash= [f1 f2] (= (flashc/id f1) (flashc/id f2)))
 

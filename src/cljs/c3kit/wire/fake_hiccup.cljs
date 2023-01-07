@@ -1,6 +1,6 @@
 (ns c3kit.wire.fake-hiccup
-  (:require [goog.dom :as dom]
-            [clojure.string :as s]))
+  (:require [clojure.string :as s]
+            [goog.dom :as dom]))
 
 (defn- attrs->list [selector attributes]
   (->> (get attributes selector)
@@ -18,7 +18,7 @@
       {key value})))
 
 (defn hiccup-options [[tag options]]
-  (let [options (if (map? options) options {})
+  (let [options     (if (map? options) options {})
         tag-options (tag-options tag)]
     (merge options
            (combine-attribute :id tag-options options)
