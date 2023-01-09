@@ -133,6 +133,7 @@
 (defn page-title [] (.-title js/document))
 (defn page-title= [title] (set! (.-title js/document) title))
 (defn page-href [] (-> js/window .-location .-href))
+(defn page-pathname [] (-> js/window .-location .-pathname))
 (defn page-reload! [] (.reload (.-location js/window)))
 
 (defn node-id [node] (o-get node "id"))
