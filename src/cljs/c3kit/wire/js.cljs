@@ -1,5 +1,6 @@
 (ns c3kit.wire.js
   (:require [c3kit.apron.log :as log]
+            [clojure.string :as s]
             [goog.object :as gobject])
   (:import (goog History)))
 
@@ -123,7 +124,13 @@
 (defn document ([] js/document) ([node] (.-ownerDocument node)))
 (defn doc-body [doc] (.-body doc))
 (defn doc-ready-state [] (.-readyState js/document))
+(defn doc-cookie [] (.-cookie js/document))
 (defn doc-ready? [] (= "complete" (doc-ready-state)))
+
+(defn cookies
+  "Return a hashmap of cookie names and their values."
+  []
+  (into {} (comp (remove s/blank?) (map #(s/split % "="))) (s/split (doc-cookie) "; ")))
 
 (defn window-open [url window-name options-string] (.open js/window url window-name options-string))
 (defn window-close! [] (.close js/window))
