@@ -1,5 +1,5 @@
 (ns c3kit.wire.js-spec
-  (:require-macros [speclj.core :refer [after around before context describe it should should-contain should-not should-not= should= with]])
+  (:require-macros [speclj.core :refer [after around before context describe it should should-be-nil should-contain should-not should-not= should= with]])
   (:require
     [c3kit.apron.time :as time]
     [c3kit.wire.js :as sut]
@@ -37,12 +37,16 @@
         (should-not (sut/e-value unchecked))))
 
     (it "date"
-      (let [mar-16 (clj->js {:target {:type "date" :value "1990-03-16"}})
-            dec-25 (clj->js {:target {:type "date" :value "2022-12-25"}})
-            jul-4  (clj->js {:target {:type "date" :value "2203-07-04"}})]
+      (let [mar-16  (clj->js {:target {:type "date" :value "1990-03-16"}})
+            dec-25  (clj->js {:target {:type "date" :value "2022-12-25"}})
+            jul-4   (clj->js {:target {:type "date" :value "2203-07-04"}})
+            blank   (clj->js {:target {:type "date" :value "\r\n\t "}})
+            garbage (clj->js {:target {:type "date" :value "garbage"}})]
         (should= (time/utc 1990 3 16) (sut/e-value mar-16))
         (should= (time/utc 2022 12 25) (sut/e-value dec-25))
-        (should= (time/utc 2203 7 4) (sut/e-value jul-4))))
+        (should= (time/utc 2203 7 4) (sut/e-value jul-4))
+        (should-be-nil (sut/e-value blank))
+        (should-be-nil (sut/e-value garbage))))
 
     (it "text"
       (let [hello (clj->js {:target {:type "text" :value "hello"}})

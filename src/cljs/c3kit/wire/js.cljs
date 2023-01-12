@@ -101,13 +101,13 @@
 (defn e-value
   "Return the value of an event based on the target type:
      checkbox - boolean
-     date - UTC instant
+     date - UTC instant or nil if value is not a date
      text - string"
   [e]
   (let [target (e-target e)]
     (case (e-type target)
       "checkbox" (.-checked target)
-      "date" (time/parse :webform (.-value target))
+      "date" (try (time/parse :webform (.-value target)) (catch js/Error _))
       (.-value target))))
 
 (defn focus! [thing] (some-> thing resolve-node (.focus)))
