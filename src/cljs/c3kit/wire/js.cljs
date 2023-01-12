@@ -1,5 +1,6 @@
 (ns c3kit.wire.js
   (:require [c3kit.apron.log :as log]
+            [c3kit.apron.time :as time]
             [clojure.string :as s]
             [goog.object :as gobject])
   (:import (goog History)))
@@ -96,6 +97,18 @@
 (defn e-left-click? [e] (= 0 (o-get e "button")))
 (defn e-wheel-click? [e] (= 1 (o-get e "button")))
 (defn e-right-click? [e] (= 2 (o-get e "button")))
+
+(defn e-value
+  "Return the value of an event based on the target type:
+     checkbox - boolean
+     date - UTC instant
+     text - string"
+  [e]
+  (let [target (e-target e)]
+    (case (e-type target)
+      "checkbox" (.-checked target)
+      "date" (time/parse :webform (.-value target))
+      (.-value target))))
 
 (defn focus! [thing] (some-> thing resolve-node (.focus)))
 (defn blur! [thing] (some-> thing resolve-node (.blur)))
