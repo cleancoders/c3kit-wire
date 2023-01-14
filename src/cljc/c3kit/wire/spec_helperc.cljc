@@ -10,7 +10,7 @@
 
 #?(:clj (defmacro with-utc-offset [millis]
           `(around [it#]
-             (with-redefs [c3kit.apron.time/utc-offset (constantly millis)]
+             (with-redefs [c3kit.apron.time/utc-offset (constantly ~millis)]
                (it#)))))
 
 #?(:clj (defmacro should-select
