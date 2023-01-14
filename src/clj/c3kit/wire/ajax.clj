@@ -38,8 +38,7 @@
   (response (api/validation-errors-response entity)))
 
 (defn maybe-validation-errors [entity]
-  (when-let [r (api/maybe-validation-errors entity)]
-    (response r)))
+  (some-> entity api/maybe-validation-errors response))
 
 (defn payload [response] (-> response :body :payload))
 (defn status [response] (-> response :body :status))
@@ -73,10 +72,9 @@
         response))))
 
 (defn wrap-transit-params [handler]
-  (fn [request]
-    (if (= "application/transit+json" (get-in request [:headers "content-type"]))
-      (let [body   (:body request)
-            params (cond (nil? body) {}
+  (fn [{:keys [headers body] :as request}]
+    (if (= "application/transit+json" (get headers "content-type"))
+      (let [params (cond (nil? body) {}
                          (string? body) (utilc/<-transit body)
                          :else (with-open [in body] (transit/read (transit/reader in :json {}))))]
         (handler (assoc request :params params)))
@@ -84,23 +82,23 @@
 
 (defn wrap-api-transit-response [handler]
   (fn [request]
-    (when-let [response (handler request)]
-      (cond-> (update response :body utilc/->transit)
-              (not (contains? (:headers response) "Content-Type"))
-              (response/content-type "application/transit+json; charset=utf-8")))))
+    (when-let [{:keys [body headers] :as response} (handler request)]
+      (if (map? body)
+        (cond-> (update response :body utilc/->transit)
+                (not (get headers "Content-Type"))
+                (response/content-type "application/transit+json; charset=utf-8"))
+        response))))
 
 (defn wrap-add-api-version [handler]
   (fn [request]
-    (some-> request handler (assoc-in [:body :version] (api/version)))))
+    (let [{:keys [body] :as response} (handler request)]
+      (if (map? body)
+        (assoc-in response [:body :version] (api/version))
+        response))))
 
 (defn wrap-ajax [handler]
   (-> handler
       wrap-catch-api-errors
-      ;wrap-transfer-flash-to-api
       wrap-add-api-version
       wrap-api-transit-response
       wrap-transit-params))
-
-
-
-
