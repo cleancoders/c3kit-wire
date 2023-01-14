@@ -22,6 +22,7 @@
         (should= request (handle-add-api-version request))))
 
     (it "map body"
+      (api/configure! :version "123")
       (let [request  {:body {:hello :world}}
             response (handle-add-api-version request)]
         (should= (assoc-in request [:body :version] "123") response)))
