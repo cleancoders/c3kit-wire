@@ -8,10 +8,10 @@
              (with-redefs [c3kit.apron.time/now (stub :now {:return ~time})]
                (it#)))))
 
-#(:clj (defmacro with-utc-offset [millis]
-         `(around [it#]
-            (with-redefs [c3kit.apron.time/utc-offset (constantly millis)]
-              (it#)))))
+#?(:clj (defmacro with-utc-offset [millis]
+          `(around [it#]
+             (with-redefs [c3kit.apron.time/utc-offset (constantly millis)]
+               (it#)))))
 
 #?(:clj (defmacro should-select
           "Asserts the selector finds a node"
