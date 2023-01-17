@@ -35,24 +35,92 @@
 (def DELETE? (partial KEY? DELETE))
 (def COMMA? (partial KEY? COMMA))
 
-(defn nod
-  "Give an event the nod, as if saying: Good job, your work is done."
-  [e]
-  (.preventDefault e))
+(defn o-get
+  ([js-obj key] (gobject/get js-obj key nil))
+  ([js-obj key default] (gobject/get js-obj key default)))
 
-(defn nip
-  "Nip the event in the bud, before it causes any trouble."
-  [e]
-  (.stopPropagation e))
+(defn o-set [js-obj key value] (gobject/set js-obj key value))
 
-(defn nix
-  "Nix an event: Stop what you're doing and get the hell out."
-  [e]
-  (nip e)
-  (nod e))
+;; ----- Simple js function translations -----
 
+(defn clear-interval [interval] (js/clearInterval interval))
+(defn clear-timeout [timeout] (js/clearTimeout timeout))
+(defn context-2d [canvas] (.getContext canvas "2d"))
+(defn doc-body [doc] (.-body doc))
+(defn doc-cookie [] (.-cookie js/document))
+(defn doc-ready-state [] (.-readyState js/document))
+(defn doc-ready? [] (= "complete" (doc-ready-state)))
+(defn document ([] js/document) ([node] (.-ownerDocument node)))
+(defn e-checked? [e] (-> e .-target .-checked))
+(defn e-client-x [e] (.-clientX e))
+(defn e-client-y [e] (.-clientY e))
+(defn e-coordinates [e] [(.-clientX e) (.-clientY e)])
+(defn e-left-click? [e] (= 0 (o-get e "button")))
+(defn e-right-click? [e] (= 2 (o-get e "button")))
+(defn e-target [e] (.-target e))
+(defn e-text [e] (-> e .-target .-value))
+(defn e-type [e] (.-type e))
+(defn e-wheel-click? [e] (= 1 (o-get e "button")))
+(defn element-by-id [id] (.getElementById js/document id))
+(defn frame-window [iframe] (.-contentWindow iframe))
+(defn interval [millis f] (js/setInterval f millis))
+(defn node-add-class [node class] (.add (.-classList node) class))
+(defn node-append-child [node child] (.appendChild node child))
+(defn node-children [node] (array-seq (.-childNodes node)))
+(defn node-classes [node] (.-className node))
+(defn node-clone [node deep?] (.cloneNode node deep?))
+(defn node-height [node] (.-clientHeight node))
+(defn node-id [node] (o-get node "id"))
+(defn node-id= [node id] (o-set node "id" id))
+(defn node-parent [node] (.-parentNode node))
+(defn node-placeholder [node] (.-placeholder node))
+(defn node-remove-child [node child] (.removeChild node child))
+(defn node-remove-class [node class] (.remove (.-classList node) class))
+(defn node-scroll-left [node] (.-scrollLeft node))
+(defn node-scroll-top [node] (.-scrollTop node))
+(defn node-size [node] [(node-width node) (node-height node)])
+(defn node-style [node] (.-style node))
+(defn node-value [node] (.-value node))
+(defn node-width [node] (.-clientWidth node))
+(defn page-href [] (-> js/window .-location .-href))
+(defn page-pathname [] (-> js/window .-location .-pathname))
+(defn page-reload! [] (.reload (.-location js/window)))
+(defn page-title [] (.-title js/document))
+(defn page-title= [title] (set! (.-title js/document) title))
+(defn post-message [window message target-domain] (.postMessage window (clj->js message) target-domain))
+(defn print-page [] (.print js/window))
 (defn query-selector [selector] (.querySelector js/document selector))
-(defn resolve-node [thing] (cond-> thing (string? thing) query-selector))
+(defn register-post-message-handler [handler] (.addEventListener js/window "message" handler))
+(defn register-storage-handler [handler] (.addEventListener js/window "storage" handler))
+(defn remove-local-storage [key] (.removeItem js/localStorage key))
+(defn screen-size [] [(.-width js/screen) (.-height js/screen)])
+(defn set-local-storage [key value] (.setItem js/localStorage key value))
+(defn timeout [millis f] (js/setTimeout f millis))
+(defn uri-encode [& stuff] (js/encodeURIComponent (apply str stuff)))
+(defn window-close! [] (.close js/window))
+(defn window-open [url window-name options-string] (.open js/window url window-name options-string))
+
+;; ^^^^^ Simple js function translations ^^^^^
+
+(defn node-bounds [node]
+  (let [rect (.getBoundingClientRect node)]
+    [(.-x rect) (.-y rect) (.-width rect) (.-height rect)]))
+
+(defn cookies
+  "Return a hashmap of cookie names and their values."
+  []
+  (into {} (comp (remove s/blank?) (map #(s/split % "="))) (s/split (doc-cookie) "; ")))
+
+(defn resolve-node
+  "Resolves a value into a DOM node.
+  Possible values:
+    - string id       - id of the node
+    - string selector - CSS selector to find the node
+    - node            - anything else is assumed to be the node"
+  [thing]
+  (if (string? thing)
+    (or (element-by-id thing) (query-selector thing))
+    thing))
 
 (defn ancestor-where [pred node]
   (cond
@@ -60,43 +128,50 @@
     (pred node) node
     :else (recur pred (.-parentElement node))))
 
-(defn timeout [millis f] (js/setTimeout f millis))
-(defn clear-timeout [timeout] (js/clearTimeout timeout))
-(defn interval [millis f] (js/setInterval f millis))
-(defn clear-interval [interval] (js/clearInterval interval))
 
-;(defn navigate!
-;  "Use for navigation between rich-client pages.  Passing a full URL will cause error."
-;  [path]
-;  (accountant/navigate! path))
+(defn nod
+  "Give an event the nod, as if saying: Good job, your work is done."
+  [e]
+  (.preventDefault e))
+
+(defn nod-n-do
+  "Return function to suppress browser event with nod and call the supplied function with args."
+  [a-fn & args]
+  (fn [e]
+    (nod e)
+    (apply a-fn args)))
+
+(defn nip
+  "Nip the event in the bud, before it causes any trouble."
+  [e]
+  (.stopPropagation e))
+
+(defn nip-n-do
+  "Return function to suppress browser event with nip and call the supplied function with args."
+  [a-fn & args]
+  (fn [e]
+    (nip e)
+    (apply a-fn args)))
+
+(defn nix
+  "Nix an event: Stop what you're doing and get the hell out."
+  [e]
+  (nip e)
+  (nod e))
+
+(defn nix-n-do
+  "Return function to suppress browser event with nix and call the supplied function with args."
+  [a-fn & args]
+  (fn [e]
+    (nix e)
+    (apply a-fn args)))
+
 
 (defn redirect!
   "Tell the browser to load the given URL, with full HTTP request/response process."
   [url]
   (set! (.-location js/window) url))
 
-;(defn goto! [path]
-;  (when path
-;    (if (secretary/locate-route path)
-;      (navigate! path)
-;      (redirect! path))))
-
-(defn print-page [] (.print js/window))
-
-(defn o-get
-  ([js-obj key] (gobject/get js-obj key nil))
-  ([js-obj key default] (gobject/get js-obj key default)))
-
-(defn o-set [js-obj key value] (gobject/set js-obj key value))
-
-(defn e-target [e] (.-target e))
-(defn e-text [e] (-> e .-target .-value))
-(defn e-type [e] (.-type e))
-(defn e-checked? [e] (-> e .-target .-checked))
-(defn e-coordinates [e] [(.-clientX e) (.-clientY e)])
-(defn e-left-click? [e] (= 0 (o-get e "button")))
-(defn e-wheel-click? [e] (= 1 (o-get e "button")))
-(defn e-right-click? [e] (= 2 (o-get e "button")))
 
 (defn e-value
   "Return the value of an event based on the target type:
@@ -110,81 +185,13 @@
       "date" (try (time/parse :webform (.-value target)) (catch js/Error _))
       (.-value target))))
 
-(defn focus! [thing] (some-> thing resolve-node (.focus)))
+(defn focus!
+  "Resolved the node and focus.
+  Options: {:preventScroll true ;; default is false
+            :focusVisible true}  ;; default may be false "
+  ([thing] (some-> thing resolve-node (.focus)))
+  ([thing options] (some-> thing resolve-node (.focus (clj->js options)))))
 (defn blur! [thing] (some-> thing resolve-node (.blur)))
-
-(defn nod-n-do
-  "Return function to suppress browser event with nod and call the supplied function with args."
-  [a-fn & args]
-  (fn [e]
-    (nod e)
-    (apply a-fn args)))
-
-(defn nip-n-do
-  "Return function to suppress browser event with nip and call the supplied function with args."
-  [a-fn & args]
-  (fn [e]
-    (nip e)
-    (apply a-fn args)))
-
-(defn nix-n-do
-  "Return function to suppress browser event with nix and call the supplied function with args."
-  [a-fn & args]
-  (fn [e]
-    (nix e)
-    (apply a-fn args)))
-
-(defn document ([] js/document) ([node] (.-ownerDocument node)))
-(defn doc-body [doc] (.-body doc))
-(defn doc-ready-state [] (.-readyState js/document))
-(defn doc-cookie [] (.-cookie js/document))
-(defn doc-ready? [] (= "complete" (doc-ready-state)))
-
-(defn cookies
-  "Return a hashmap of cookie names and their values."
-  []
-  (into {} (comp (remove s/blank?) (map #(s/split % "="))) (s/split (doc-cookie) "; ")))
-
-(defn window-open [url window-name options-string] (.open js/window url window-name options-string))
-(defn window-close! [] (.close js/window))
-
-(defn frame-window [iframe] (.-contentWindow iframe))
-
-(defn page-title [] (.-title js/document))
-(defn page-title= [title] (set! (.-title js/document) title))
-(defn page-href [] (-> js/window .-location .-href))
-(defn page-pathname [] (-> js/window .-location .-pathname))
-(defn page-reload! [] (.reload (.-location js/window)))
-
-(defn node-id [node] (o-get node "id"))
-(defn node-id= [node id] (o-set node "id" id))
-(defn node-width [node] (.-clientWidth node))
-(defn node-height [node] (.-clientHeight node))
-(defn node-size [node] [(node-width node) (node-height node)])
-(defn node-value [node] (.-value node))
-(defn node-parent [node] (.-parentNode node))
-(defn node-placeholder [node] (.-placeholder node))
-(defn node-children [node] (array-seq (.-childNodes node)))
-(defn node-clone [node deep?] (.cloneNode node deep?))
-(defn node-append-child [node child] (.appendChild node child))
-(defn node-remove-child [node child] (.removeChild node child))
-(defn node-style [node] (.-style node))
-(defn node-add-class [node class] (.add (.-classList node) class))
-(defn node-remove-class [node class] (.remove (.-classList node) class))
-(defn node-classes [node] (.-className node))
-(defn node-bounds [node]
-  (let [rect (.getBoundingClientRect node)]
-    [(.-x rect) (.-y rect) (.-width rect) (.-height rect)]))
-
-(defn uri-encode [& stuff] (js/encodeURIComponent (apply str stuff)))
-(defn post-message [window message target-domain] (.postMessage window (clj->js message) target-domain))
-(defn register-post-message-handler [handler] (.addEventListener js/window "message" handler))
-(defn register-storage-handler [handler] (.addEventListener js/window "storage" handler))
-(defn screen-size [] [(.-width js/screen) (.-height js/screen)])
-(defn element-by-id [id] (.getElementById js/document id))
-(defn context-2d [canvas] (.getContext canvas "2d"))
-(defn set-local-storage [key value] (.setItem js/localStorage key value))
-(defn remove-local-storage [key] (.removeItem js/localStorage key))
 
 (defn add-listener
   ([node event listener] (add-listener node event listener nil))
@@ -231,6 +238,8 @@
     (.writeText clipboard text)
     (copy-to-clipboard-fallback text)))
 
+;; ----- Painting on Canvas -----
+
 (defn begin-path! [ctx] (.beginPath ctx))
 (defn stroke! [ctx] (.stroke ctx))
 (defn fill! [ctx] (.fill ctx))
@@ -246,8 +255,12 @@
 (defn stroke-rect! [ctx [x1 y1] [x2 y2]] (.strokeRect ctx x1 y1 x2 y2))
 (defn fill-text! [ctx text [x y]] (.fillText ctx text x y))
 
+;; ^^^^^ Painting on Canvas ^^^^^
+
 (defn scroll-into-view
-  ([node-id] (scroll-into-view node-id {:behavior "smooth"}))
-  ([node-id options] (.scrollIntoView (.getElementById js/document node-id) (clj->js options))))
+  ([thing] (scroll-into-view thing {:behavior "smooth"}))
+  ([thing options] (.scrollIntoView (resolve-node thing) (clj->js options))))
 
 (defn scroll-to-top [] (.scrollTo js/window (clj->js {:behavior "smooth" :top 0})))
+
+(def console-log (partial (.-log js/console)))
