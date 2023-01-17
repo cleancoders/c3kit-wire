@@ -78,7 +78,7 @@
 (defn node-remove-class [node class] (.remove (.-classList node) class))
 (defn node-scroll-left [node] (.-scrollLeft node))
 (defn node-scroll-top [node] (.-scrollTop node))
-(defn node-size [node] [(node-width node) (node-height node)])
+(defn node-size [node] [(.-clientWidth node) (.-clientHeight node)])
 (defn node-style [node] (.-style node))
 (defn node-value [node] (.-value node))
 (defn node-width [node] (.-clientWidth node))
