@@ -5,9 +5,10 @@
             [goog.object :as gobject])
   (:import (goog History)))
 
+;; ----- Key Codes and Events -----
+
 (defn e-key-code [e] (.-keyCode e))
 
-; Key Codes
 (def BACKSPACE 8)
 (def TAB 9)
 (def ENTER 13)
@@ -34,6 +35,17 @@
 (def DOWN? (partial KEY? DOWN))
 (def DELETE? (partial KEY? DELETE))
 (def COMMA? (partial KEY? COMMA))
+
+(defn key-modifier? [e modifier]
+  (try ;; test keyboard events don't seem to support this.
+    (.getModifierState e modifier)
+    (catch :default e false)))
+
+(defn shift-modifier? [e] (key-modifier? e "Shift"))
+(defn ctl-modifier? [e] (key-modifier? e "Control"))
+(defn alt-modifier? [e] (key-modifier? e "Alt"))
+
+;; ^^^^^ Key Codes and Events ^^^^^
 
 (defn o-get
   ([js-obj key] (gobject/get js-obj key nil))
