@@ -102,6 +102,19 @@
    wjs/RIGHT (clj->js {:keyCode 39 :key "ArrowRight"})
    wjs/DOWN  (clj->js {:keyCode 40 :key "ArrowDown"})})
 
+(defn simulate
+  ([event-name thing event-data]
+   (let [node (resolve-node :simulate thing)
+         event-fn (wjs/o-get simulator event-name)]
+     (when-not event-fn (throw (ex-info (str "simulate - event doesn't exist: " event-name) {:thing thing :event-name event-name :event-data event-data})))
+     (event-fn node (clj->js event-data))))
+  ([event-name root selector event-data]
+   (simulate event-name (resolve-node root selector) event-data)))
+
+(defn simulate!
+  ([event-name thing event-data] (simulate event-name thing event-data) (flush))
+  ([event-name root selector event-data] (simulate event-name root selector event-data) (flush)))
+
 (defn key-down
   ([thing key-code]
    ((.-keyDown simulator)

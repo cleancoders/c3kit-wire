@@ -68,6 +68,7 @@
 (defn e-client-y [e] (.-clientY e))
 (defn e-coordinates [e] [(.-clientX e) (.-clientY e)])
 (defn e-left-click? [e] (= 0 (o-get e "button")))
+(defn e-related-target [e] (.-relatedTarget e))
 (defn e-right-click? [e] (= 2 (o-get e "button")))
 (defn e-target [e] (.-target e))
 (defn e-text [e] (-> e .-target .-value))
@@ -140,6 +141,8 @@
     (pred node) node
     :else (recur pred (.-parentElement node))))
 
+(defn ancestor? [ancestor node]
+  (boolean (ancestor-where #(= ancestor %) node)))
 
 (defn nod
   "Give an event the nod, as if saying: Good job, your work is done."
