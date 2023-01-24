@@ -58,7 +58,9 @@
 (defn clear-interval [interval] (js/clearInterval interval))
 (defn clear-timeout [timeout] (js/clearTimeout timeout))
 (defn context-2d [canvas] (.getContext canvas "2d"))
-(defn doc-body [doc] (.-body doc))
+(defn doc-body
+  ([] (.-body js/document))
+  ([doc] (.-body doc)))
 (defn doc-cookie [] (.-cookie js/document))
 (defn doc-ready-state [] (.-readyState js/document))
 (defn doc-ready? [] (= "complete" (doc-ready-state)))
@@ -85,6 +87,7 @@
 (defn node-height [node] (.-clientHeight node))
 (defn node-id [node] (o-get node "id"))
 (defn node-id= [node id] (o-set node "id" id))
+(defn node-text [node] (.-innerText node))
 (defn node-parent [node] (.-parentNode node))
 (defn node-placeholder [node] (.-placeholder node))
 (defn node-remove-child [node child] (.removeChild node child))

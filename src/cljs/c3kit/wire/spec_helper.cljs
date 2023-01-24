@@ -271,6 +271,25 @@
   ([thing value] (check-box thing value) (flush))
   ([root selector value] (check-box root selector value) (flush)))
 
+(defn text!
+  "Throws exception if the node doesn't exist."
+  ([thing]
+   (.-innerText (resolve-node :text thing)))
+  ([root selector]
+   (.-innerText (resolve-node :text root selector))))
+
+(defn text
+  "Return nil if the node doesn't exist."
+  ([] (wjs/node-text (wjs/doc-body)))
+  ([selector-or-elem]
+   (cond
+     (string? selector-or-elem) (some-> (select selector-or-elem) wjs/node-text)
+     (nil? selector-or-elem) nil
+     :else (wjs/node-text selector-or-elem)))
+  ([root selector]
+   (some-> (select root selector) wjs/node-text)))
+
+
 (defn html!
   "Throws exception if the node doesn't exist."
   ([thing]
