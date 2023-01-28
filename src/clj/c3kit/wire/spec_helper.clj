@@ -1,7 +1,8 @@
 (ns c3kit.wire.spec-helper
-  (:require [c3kit.wire.apic :as apic]
+  (:require [c3kit.apron.log :as log]
+            [c3kit.wire.ajax :as ajax]
+            [c3kit.wire.apic :as apic]
             [c3kit.wire.flashc :as flashc]
-            [c3kit.apron.log :as log]
             [speclj.core :refer :all]))
 
 (log/warn!)
@@ -14,23 +15,28 @@
 (defmacro should-ajax-redirect-to
   ([response location]
    `(let [response# ~response]
-      (should= :redirect (-> response# :body :status))
+      (should= :redirect (ajax/status response#))
       (should= ~location (-> response# :body :uri))))
   ([response location message]
    `(let [response# ~response]
-      (should= :redirect (-> response# :body :status))
+      (should= :redirect (ajax/status response#))
       (should= ~location (-> response# :body :uri))
       (should= ~message (-> response# :body apic/first-flash-text)))))
 
 (defmacro should-be-ajax-ok [response message]
   `(let [response# ~response]
-     (should= :ok (-> response# :body :status))
+     (should= :ok (ajax/status response#))
      (should= ~message (-> response# :body apic/first-flash-text))
      (should (-> response# :body apic/first-flash flashc/success?))))
 
+(defmacro should-be-ajax-ok-payload [response payload]
+  `(let [response# ~response]
+     (should= :ok (ajax/status response#))
+     (should= ~payload (ajax/payload response#))))
+
 (defmacro should-be-ajax-fail [response message]
   `(let [response# ~response]
-     (should= :fail (-> response# :body :status))
+     (should= :fail (ajax/status response#))
      (should= ~message (-> response# :body apic/first-flash-text))
      (should (-> response# :body apic/first-flash flashc/error?))))
 
