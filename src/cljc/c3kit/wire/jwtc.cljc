@@ -1,5 +1,6 @@
 (ns c3kit.wire.jwtc
-  (:require [c3kit.apron.utilc :as utilc]
+  (:require [c3kit.apron.corec :as ccc]
+            [c3kit.apron.utilc :as utilc]
             [clojure.string :as s]
             #?(:clj [cheshire.core :as json])
             #?(:clj [buddy.core.codecs :as codecs])
@@ -10,11 +11,12 @@
      (->> s
           (.atob js/window)
           seq
-          (map #(.charCodeAt % 0))
-          (map #(.toString % 16))
-          (map #(str "00" %))
-          (map #(.slice % -2))
-          (map #(str "%" %))
+          (sequence
+            (comp
+              (map ccc/first-char-code)
+              (map utilc/->hex)
+              (map #(ccc/pad-left! % 2 0))
+              (map #(str "%" %))))
           (s/join ""))))
 
 (defn ->payload
@@ -34,4 +36,4 @@
          (-> (b64/decode payload)
              codecs/bytes->str
              (json/parse-string true)))
-      (catch #?(:clj Exception :cljs js/Error) _))))
+      (catch #?(:clj Exception :cljs :default) _))))
