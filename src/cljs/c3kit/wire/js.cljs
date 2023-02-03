@@ -228,7 +228,7 @@
      (log/warn "remove-listener to nil node"))))
 
 (defn add-doc-listener [event handler] (add-listener js/document event handler))
-(defn remove-doc-listener [event handler] (add-listener js/document event handler))
+(defn remove-doc-listener [event handler] (remove-listener js/document event handler))
 
 (defn download [url filename]
   (let [a (.createElement js/document "a")]
