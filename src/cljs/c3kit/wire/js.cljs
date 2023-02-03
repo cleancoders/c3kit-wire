@@ -20,6 +20,7 @@
 (def RIGHT 39)
 (def DOWN 40)
 (def DELETE 46)
+(def NUMPAD+ 107)
 (def COMMA 188)
 
 (defn- KEY? [key-code e] (= (e-key-code e) key-code))
@@ -34,6 +35,7 @@
 (def RIGHT? (partial KEY? RIGHT))
 (def DOWN? (partial KEY? DOWN))
 (def DELETE? (partial KEY? DELETE))
+(def NUMPAD+? (partial KEY? NUMPAD+))
 (def COMMA? (partial KEY? COMMA))
 
 (defn key-modifier? [e modifier]
@@ -224,6 +226,9 @@
    (if node
      (.removeEventListener node event listener (when options (clj->js options)))
      (log/warn "remove-listener to nil node"))))
+
+(defn add-doc-listener [event handler] (add-listener js/document event handler))
+(defn remove-doc-listener [event handler] (add-listener js/document event handler))
 
 (defn download [url filename]
   (let [a (.createElement js/document "a")]
