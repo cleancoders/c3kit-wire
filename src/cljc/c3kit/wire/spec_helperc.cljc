@@ -1,6 +1,7 @@
 (ns c3kit.wire.spec-helperc
   #?(:cljs (:require-macros [speclj.core :refer [-fail -to-s around]]))
-  (:require #?(:clj  [speclj.core :refer :all]
+  (:require [c3kit.apron.log :as log]
+            #?(:clj  [speclj.core :refer :all]
                :cljs [speclj.core])))
 
 #?(:clj (defmacro stub-now [time]
@@ -71,3 +72,8 @@
            `(do (should= ~url (c3kit.wire.spec-helper/last-ajax-get-url))
                 (should= ~params (c3kit.wire.spec-helper/last-ajax-get-params))
                 (should= ~handler (c3kit.wire.spec-helper/last-ajax-get-handler))))))
+
+#?(:clj (defmacro redefs-around-logs [bindings]
+          `(around [it#]
+             (with-redefs ~bindings
+               (log/capture-logs (it#))))))
