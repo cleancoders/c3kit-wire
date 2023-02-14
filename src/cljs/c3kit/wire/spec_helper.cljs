@@ -58,6 +58,10 @@
   ([f selector] (map f (select-all selector)))
   ([f root selector] (map f (select-all root selector))))
 
+(defn count-all
+  ([selector] (count (select-all selector)))
+  ([root selector] (count (select-all root selector))))
+
 (defn render
   "Use me to render components for testing.  Using reagent/render directly may work, but is not as good."
   ([component] (render component (select "#root")))
