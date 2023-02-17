@@ -232,7 +232,7 @@
 (defn add-doc-listener [event handler] (add-listener js/document event handler))
 (defn remove-doc-listener [event handler] (remove-listener js/document event handler))
 
-(defn- ->query-value [v] (if (instance? js/Date v) (time/unparse :ref3339 v) v))
+(defn- ->query-value [v] (if (instance? js/Date v) (pr-str v) v))
 (defn ->query-string [params] (http/generate-query-string (update-vals params ->query-value)))
 (defn encode-url [root params] (cond-> root (seq params) (str "?" (->query-string params))))
 

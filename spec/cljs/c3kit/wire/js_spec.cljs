@@ -13,7 +13,7 @@
     (should= "goodbye=cruel%20world" (sut/->query-string {"goodbye" "cruel world"}))
     (should= "one=1&two=2&pi=3.1415926" (sut/->query-string {:one 1 :two 2 :pi 3.1415926}))
     (should= "nothing%3F=" (sut/->query-string {:nothing? nil}))
-    (should= "date=2022-03-05T12%3A33%3A02Z" (sut/->query-string {:date (time/parse :ref3339 "2022-03-04T23:59:02-12:34")})))
+    (should= "date=%23inst%20%222022-03-04T23%3A59%3A02.000-00%3A00%22" (sut/->query-string {:date (time/parse :ref3339 "2022-03-04T23:59:02-00:00")})))
 
   (it "encode-url"
     (should= "root" (sut/encode-url "root" nil))
