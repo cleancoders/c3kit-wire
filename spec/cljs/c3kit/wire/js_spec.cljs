@@ -1,11 +1,24 @@
 (ns c3kit.wire.js-spec
-  (:require-macros [speclj.core :refer [after around before context describe it should should-be-nil should-contain should-not should-not= should= with]])
-  (:require
-    [c3kit.apron.time :as time]
-    [c3kit.wire.js :as sut]
-    [speclj.core]))
+  (:require-macros [speclj.core :refer [context describe it should should-be-nil should-not should=]])
+  (:require [c3kit.apron.time :as time]
+            [c3kit.wire.js :as sut]
+            [speclj.core]))
 
 (describe "JavaScript"
+
+  (it "->query-string"
+    (should= "" (sut/->query-string nil))
+    (should= "" (sut/->query-string {}))
+    (should= "hello=%3Aworld" (sut/->query-string {:hello :world}))
+    (should= "goodbye=cruel%20world" (sut/->query-string {"goodbye" "cruel world"}))
+    (should= "one=1&two=2&pi=3.1415926" (sut/->query-string {:one 1 :two 2 :pi 3.1415926}))
+    (should= "nothing%3F=" (sut/->query-string {:nothing? nil}))
+    (should= "date=2022-03-05T12%3A33%3A02Z" (sut/->query-string {:date (time/parse :ref3339 "2022-03-04T23:59:02-12:34")})))
+
+  (it "encode-url"
+    (should= "root" (sut/encode-url "root" nil))
+    (should= "root" (sut/encode-url "root" {}))
+    (should= "root?foo=%3Abar" (sut/encode-url "root" {:foo :bar})))
 
   (context "cookies"
     (it "nil"

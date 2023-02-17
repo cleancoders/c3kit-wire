@@ -1,6 +1,8 @@
 (ns c3kit.wire.js
   (:require [c3kit.apron.log :as log]
+            [c3kit.apron.schema :as schema]
             [c3kit.apron.time :as time]
+            [cljs-http.client :as http]
             [clojure.string :as s]
             [goog.object :as gobject])
   (:import (goog History)))
@@ -230,11 +232,18 @@
 (defn add-doc-listener [event handler] (add-listener js/document event handler))
 (defn remove-doc-listener [event handler] (remove-listener js/document event handler))
 
-(defn download [url filename]
-  (let [a (.createElement js/document "a")]
-    (set! (.-href a) url)
-    (set! (.-download a) filename)
-    (.click a)))
+(defn- ->query-value [v] (if (instance? js/Date v) (time/unparse :ref3339 v) v))
+(defn ->query-string [params] (http/generate-query-string (update-vals params ->query-value)))
+(defn encode-url [root params] (cond-> root (seq params) (str "?" (->query-string params))))
+
+(defn download
+  ([url filename] (download url filename {}))
+  ([url filename params]
+   (let [a   (.createElement js/document "a")
+         url (encode-url url params)]
+     (set! (.-href a) url)
+     (set! (.-download a) filename)
+     (.click a))))
 
 (defn download-data [data content-type filename]
   (let [blob (new js/Blob (clj->js [data]) (clj->js {:type content-type}))
