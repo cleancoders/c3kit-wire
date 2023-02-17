@@ -81,6 +81,8 @@
 (defn e-type [e] (.-type e))
 (defn e-wheel-click? [e] (= 1 (o-get e "button")))
 (defn element-by-id [id] (.getElementById js/document id))
+(defn files-by-element [element] (.-files element))
+(defn files-by-id [id] (-> id element-by-id files-by-element))
 (defn frame-window [iframe] (.-contentWindow iframe))
 (defn interval [millis f] (js/setInterval f millis))
 (defn node-add-class [node class] (.add (.-classList node) class))
