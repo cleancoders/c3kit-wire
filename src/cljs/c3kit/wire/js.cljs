@@ -190,24 +190,10 @@
     (nix e)
     (apply a-fn args)))
 
-
 (defn redirect!
   "Tell the browser to load the given URL, with full HTTP request/response process."
   [url]
   (set! (.-location js/window) url))
-
-
-(defn e-value
-  "Return the value of an event based on the target type:
-     checkbox - boolean
-     date - UTC instant or nil if value is not a date
-     text - string"
-  [e]
-  (let [target (e-target e)]
-    (case (e-type target)
-      "checkbox" (.-checked target)
-      "date" (try (time/parse :webform (.-value target)) (catch js/Error _))
-      (.-value target))))
 
 (defn focus!
   "Resolved the node and focus.
