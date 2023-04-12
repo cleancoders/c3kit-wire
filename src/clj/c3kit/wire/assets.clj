@@ -1,7 +1,8 @@
 (ns c3kit.wire.assets
   (:require [c3kit.apron.app :as app]
             [c3kit.apron.util :as util]
-            [clojure.java.io :as io]))
+            [clojure.java.io :as io]
+            [ring.util.request :as request]))
 
 (def fingerprinted-regex #"(.*)(\.fp[a-z0-9]{32})(\.?[^\./]*)?")
 (def path-regex #"(.*?)(\.[^\./]*)?")
@@ -39,8 +40,11 @@
     (str (second match) (last match))
     path))
 
-(defn resolve-fingerprint-in [request]
-  (assoc request :uri (remove-fingerprint (:uri request))))
+(defn remove-fingerprint-in [request]
+  (let [path (request/path-info request)]
+    (if-let [match (re-matches fingerprinted-regex path)]
+      (assoc request :path-info (str (second match) (last match)))
+      request)))
 
 (defn wrap-asset-fingerprint
   "Middleware the looks for fingerprinted asset requests and removes the fingerprints.
@@ -49,5 +53,5 @@
   requests for /stylesheets/my.css"
   [handler]
   (fn [request]
-    (-> request resolve-fingerprint-in handler)))
+    (-> request remove-fingerprint-in handler)))
 

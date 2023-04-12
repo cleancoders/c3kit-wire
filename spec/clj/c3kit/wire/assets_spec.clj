@@ -61,18 +61,25 @@
 
   (it "ignored requests without finger prints"
     (let [request {:stuff :blah :uri "/path/without/fingerprint.abc"}]
-      (should= request (resolve-fingerprint-in request))))
+      (should= request (remove-fingerprint-in request))))
 
   (it "resolves fingerprinted assets in request"
     (let [fingerprint "fpabcdefghijklmnopqrstuvwxyz123456"
           request {:stuff :blah :uri (str "/path/with/fingerprint." fingerprint ".abc")}]
       (should=
-        {:stuff :blah :uri "/path/with/fingerprint.abc"}
-        (resolve-fingerprint-in request))))
+        (assoc request :path-info "/path/with/fingerprint.abc")
+        (remove-fingerprint-in request))))
+
+  (it "resolves fingerprinted assets in request (path-info)"
+    (let [fingerprint "fpabcdefghijklmnopqrstuvwxyz123456"
+          request {:stuff :blah :path-info (str "/path/with/fingerprint." fingerprint ".abc")}]
+      (should=
+        (assoc request :path-info "/path/with/fingerprint.abc")
+        (remove-fingerprint-in request))))
 
   (it "middleware passes resolved requests"
     (let [uri (atom nil)
-          inner-handler (fn [request] (reset! uri (:uri request)))
+          inner-handler (fn [request] (reset! uri (:path-info request)))
           wrapped-handler (wrap-asset-fingerprint inner-handler)
           fingerprint "fpabcdefghijklmnopqrstuvwxyz123456"
           request {:uri (str "/path/with/fingerprint." fingerprint ".abc")}]
