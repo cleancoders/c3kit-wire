@@ -1,7 +1,7 @@
 (ns c3kit.wire.ajax-spec
   (:require-macros [c3kit.apron.log :refer [capture-logs]]
-                   [speclj.core :refer [around context describe it should should-contain
-                                        should-have-invoked should-not should= stub with-stubs]])
+                   [speclj.core :refer [around context describe it should should-contain with-stubs
+                                        should-have-invoked should-not-have-invoked should-not should= stub]])
   (:require [c3kit.apron.corec :as ccc]
             [c3kit.apron.log :as log]
             [c3kit.wire.ajax :as sut]
@@ -35,7 +35,7 @@
     (around [it]
       (with-redefs [api/handle-api-response (stub :handle-api-response)
                     sut/handle-server-down (stub :handle-server-down)
-                    sut/handle-http-error (stub :handle-unknown)]
+                    sut/handle-unexpected-response (stub :handle-unknown)]
         (it)))
 
     (it "success"
@@ -46,9 +46,19 @@
       (sut/triage-response {:error-code :http-error :status 0} {})
       (should-have-invoked :handle-server-down))
 
+    (it "403 forbidden"
+      (sut/triage-response {:error-code :http-error :status 403} {})
+      (should= true (flash/active? api/forbidden-flash)))
+
     (it "unknown"
       (sut/triage-response {:error-code :no-error :status 123} {})
       (should-have-invoked :handle-unknown))
+
+    (it "custom handler"
+      (with-redefs [api/config (delay {:ajax-on-unsuccessful-response (stub :custom-handler)})]
+        (sut/triage-response {:error-code :no-error :status 123} {})
+        (should-have-invoked :custom-handler)
+        (should-not-have-invoked :handle-unknown)))
     )
 
   (context "handle server-down"
@@ -67,7 +77,7 @@
 
     (it "timeout"
       (sut/handle-server-down {})
-      (should-have-invoked :timeout)) ; presumably to re-invoke the api call
+      (should-have-invoked :timeout))                       ; presumably to re-invoke the api call
     )
 
   (it "params-type"
@@ -121,7 +131,7 @@
   (it "on-http-error"
     (let [ajax-call (sut/build-ajax-call "POST" ccc/noop "/some/url" {} ccc/noop
                                          [:on-http-error (stub :unexpected-response-handler)])
-          response  {:status 413 :body "foo"}]
+          response {:status 413 :body "foo"}]
       (capture-logs
         (sut/triage-response response ajax-call))
       (should-have-invoked :unexpected-response-handler {:with [response]})))

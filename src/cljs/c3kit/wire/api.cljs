@@ -7,12 +7,13 @@
             [c3kit.wire.js :as cc]))
 
 (def config (atom {
-                   :version           "undefined"
-                   :redirect-fn       cc/redirect!
-                   :ajax-prep-fn      nil ;; (fn [ajax-call] modified-ajax-call)
-                   :ws-csrf-token     nil
-                   :ws-on-reconnected nil
-                   :ws-uri-path       "/user/websocket"
+                   :version                       "undefined"
+                   :redirect-fn                   cc/redirect!
+                   :ajax-prep-fn                  nil       ;; (fn [ajax-call] modified-ajax-call)
+                   :ajax-on-unsuccessful-response nil       ;; (fn [response ajax-call] ...)
+                   :ws-csrf-token                 nil
+                   :ws-on-reconnected             nil
+                   :ws-uri-path                   "/user/websocket"
                    }))
 
 (defn configure! [& options] (swap! config merge (ccc/->options options)))
@@ -26,9 +27,10 @@
       (flash/add-error! "Oh no!  I choked on some data.  Doh!"))))
 
 (defn- redirect [uri] (some-> @config :redirect-fn (ccc/invoke uri)))
+(def refresh-link [:a {:href "#" :on-click (comp cc/redirect! cc/page-href)} "refresh"])
 (def server-down-flash (flashc/create :warn "Server Maintenance - please wait a moment as we try to reconnect." true))
-(def new-version-flash (flashc/create :warn (list "There is a newer version of this app.  Please "
-                                                  [:a {:href "#" :on-click (comp cc/redirect! cc/page-href)} "refresh"] ".") true))
+(def new-version-flash (flashc/create :warn (list "There is a newer version of this app.  Please " refresh-link ".") true))
+(def forbidden-flash (flashc/create :warn (list "403 - Forbidden.  Please " refresh-link ".") true))
 
 (defn new-version! [version]
   (log/warn "new version: " version ", was: " (:version @config))

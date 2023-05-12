@@ -11,14 +11,6 @@
             [reagent.core :as reagent]))
 
 (declare -do-ajax-request)
-(defn handle-server-down [ajax-call]
-  (log/warn "Appears that server is down.  Will retry after in a moment.")
-  (flash/add! api/server-down-flash)
-  (cc/timeout 3000 #(-do-ajax-request ajax-call)))
-
-(defn handle-http-error [response ajax-call]
-  (or (some-> ajax-call :options :on-http-error (ccc/invoke response))
-      (log/error "Unexpected AJAX response: " response ajax-call)))
 
 (def active-ajax-requests (reagent/atom 0))
 (defn activity? [] (not= 0 @active-ajax-requests))
@@ -26,10 +18,26 @@
 (defn server-down? [{:keys [error-code status]}]
   (and (= :http-error error-code) (#{0 502} status)))
 
-(defn triage-response [response ajax-call]
+(defn handle-server-down [ajax-call]
+  (log/warn "Appears that server is down.  Will retry after in a moment.")
+  (flash/add! api/server-down-flash)
+  (cc/timeout 3000 #(-do-ajax-request ajax-call)))
+
+(defn handle-unexpected-response [response ajax-call]
+  (if-let [on-http-error (:on-http-error (:options ajax-call))]
+    (on-http-error response)
+    (log/error "Unexpected AJAX response: " response ajax-call)))
+
+(defn handle-unsuccessful-response [response ajax-call]
   (cond (server-down? response) (handle-server-down ajax-call)
-        (= 200 (:status response)) (api/handle-api-response (:body response) ajax-call)
-        :else (handle-http-error response ajax-call)))
+        (= 403 (:status response)) (flash/add! api/forbidden-flash)
+        :else (handle-unexpected-response response ajax-call)))
+
+(defn triage-response [response ajax-call]
+  (cond (= 200 (:status response)) (api/handle-api-response (:body response) ajax-call)
+        :else (if-let [handler (:ajax-on-unsuccessful-response @api/config)]
+                (handler response ajax-call)
+                (handle-unsuccessful-response response ajax-call))))
 
 (defn prep-csrf
   "Create a prep fn to add a CSRF header to each request
@@ -112,5 +120,5 @@
 
 (defn request! [method url params handler & opt-args]
   (let [method-name (str/upper-case (name method))
-        method-fn   (fn [url & [req]] (http/request (merge req {:method method :url url})))]
+        method-fn (fn [url & [req]] (http/request (merge req {:method method :url url})))]
     (-do-ajax-request (build-ajax-call method-name method-fn url params handler opt-args))))
