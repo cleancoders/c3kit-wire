@@ -1,15 +1,13 @@
 (ns c3kit.wire.spec-helper-spec
   (:require-macros
-    [c3kit.wire.spec-helperc :refer [should-select should-not-select should-have-invoked-ws]]
-    [speclj.core :refer [describe context it should-not-be-nil should-be-nil should= should-not
-                         should-not= should-have-invoked after before before-all with-stubs with around
-                         stub should-contain should-not-contain should]]
-    )
-  (:require
-    [c3kit.wire.js :as wjs]
-    [c3kit.wire.spec-helper :as sut]
-    [reagent.core :as reagent]
-    ))
+    [speclj.core :refer [after around before before-all context describe it
+                         redefs-around should should-be-nil should-contain should-have-invoked should-not should-not-be-nil should-not-contain should-not=
+                         should= stub with with-stubs]])
+  (:require [c3kit.apron.corec :as ccc]
+            [c3kit.wire.js :as wjs]
+            [c3kit.wire.spec-helper :as sut]
+            [reagent.core :as reagent]
+            [speclj.stub :as stub]))
 
 (def ratom (reagent/atom {}))
 
@@ -25,14 +23,22 @@
     (should= key-code (.-keyCode press))
     (should= key (.-key press))))
 
+(defn should-invoke-drag-event [simulate! attribute]
+  (with-redefs [ccc/noop (stub :noop)]
+    (sut/render [:div.container {attribute ccc/noop}])
+    (simulate! ".container" {:foo :bar})
+    (should-have-invoked :noop)
+    (let [[event] (stub/last-invocation-of :noop)]
+      (should= {"foo" "bar"} (js->clj (.-dataTransfer event))))))
+
 (describe "Spec Helpers"
+  (with-stubs)
+  (sut/with-root-dom)
 
   (context "Keyboard Events"
-    (sut/with-root-dom)
-    (before
-      (reset! ratom {})
-      (sut/render [content])
-      (sut/flush))
+    (before (reset! ratom {})
+            (sut/render [content])
+            (sut/flush))
 
     (it "simulates a key down event"
       (sut/key-down! "#-text-input" wjs/ESC)
@@ -47,6 +53,15 @@
       (should= wjs/ENTER (:key-press @ratom)))
 
     )
+
+  (context "drag events"
+    (it "drag" (should-invoke-drag-event sut/drag! :on-drag))
+    (it "drag end" (should-invoke-drag-event sut/drag-end! :on-drag-end))
+    (it "drag enter" (should-invoke-drag-event sut/drag-enter! :on-drag-enter))
+    (it "drag leave" (should-invoke-drag-event sut/drag-leave! :on-drag-leave))
+    (it "drag over" (should-invoke-drag-event sut/drag-over! :on-drag-over))
+    (it "drag start" (should-invoke-drag-event sut/drag-start! :on-drag-start))
+    (it "drop" (should-invoke-drag-event sut/on-drop! :on-drop)))
 
   (it "key presses"
     (key-press-should= wjs/TAB 9 "Tab")

@@ -8,7 +8,7 @@
     [c3kit.wire.js :as wjs]
     [c3kit.wire.websocket :as ws]
     [cljs.pprint :as pp]
-    [cljsjs.react.dom.test-utils] ;; Brings in js/ReactTestUtils
+    [cljsjs.react.dom.test-utils]                           ;; Brings in js/ReactTestUtils
     [clojure.string :as str]
     [reagent.core :as reagent]
     [reagent.dom :as dom]
@@ -51,7 +51,7 @@
    (assert root (str "select-all: can't select inside nil nodes. " selector))
    (assert (string? selector) (str "select-all: selector must be a string!: " selector))
    (let [results (.querySelectorAll root selector)
-         slice   #(.call js/Array.prototype.slice %)]
+         slice #(.call js/Array.prototype.slice %)]
      (into [] (slice results)))))
 
 (defn select-map
@@ -123,7 +123,7 @@
 
 (defn simulate
   ([event-name thing event-data]
-   (let [node     (resolve-node :simulate thing)
+   (let [node (resolve-node :simulate thing)
          event-fn (wjs/o-get simulator event-name)]
      (when-not event-fn (throw (ex-info (str "simulate - event doesn't exist: " event-name) {:thing thing :event-name event-name :event-data event-data})))
      (event-fn node (clj->js event-data))))
@@ -247,6 +247,76 @@
 (defn mouse-leave!
   ([thing] (mouse-leave thing) (flush))
   ([root selector] (mouse-leave root selector) (flush)))
+
+(defn drag
+  ([thing data-transfer]
+   ((.-drag simulator) (resolve-node :drag thing) (clj->js {:dataTransfer data-transfer})))
+  ([root selector data-transfer]
+   (drag (resolve-node :drag root selector) data-transfer)))
+
+(defn drag!
+  ([thing data-transfer] (drag thing data-transfer) (flush))
+  ([root selector data-transfer] (drag root selector data-transfer) (flush)))
+
+(defn drag-start
+  ([thing data-transfer]
+   ((.-dragStart simulator) (resolve-node :drag-start thing) (clj->js {:dataTransfer data-transfer})))
+  ([root selector data-transfer]
+   (drag-start (resolve-node :drag-start root selector) data-transfer)))
+
+(defn drag-start!
+  ([thing data-transfer] (drag-start thing data-transfer) (flush))
+  ([root selector data-transfer] (drag-start root selector data-transfer) (flush)))
+
+(defn drag-enter
+  ([thing data-transfer]
+   ((.-dragEnter simulator) (resolve-node :drag-enter thing) (clj->js {:dataTransfer data-transfer})))
+  ([root selector data-transfer]
+   (drag-enter (resolve-node :drag-enter root selector) data-transfer)))
+
+(defn drag-enter!
+  ([thing data-transfer] (drag-enter thing data-transfer) (flush))
+  ([root selector data-transfer] (drag-enter root selector data-transfer) (flush)))
+
+(defn drag-leave
+  ([thing data-transfer]
+   ((.-dragLeave simulator) (resolve-node :drag-leave thing) (clj->js {:dataTransfer data-transfer})))
+  ([root selector data-transfer]
+   (drag-leave (resolve-node :drag-leave root selector) data-transfer)))
+
+(defn drag-leave!
+  ([thing data-transfer] (drag-leave thing data-transfer) (flush))
+  ([root selector data-transfer] (drag-leave root selector data-transfer) (flush)))
+
+(defn drag-end
+  ([thing data-transfer]
+   ((.-dragEnd simulator) (resolve-node :drag-end thing) (clj->js {:dataTransfer data-transfer})))
+  ([root selector data-transfer]
+   (drag-end (resolve-node :drag-end root selector) data-transfer)))
+
+(defn drag-end!
+  ([thing data-transfer] (drag-end thing data-transfer) (flush))
+  ([root selector data-transfer] (drag-end root selector data-transfer) (flush)))
+
+(defn drag-over
+  ([thing data-transfer]
+   ((.-dragOver simulator) (resolve-node :drag-over thing) (clj->js {:dataTransfer data-transfer})))
+  ([root selector data-transfer]
+   (drag-over (resolve-node :drag-over root selector) data-transfer)))
+
+(defn drag-over!
+  ([thing data-transfer] (drag-over thing data-transfer) (flush))
+  ([root selector data-transfer] (drag-over root selector data-transfer) (flush)))
+
+(defn on-drop
+  ([thing data-transfer]
+   ((.-drop simulator) (resolve-node :on-drop thing) (clj->js {:dataTransfer data-transfer})))
+  ([root selector data-transfer]
+   (on-drop (resolve-node :on-drop root selector) data-transfer)))
+
+(defn on-drop!
+  ([thing data-transfer] (on-drop thing data-transfer) (flush))
+  ([root selector data-transfer] (on-drop root selector data-transfer) (flush)))
 
 (defn focus
   ([thing] ((.-focus simulator) (resolve-node :focus thing)))
