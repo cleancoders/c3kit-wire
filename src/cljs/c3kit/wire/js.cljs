@@ -1,5 +1,6 @@
 (ns c3kit.wire.js
-  (:require [c3kit.apron.log :as log]
+  (:require [c3kit.apron.corec :as ccc]
+            [c3kit.apron.log :as log]
             [c3kit.apron.schema :as schema]
             [c3kit.apron.time :as time]
             [cljs-http.client :as http]
@@ -51,7 +52,7 @@
 (defn COMMA? [e] (KEY? COMMA e))
 
 (defn key-modifier? [e modifier]
-  (try ;; test keyboard events don't seem to support this.
+  (try                                                      ;; test keyboard events don't seem to support this.
     (.getModifierState e modifier)
     (catch :default e false)))
 
@@ -83,13 +84,23 @@
 (defn e-client-x [e] (.-clientX e))
 (defn e-client-y [e] (.-clientY e))
 (defn e-coordinates [e] [(.-clientX e) (.-clientY e)])
-(defn e-left-click? [e] (= 0 (o-get e "button")))
 (defn e-related-target [e] (.-relatedTarget e))
+(defn e-left-click? [e] (= 0 (o-get e "button")))
+(defn e-wheel-click? [e] (= 1 (o-get e "button")))
 (defn e-right-click? [e] (= 2 (o-get e "button")))
 (defn e-target [e] (.-target e))
 (defn e-text [e] (-> e .-target .-value))
 (defn e-type [e] (.-type e))
-(defn e-wheel-click? [e] (= 1 (o-get e "button")))
+(defn- file->clj [file]
+  (ccc/remove-nils
+    {:name                 (.-name file)
+     :type                 (.-type file)
+     :size                 (.-size file)
+     :last-modified        (.-lastModified file)
+     :last-modified-date   (.-lastModifiedDate file)
+     :webkit-relative-path (.-webkitRelativePath file)
+     :file                 file}))
+(defn e-files [e] (or (some->> e .-target .-files (map file->clj)) []))
 (defn element-by-id [id] (.getElementById js/document id))
 (defn frame-window [iframe] (.-contentWindow iframe))
 (defn interval [millis f] (js/setInterval f millis))

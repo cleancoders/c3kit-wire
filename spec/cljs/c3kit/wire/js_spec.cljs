@@ -45,6 +45,47 @@
         (should= {"hello" "world" "foo" "bar" "cheese" "whiz"} (sut/cookies))))
     )
 
+  (context "e-files"
+    (it "no target"
+      (should= [] (sut/e-files (clj->js {}))))
+
+    (it "empty file list"
+      (should= [] (sut/e-files (clj->js {:target {:files []}}))))
+
+    (it "one file"
+      (let [clj-file {:name "foo" :size 123}
+            js-file  (clj->js clj-file)]
+        (should= [(assoc clj-file :file js-file)]
+                 (sut/e-files (clj->js {:target {:files [js-file]}})))))
+
+    (it "two files"
+      (let [clj-foo {:name "foo" :size 123}
+            clj-bar {:name "bar.json" :type "application/json" :size 12345}
+            js-foo  (clj->js clj-foo)
+            js-bar  (clj->js clj-bar)]
+        (should= [(assoc clj-foo :file js-foo)
+                  (assoc clj-bar :file js-bar)]
+                 (sut/e-files (clj->js {:target {:files [js-foo js-bar]}})))))
+
+    (it "full attribute list"
+      (let [now      (time/now)
+            js-file  (clj->js
+                       {:name               "foo.txt"
+                        :size               555
+                        :type               "text"
+                        :lastModified       (time/millis-since-epoch now)
+                        :lastModifiedDate   now
+                        :webkitRelativePath "blah"})
+            clj-file {:name                 "foo.txt"
+                      :size                 555
+                      :type                 "text"
+                      :last-modified        (time/millis-since-epoch now)
+                      :last-modified-date   now
+                      :webkit-relative-path "blah"}]
+        (should= [(assoc clj-file :file js-file)]
+                 (sut/e-files (clj->js {:target {:files [js-file]}})))))
+    )
+
   (context "clicks"
     (wire/with-root-dom)
     (before (wire/render [:div#-some-id {:on-click ccc/noop}]))
