@@ -54,6 +54,20 @@
 
     )
 
+  (context "changes"
+    (it "text"
+      (sut/render [:input {:type :text}])
+      (sut/change! "input" "blah")
+      (should= "blah" (sut/value "input")))
+
+    (it "file"
+      (sut/render [:input {:type :file :on-change (stub :on-change)}])
+      (sut/change! "input" [{:name "kittens.png" :type "png" :size 123}])
+      (let [[event] (stub/last-invocation-of :on-change)
+            file (-> event .-target .-files first js->clj)]
+        (should= {"name" "kittens.png" "type" "png" "size" 123} file)))
+    )
+
   (context "drag events"
     (it "drag" (should-invoke-drag-event sut/drag! :on-drag))
     (it "drag end" (should-invoke-drag-event sut/drag-end! :on-drag-end))

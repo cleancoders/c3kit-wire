@@ -51,7 +51,7 @@
    (assert root (str "select-all: can't select inside nil nodes. " selector))
    (assert (string? selector) (str "select-all: selector must be a string!: " selector))
    (let [results (.querySelectorAll root selector)
-         slice #(.call js/Array.prototype.slice %)]
+         slice   #(.call js/Array.prototype.slice %)]
      (into [] (slice results)))))
 
 (defn select-map
@@ -123,7 +123,7 @@
 
 (defn simulate
   ([event-name thing event-data]
-   (let [node (resolve-node :simulate thing)
+   (let [node     (resolve-node :simulate thing)
          event-fn (wjs/o-get simulator event-name)]
      (when-not event-fn (throw (ex-info (str "simulate - event doesn't exist: " event-name) {:thing thing :event-name event-name :event-data event-data})))
      (event-fn node (clj->js event-data))))
@@ -339,8 +339,10 @@
    ((.-change simulator) (resolve-node :change thing) {:target thing}))
   ([thing value]
    (let [node (resolve-node :change thing)]
-     (set! (.-value node) value)
-     (change node)))
+     (if (= "file" (.-type node))
+       ((.-change simulator) node (clj->js {:target {:files value}}))
+       (do (set! (.-value node) value)
+           (change node)))))
   ([root selector value]
    (change (resolve-node :change root selector) value)))
 
