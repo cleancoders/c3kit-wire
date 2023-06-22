@@ -96,19 +96,34 @@
      node
      (throw (ex-info (str action " - can't find child node: " selector) {:action action :root root :selector selector})))))
 
+(defn- assoc-key-event [m key-code key]
+  (assoc m key-code (clj->js {:keyCode key-code :key key})))
+
 ; https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/keyCode
 (def keypresses
-  {wjs/ESC   (clj->js {:keyCode 27 :key "Escape"})
-   wjs/TAB   (clj->js {:keyCode 9, :key "Tab"})
-   wjs/ENTER (clj->js {:keyCode 13 :key "Enter"})
-   wjs/LEFT  (clj->js {:keyCode 37 :key "ArrowLeft"})
-   wjs/UP    (clj->js {:keyCode 38 :key "ArrowUp"})
-   wjs/RIGHT (clj->js {:keyCode 39 :key "ArrowRight"})
-   wjs/DOWN  (clj->js {:keyCode 40 :key "ArrowDown"})})
+  (->> {wjs/ESC    "Escape"
+        wjs/TAB    "Tab"
+        wjs/ENTER  "Enter"
+        wjs/LEFT   "ArrowLeft"
+        wjs/UP     "ArrowUp"
+        wjs/RIGHT  "ArrowRight"
+        wjs/DOWN   "ArrowDown"
+        wjs/DIGIT0 "Digit0"
+        wjs/DIGIT1 "Digit1"
+        wjs/DIGIT2 "Digit2"
+        wjs/DIGIT3 "Digit3"
+        wjs/DIGIT4 "Digit4"
+        wjs/DIGIT5 "Digit5"
+        wjs/DIGIT6 "Digit6"
+        wjs/DIGIT7 "Digit7"
+        wjs/DIGIT8 "Digit8"
+        wjs/DIGIT9 "Digit9"
+        }
+       (reduce-kv assoc-key-event {})))
 
 (defn simulate
   ([event-name thing event-data]
-   (let [node (resolve-node :simulate thing)
+   (let [node     (resolve-node :simulate thing)
          event-fn (wjs/o-get simulator event-name)]
      (when-not event-fn (throw (ex-info (str "simulate - event doesn't exist: " event-name) {:thing thing :event-name event-name :event-data event-data})))
      (event-fn node (clj->js event-data))))

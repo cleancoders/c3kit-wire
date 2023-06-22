@@ -20,6 +20,11 @@
      :on-key-up    #(swap! ratom assoc :key-up (wjs/e-key-code %))
      :on-key-press #(swap! ratom assoc :key-press (wjs/e-key-code %))}]])
 
+(defn key-press-should= [key-press key-code key]
+  (let [press (sut/keypresses key-press)]
+    (should= key-code (.-keyCode press))
+    (should= key (.-key press))))
+
 (describe "Spec Helpers"
 
   (context "Keyboard Events"
@@ -42,4 +47,23 @@
       (should= wjs/ENTER (:key-press @ratom)))
 
     )
+
+  (it "key presses"
+    (key-press-should= wjs/TAB 9 "Tab")
+    (key-press-should= wjs/ENTER 13 "Enter")
+    (key-press-should= wjs/ESC 27 "Escape")
+    (key-press-should= wjs/LEFT 37 "ArrowLeft")
+    (key-press-should= wjs/UP 38 "ArrowUp")
+    (key-press-should= wjs/RIGHT 39 "ArrowRight")
+    (key-press-should= wjs/DOWN 40 "ArrowDown")
+    (key-press-should= wjs/DIGIT0 48 "Digit0")
+    (key-press-should= wjs/DIGIT1 49 "Digit1")
+    (key-press-should= wjs/DIGIT2 50 "Digit2")
+    (key-press-should= wjs/DIGIT3 51 "Digit3")
+    (key-press-should= wjs/DIGIT4 52 "Digit4")
+    (key-press-should= wjs/DIGIT5 53 "Digit5")
+    (key-press-should= wjs/DIGIT6 54 "Digit6")
+    (key-press-should= wjs/DIGIT7 55 "Digit7")
+    (key-press-should= wjs/DIGIT8 56 "Digit8")
+    (key-press-should= wjs/DIGIT9 57 "Digit9"))
   )
