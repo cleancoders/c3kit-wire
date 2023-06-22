@@ -1,10 +1,13 @@
 (ns c3kit.wire.js-spec
-  (:require-macros [speclj.core :refer [context describe it should should-be-nil should-not should=]])
-  (:require [c3kit.apron.time :as time]
+  (:require-macros [speclj.core :refer [before context describe it redefs-around should should-be-nil should-have-invoked should-not should-not-have-invoked should= stub with-stubs]])
+  (:require [c3kit.apron.corec :as ccc]
+            [c3kit.apron.time :as time]
             [c3kit.wire.js :as sut]
+            [c3kit.wire.spec-helper :as wire]
             [speclj.core]))
 
 (describe "JavaScript"
+  (with-stubs)
 
   (it "->query-string"
     (should= "" (sut/->query-string nil))
@@ -40,6 +43,28 @@
     (it "three cookies"
       (with-redefs [sut/doc-cookie (constantly "foo=bar; hello=world; cheese=whiz; ")]
         (should= {"hello" "world" "foo" "bar" "cheese" "whiz"} (sut/cookies))))
+    )
+
+  (context "clicks"
+    (wire/with-root-dom)
+    (before (wire/render [:div#-some-id {:on-click ccc/noop}]))
+    (redefs-around [ccc/noop (stub :noop)])
+
+    (it "clicks nothing"
+      (sut/click! nil)
+      (should-not-have-invoked :noop))
+
+    (it "clicks by selector"
+      (sut/click! "div#-some-id")
+      (should-have-invoked :noop))
+
+    (it "clicks by id"
+      (sut/click! "-some-id")
+      (should-have-invoked :noop))
+
+    (it "clicks by node"
+      (sut/click! (sut/element-by-id "-some-id"))
+      (should-have-invoked :noop))
     )
 
   (it "keys"

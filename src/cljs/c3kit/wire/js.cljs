@@ -211,6 +211,7 @@
   ([thing] (some-> thing resolve-node (.focus)))
   ([thing options] (some-> thing resolve-node (.focus (clj->js options)))))
 (defn blur! [thing] (some-> thing resolve-node (.blur)))
+(defn click! [thing] (some-> thing resolve-node .click))
 
 (defn add-listener
   ([node event listener] (add-listener node event listener nil))
