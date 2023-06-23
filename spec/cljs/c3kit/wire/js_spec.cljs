@@ -52,6 +52,13 @@
     (it "empty file list"
       (should= [] (sut/e-files (clj->js {:target {:files []}}))))
 
+    (it "data transfer files take precedence"
+      (let [clj-file {:name "foo" :size 123}
+            js-file  (clj->js clj-file)]
+        (should= [(assoc clj-file :file js-file)]
+                 (sut/e-files (clj->js {:dataTransfer {:files [js-file]}
+                                        :target       {:files []}})))))
+
     (it "one file"
       (let [clj-file {:name "foo" :size 123}
             js-file  (clj->js clj-file)]

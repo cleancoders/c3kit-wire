@@ -100,7 +100,11 @@
      :last-modified-date   (.-lastModifiedDate file)
      :webkit-relative-path (.-webkitRelativePath file)
      :file                 file}))
-(defn e-files [e] (or (some->> e .-target .-files (map file->clj)) []))
+(defn e-files [e]
+  (->> (or (some->> e .-dataTransfer .-files)
+           (some->> e .-target .-files)
+           [])
+       (map file->clj)))
 (defn element-by-id [id] (.getElementById js/document id))
 (defn frame-window [iframe] (.-contentWindow iframe))
 (defn interval [millis f] (js/setInterval f millis))
