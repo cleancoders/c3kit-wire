@@ -1,11 +1,13 @@
 (ns c3kit.wire.spec-helper-spec
   (:require-macros
     [speclj.core :refer [after around before before-all context describe it
-                         redefs-around should should-be-nil should-contain should-have-invoked should-not should-not-be-nil should-not-contain should-not=
-                         should= stub with with-stubs]])
+                         redefs-around should should-be-nil should-contain should-have-invoked should-not should-not-be-nil should-not-contain should-not-throw
+                         should-not= should= stub with with-stubs]])
   (:require [c3kit.apron.corec :as ccc]
+            [c3kit.wire.ajax :as ajax]
             [c3kit.wire.js :as wjs]
             [c3kit.wire.spec-helper :as sut]
+            [c3kit.wire.websocket :as ws]
             [reagent.core :as reagent]
             [speclj.stub :as stub]))
 
@@ -33,6 +35,8 @@
 
 (describe "Spec Helpers"
   (with-stubs)
+  (sut/stub-ajax)
+  (sut/stub-ws)
   (sut/with-root-dom)
 
   (context "Keyboard Events"
@@ -95,4 +99,22 @@
     (key-press-should= wjs/DIGIT7 55 "Digit7")
     (key-press-should= wjs/DIGIT8 56 "Digit8")
     (key-press-should= wjs/DIGIT9 57 "Digit9"))
+
+  (it "invokes last ajax POST handler"
+    (should-not-throw (sut/invoke-last-ajax-post-handler :params))
+    (ajax/post! "/foo" {} (stub :handler))
+    (sut/invoke-last-ajax-post-handler :params)
+    (should-have-invoked :handler {:with [:params]}))
+
+  (it "invokes last ajax GET handler"
+    (should-not-throw (sut/invoke-last-ajax-get-handler :params))
+    (ajax/get! "/foo" {} (stub :handler))
+    (sut/invoke-last-ajax-get-handler :params)
+    (should-have-invoked :handler {:with [:params]}))
+
+  (it "invokes last websocket handler"
+    (should-not-throw (sut/invoke-last-ws-call-handler :params))
+    (ws/call! :foo {} (stub :handler))
+    (sut/invoke-last-ws-call-handler :params)
+    (should-have-invoked :handler {:with [:params]}))
   )

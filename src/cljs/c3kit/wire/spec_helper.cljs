@@ -499,6 +499,9 @@
 (defn last-ajax-post-options [] (when-let [args (stub/last-invocation-of :ajax/post!)] (ccc/->options (drop 3 args))))
 (defn last-ajax-get-options [] (when-let [args (stub/last-invocation-of :ajax/get!)] (ccc/->options (drop 3 args))))
 
+(defn invoke-last-ajax-post-handler [payload] (some-> (last-ajax-post-handler) (ccc/invoke payload)))
+(defn invoke-last-ajax-get-handler [payload] (some-> (last-ajax-get-handler) (ccc/invoke payload)))
+
 (defn stub-ws []
   (around [it]
     (with-redefs [ws/call! (stub :ws/call!)]
@@ -507,5 +510,5 @@
 (defn last-ws-call-params [] (when-let [args (stub/last-invocation-of :ws/call!)] (second args)))
 (defn last-ws-call-handler [] (when-let [args (stub/last-invocation-of :ws/call!)] (nth args 2)))
 (defn last-ws-call-options [] (when-let [args (stub/last-invocation-of :ws/call!)] (ccc/->options (drop 3 args))))
-
+(defn invoke-last-ws-call-handler [payload] (some-> (last-ws-call-handler) (ccc/invoke payload)))
 
