@@ -1,20 +1,19 @@
 (ns c3kit.wire.spec-helper
   (:refer-clojure :exclude [flush])
-  (:require-macros [speclj.core :refer [around before should-have-invoked should= stub with-stubs]])
-  (:require
-    [c3kit.apron.corec :as ccc]
-    [c3kit.apron.log :as log]
-    [c3kit.wire.ajax :as ajax]
-    [c3kit.wire.js :as wjs]
-    [c3kit.wire.websocket :as ws]
-    [cljs.pprint :as pp]
-    [cljsjs.react.dom.test-utils]                           ;; Brings in js/ReactTestUtils
-    [clojure.string :as str]
-    [reagent.core :as reagent]
-    [reagent.dom :as dom]
-    [speclj.core]
-    [speclj.stub :as stub]
-    ))
+  (:require-macros [speclj.core :refer [before redefs-around should-have-invoked should= stub with-stubs]])
+  (:require [c3kit.apron.corec :as ccc]
+            [c3kit.apron.log :as log]
+            [c3kit.wire.ajax :as ajax]
+            [c3kit.wire.js :as wjs]
+            [c3kit.wire.websocket :as ws]
+            [cljs.pprint :as pp]
+            [cljsjs.react.dom.test-utils] ;; Brings in js/ReactTestUtils
+            [clojure.string :as str]
+            [reagent.core :as reagent]
+            [reagent.dom :as dom]
+            [speclj.core]
+            [speclj.stub :as stub]
+            ))
 
 (log/warn!)
 
@@ -96,8 +95,8 @@
      node
      (throw (ex-info (str action " - can't find child node: " selector) {:action action :root root :selector selector})))))
 
-(defn- assoc-key-event [m key-code key]
-  (assoc m key-code (clj->js {:keyCode key-code :key key})))
+(defn- assoc-key-event [m code key]
+  (assoc m code (clj->js {:code code :key key})))
 
 ; https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/keyCode
 (def keypresses
@@ -108,16 +107,16 @@
         wjs/UP     "ArrowUp"
         wjs/RIGHT  "ArrowRight"
         wjs/DOWN   "ArrowDown"
-        wjs/DIGIT0 "Digit0"
-        wjs/DIGIT1 "Digit1"
-        wjs/DIGIT2 "Digit2"
-        wjs/DIGIT3 "Digit3"
-        wjs/DIGIT4 "Digit4"
-        wjs/DIGIT5 "Digit5"
-        wjs/DIGIT6 "Digit6"
-        wjs/DIGIT7 "Digit7"
-        wjs/DIGIT8 "Digit8"
-        wjs/DIGIT9 "Digit9"
+        wjs/DIGIT0 "0"
+        wjs/DIGIT1 "1"
+        wjs/DIGIT2 "2"
+        wjs/DIGIT3 "3"
+        wjs/DIGIT4 "4"
+        wjs/DIGIT5 "5"
+        wjs/DIGIT6 "6"
+        wjs/DIGIT7 "7"
+        wjs/DIGIT8 "8"
+        wjs/DIGIT9 "9"
         }
        (reduce-kv assoc-key-event {})))
 
@@ -482,10 +481,8 @@
 (defn print-js-errors [] (set! (.-onerror js/window) print-error))
 
 (defn stub-ajax []
-  (around [it]
-    (with-redefs [ajax/post! (stub :ajax/post!)
-                  ajax/get! (stub :ajax/get!)]
-      (it))))
+  (redefs-around [ajax/post! (stub :ajax/post!)
+                  ajax/get!  (stub :ajax/get!)]))
 
 (defn last-ajax-post-url [] (when-let [args (stub/last-invocation-of :ajax/post!)] (first args)))
 (defn last-ajax-get-url [] (when-let [args (stub/last-invocation-of :ajax/get!)] (first args)))
@@ -502,10 +499,7 @@
 (defn invoke-last-ajax-post-handler [payload] (some-> (last-ajax-post-handler) (ccc/invoke payload)))
 (defn invoke-last-ajax-get-handler [payload] (some-> (last-ajax-get-handler) (ccc/invoke payload)))
 
-(defn stub-ws []
-  (around [it]
-    (with-redefs [ws/call! (stub :ws/call!)]
-      (it))))
+(defn stub-ws [] (redefs-around [ws/call! (stub :ws/call!)]))
 (defn last-ws-call-id [] (when-let [args (stub/last-invocation-of :ws/call!)] (first args)))
 (defn last-ws-call-params [] (when-let [args (stub/last-invocation-of :ws/call!)] (second args)))
 (defn last-ws-call-handler [] (when-let [args (stub/last-invocation-of :ws/call!)] (nth args 2)))

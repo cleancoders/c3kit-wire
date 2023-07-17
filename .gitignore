@@ -1,6 +1,7 @@
 *.iml
 .cpcache
 .idea
+.DS_Store
 .specljs-timestamp
 /checkouts
 /classes
