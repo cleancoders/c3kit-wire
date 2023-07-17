@@ -14,6 +14,14 @@
   "DEPRECATED: Use 'e-code' instead."
   [e] (.-keyCode e))
 (defn e-code [e] (.-code e))
+(defn alt-key?
+  "On macOS, this is the ⌥ Option key."
+  [e] (.-altKey e))
+(defn meta-key?
+  "On macOS, this is the ⌘ Command key."
+  [e] (.-metaKey e))
+(defn ctrl-key? [e] (.-ctrlKey e))
+(defn shift-key? [e] (.-shiftKey e))
 
 (def BACKSPACE "Backspace")
 (def TAB "Tab")

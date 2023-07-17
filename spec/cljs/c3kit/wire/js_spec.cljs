@@ -6,6 +6,12 @@
             [c3kit.wire.spec-helper :as wire]
             [speclj.core]))
 
+(defn test-modifier [name modified? attr]
+  (it name
+    (should= nil (modified? (clj->js {})))
+    (should= false (modified? (clj->js {attr false})))
+    (should= true (modified? (clj->js {attr true})))))
+
 (describe "JavaScript"
   (with-stubs)
 
@@ -22,6 +28,12 @@
     (should= "root" (sut/encode-url "root" nil))
     (should= "root" (sut/encode-url "root" {}))
     (should= "root?foo=%3Abar" (sut/encode-url "root" {:foo :bar})))
+
+  (context "key modifiers"
+    (test-modifier "alt" sut/alt-key? :altKey)
+    (test-modifier "meta (command)" sut/meta-key? :metaKey)
+    (test-modifier "control" sut/ctrl-key? :ctrlKey)
+    (test-modifier "shift" sut/shift-key? :shiftKey))
 
   (context "cookies"
     (it "nil"
@@ -98,19 +110,19 @@
     (before (wire/render [:div#-some-id {:on-click ccc/noop}]))
     (redefs-around [ccc/noop (stub :noop)])
 
-    (it "clicks nothing"
+    (it "nothing"
       (sut/click! nil)
       (should-not-have-invoked :noop))
 
-    (it "clicks by selector"
+    (it "by selector"
       (sut/click! "div#-some-id")
       (should-have-invoked :noop))
 
-    (it "clicks by id"
+    (it "by id"
       (sut/click! "-some-id")
       (should-have-invoked :noop))
 
-    (it "clicks by node"
+    (it "by node"
       (sut/click! (sut/element-by-id "-some-id"))
       (should-have-invoked :noop))
     )
