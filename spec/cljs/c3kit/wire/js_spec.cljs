@@ -12,6 +12,11 @@
     (should= false (modified? (clj->js {attr false})))
     (should= true (modified? (clj->js {attr true})))))
 
+(defn test-user-agent [user-agent expected pred]
+  (it user-agent
+    (with-redefs [sut/user-agent (constantly user-agent)]
+      (should= expected (pred)))))
+
 (describe "JavaScript"
   (with-stubs)
 
@@ -34,6 +39,53 @@
     (test-modifier "meta (command)" sut/meta-key? :metaKey)
     (test-modifier "control" sut/ctrl-key? :ctrlKey)
     (test-modifier "shift" sut/shift-key? :shiftKey))
+
+  (it "reads raw user agent"
+    (let [navigator (clj->js {:userAgent "raw user agent"})]
+      (should= "raw user agent" (sut/user-agent navigator))))
+
+  (context "detects macOS"
+    (test-user-agent "Mozilla/5.0 (Windows; foo) Netscape6/6.1" false sut/mac-os?)
+    (test-user-agent "Mozilla/5.0 (Macintosh; foo) Netscape6/6.1" true sut/mac-os?)
+    (test-user-agent "Mozilla/5.0 (MacIntel; foo) Netscape6/6.1" true sut/mac-os?)
+    (test-user-agent "Mozilla/5.0 (MacPPC; foo) Netscape6/6.1" true sut/mac-os?)
+    (test-user-agent "Mozilla/5.0 (Mac68K; foo) Netscape6/6.1" true sut/mac-os?)
+    (test-user-agent "Mozilla/5.0 (Macintel; foo) Netscape6/6.1" false sut/mac-os?)
+    (test-user-agent "Mozilla/5.0 (macOS; foo) Netscape6/6.1" false sut/mac-os?)
+    (test-user-agent "Mozilla/5.0 (macOS; Macintosh) Netscape6/6.1" false sut/mac-os?))
+
+  (context "detects Windows"
+    (test-user-agent "Mozilla/5.0 (Macintosh; foo) Netscape6/6.1" false sut/win-os?)
+    (test-user-agent "Mozilla/5.0 (Windows; foo) Netscape6/6.1" true sut/win-os?)
+    (test-user-agent "Mozilla/5.0 (Win32; foo) Netscape6/6.1" true sut/win-os?)
+    (test-user-agent "Mozilla/5.0 (Win64; foo) Netscape6/6.1" true sut/win-os?)
+    (test-user-agent "Mozilla/5.0 (WinCE; foo) Netscape6/6.1" true sut/win-os?)
+    (test-user-agent "Mozilla/5.0 (Wince; foo) Netscape6/6.1" false sut/win-os?)
+    (test-user-agent "Mozilla/5.0 (windows; foo) Netscape6/6.1" false sut/win-os?)
+    (test-user-agent "Mozilla/5.0 (Win; Windows) Netscape6/6.1" false sut/win-os?))
+
+  (context "detects Linux"
+    (test-user-agent "Mozilla/5.0 (Macintosh; foo) Netscape6/6.1" false sut/linux?)
+    (test-user-agent "Mozilla/5.0 (Linux; foo) Netscape6/6.1" true sut/linux?)
+    (test-user-agent "Mozilla/5.0 (linux; foo) Netscape6/6.1" false sut/linux?)
+    (test-user-agent "Mozilla/5.0 (LINUX; foo) Netscape6/6.1" false sut/linux?)
+    (test-user-agent "Mozilla/5.0 (linux; Linux) Netscape6/6.1" false sut/linux?))
+
+  (context "detects iOS"
+    (test-user-agent "Mozilla/5.0 (Macintosh; foo) Netscape6/6.1" false sut/ios?)
+    (test-user-agent "Mozilla/5.0 (iPhone; foo) Netscape6/6.1" true sut/ios?)
+    (test-user-agent "Mozilla/5.0 (iPad; foo) Netscape6/6.1" true sut/ios?)
+    (test-user-agent "Mozilla/5.0 (iPod; foo) Netscape6/6.1" true sut/ios?)
+    (test-user-agent "Mozilla/5.0 (iphone; foo) Netscape6/6.1" false sut/ios?)
+    (test-user-agent "Mozilla/5.0 (IPhone; foo) Netscape6/6.1" false sut/ios?)
+    (test-user-agent "Mozilla/5.0 (iP; iPhone) Netscape6/6.1" false sut/ios?))
+
+  (context "detects Android"
+    (test-user-agent "Mozilla/5.0 (iPhone; foo) Netscape6/6.1" false sut/android?)
+    (test-user-agent "Mozilla/5.0 (Android; foo) Netscape6/6.1" true sut/android?)
+    (test-user-agent "Mozilla/5.0 (android; foo) Netscape6/6.1" false sut/android?)
+    (test-user-agent "Mozilla/5.0 (ANDROID; foo) Netscape6/6.1" false sut/android?)
+    (test-user-agent "Mozilla/5.0 (android; Android) Netscape6/6.1" false sut/android?))
 
   (context "cookies"
     (it "nil"

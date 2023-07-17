@@ -82,6 +82,20 @@
 
 (defn o-set [js-obj key value] (gobject/set js-obj key value))
 
+(defn user-agent
+  ([] (user-agent js/navigator))
+  ([navigator] (.-userAgent navigator)))
+
+(defn- user-agent-match?
+  ([re] (user-agent-match? re (user-agent)))
+  ([re user-agent] (boolean (re-find re user-agent))))
+
+(defn mac-os? [] (user-agent-match? #"\((Macintosh|MacIntel|MacPPC|Mac68K)"))
+(defn win-os? [] (user-agent-match? #"\((Windows|Win32|Win64|WinCE)"))
+(defn linux? [] (user-agent-match? #"\(Linux"))
+(defn ios? [] (user-agent-match? #"\((iPhone|iPad|iPod)"))
+(defn android? [] (user-agent-match? #"\(Android"))
+
 ;; ----- Simple js function translations -----
 
 (defn clear-interval [interval] (js/clearInterval interval))
