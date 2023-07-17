@@ -98,7 +98,7 @@
 (defn- assoc-key-event [m code key]
   (assoc m code (clj->js {:code code :key key})))
 
-; https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/keyCode
+; https://developer.mozilla.org/en-US/docs/Web/API/UI_Events/Keyboard_event_key_values
 (def keypresses
   (->> {wjs/ESC    "Escape"
         wjs/TAB    "Tab"
@@ -137,7 +137,7 @@
   ([thing key-code]
    ((.-keyDown simulator)
     (resolve-node :key-down thing)
-    (get keypresses key-code (clj->js {:keyCode key-code :key (str key-code)}))))
+    (get keypresses key-code (clj->js {:code key-code :key (str key-code)}))))
   ([root selector key-code]
    (key-down (resolve-node :key-down root selector) key-code)))
 
