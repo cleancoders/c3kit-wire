@@ -101,6 +101,7 @@
 (defn clear-interval [interval] (js/clearInterval interval))
 (defn clear-timeout [timeout] (js/clearTimeout timeout))
 (defn context-2d [canvas] (.getContext canvas "2d"))
+(defn active-element [] (.-activeElement js/document))
 (defn doc-body
   ([] (.-body js/document))
   ([doc] (.-body doc)))
@@ -255,6 +256,14 @@
   ([thing options] (some-> thing resolve-node (.focus (clj->js options)))))
 (defn blur! [thing] (some-> thing resolve-node (.blur)))
 (defn click! [thing] (some-> thing resolve-node .click))
+
+(defn active?
+  "True if the element is the document's activeElement."
+  [thing] (= (active-element) (resolve-node thing)))
+
+(defn inactive?
+  "True if the element is not the document's activeElement."
+  [thing] (not (active? thing)))
 
 (defn add-listener
   ([node event listener] (add-listener node event listener nil))

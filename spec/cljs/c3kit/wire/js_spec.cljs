@@ -34,6 +34,19 @@
     (should= "root" (sut/encode-url "root" {}))
     (should= "root?foo=%3Abar" (sut/encode-url "root" {:foo :bar})))
 
+  (context "active elements"
+    (wire/with-root-dom)
+    (before (wire/render [:div
+                          [:input#-text-1]
+                          [:input#-text-2]]))
+
+    (it "detects an active and inactive element"
+      (with-redefs [sut/active-element (constantly (wire/select "#-text-1"))]
+        (should (sut/active? "#-text-1"))
+        (should-not (sut/inactive? "#-text-1"))
+        (should-not (sut/active? "#-text-2"))
+        (should (sut/inactive? "#-text-2")))))
+
   (context "key modifiers"
     (test-modifier "alt" sut/alt-key? :altKey)
     (test-modifier "meta (command)" sut/meta-key? :metaKey)
