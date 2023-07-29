@@ -342,7 +342,9 @@
 
 (defn scroll-into-view
   ([thing] (scroll-into-view thing {:behavior "smooth"}))
-  ([thing options] (.scrollIntoView (resolve-node thing) (clj->js options))))
+  ([thing options]
+   (some-> (resolve-node thing)
+           (.scrollIntoView (clj->js options)))))
 
 (defn scroll-to-top [] (.scrollTo js/window (clj->js {:behavior "smooth" :top 0})))
 
