@@ -1,5 +1,5 @@
 (ns c3kit.wire.js-spec
-  (:require-macros [speclj.core :refer [before context describe it redefs-around should should-be-nil should-have-invoked should-not should-not-have-invoked should= stub with-stubs]])
+  (:require-macros [speclj.core :refer [before context describe focus-it it redefs-around should should-be-nil should-have-invoked should-not should-not-have-invoked should= stub with-stubs]])
   (:require [c3kit.apron.corec :as ccc]
             [c3kit.apron.time :as time]
             [c3kit.wire.js :as sut]
@@ -33,6 +33,23 @@
     (should= "root" (sut/encode-url "root" nil))
     (should= "root" (sut/encode-url "root" {}))
     (should= "root?foo=%3Abar" (sut/encode-url "root" {:foo :bar})))
+
+  (it "stringify-json"
+    (should= "null" (sut/stringify-json nil))
+    (should= "{\n  \"foo\": \"bar\"\n}" (sut/stringify-json {:foo :bar}))
+    (should= "{\n  \"biz\": \"baz\"\n}" (sut/stringify-json {"foo" "bar" "biz" "baz"} ["biz"]))
+    (should= "{\n  \"foo\": \"replaced\",\n  \"dee\": \"dum\"\n}" (sut/stringify-json {"foo" "bar" "dee" "dum"} {"foo" "replaced"}))
+    (should= "{\n  \"foo\": null\n}" (sut/stringify-json {"foo" "bar"} {"foo" nil}))
+    (should= "\"blah\"" (sut/stringify-json {"foo" "bar"} (constantly "blah")))
+    (should= "{\"foo\":\"bar\"}" (sut/stringify-json {"foo" "bar"} nil 0)))
+
+  (it "parse-json"
+    (should= nil (sut/parse-json nil))
+    (should= nil (sut/parse-json "null"))
+    (should= {"foo" "bar"} (sut/parse-json "{\n  \"foo\": \"bar\"\n}"))
+    (should= {"foo" "bar" "biz" "baz"} (sut/parse-json "{\"foo\": \"bar\", \"biz\": \"baz\"}"))
+    (should= {"foo" "replaced" "dee" "dum"} (sut/parse-json "{\"foo\": \"bar\", \"dee\": \"dum\"}" {"foo" "replaced"}))
+    (should= "blah" (sut/parse-json "{\"foo\": \"bar\"}" (constantly "blah"))))
 
   (context "active elements"
     (wire/with-root-dom)

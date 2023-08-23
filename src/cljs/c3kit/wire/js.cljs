@@ -4,6 +4,7 @@
             [c3kit.apron.schema :as schema]
             [c3kit.apron.time :as time]
             [cljs-http.client :as http]
+            [clojure.string :as str]
             [clojure.string :as s]
             [goog.object :as gobject])
   (:import (goog History)))
@@ -346,6 +347,32 @@
    (some-> (resolve-node thing)
            (.scrollIntoView (clj->js options)))))
 
+(defn scroll-to [thing options]
+  (some-> (resolve-node thing)
+          (.scrollTo (clj->js options))))
+
 (defn scroll-to-top [] (.scrollTo js/window (clj->js {:behavior "smooth" :top 0})))
 
 (def console-log (partial (.-log js/console)))
+
+(defn- ->replacer [replacer]
+  (cond
+    (fn? replacer) replacer
+    (map? replacer) (partial get replacer)
+    :else (clj->js replacer)))
+
+(defn stringify-json
+  "Converts a value to a JSON string.
+    - value:    The value to convert to JSON.
+    - replacer: A 2-arity function of key and value
+    - space:    A string or number that is used to insert white space."
+  ([value] (stringify-json value nil))
+  ([value replacer] (stringify-json value replacer 2))
+  ([value replacer space] (.stringify js/JSON (clj->js value) (->replacer replacer) space)))
+
+(defn parse-json
+  "Constructs the Clojure value described by the string.
+    - value:   The JSON string
+    - reviver: A 2-arity function of key and value"
+  ([text] (parse-json text nil))
+  ([text reviver] (js->clj (.parse js/JSON text (->replacer reviver)))))
