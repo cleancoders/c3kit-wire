@@ -1,6 +1,7 @@
 (ns c3kit.wire.spec-helperc
   #?(:cljs (:require-macros [speclj.core :refer [-fail -to-s around]]))
   (:require [c3kit.apron.log :as log]
+            [speclj.stub :as stub]
             #?(:clj  [speclj.core :refer :all]
                :cljs [speclj.core])))
 
@@ -62,6 +63,12 @@
                 (should= ~params (c3kit.wire.spec-helper/last-ajax-post-params))
                 (should= ~handler (c3kit.wire.spec-helper/last-ajax-post-handler))))))
 
+#?(:clj (defmacro should-not-have-invoked-ajax-post
+          "Asserts the invocation of ajax/post! is not present"
+          ([url] `(should-not-contain ~url (map first (stub/invocations-of :ajax/post!))))
+          ([url params] `(should-not-contain [~url ~params] (map (partial take 2) (stub/invocations-of :ajax/post!))))
+          ([url params handler] `(should-not-contain [~url ~params ~handler] (map (partial take 3) (stub/invocations-of :ajax/post!))))))
+
 #?(:clj (defmacro should-have-invoked-ajax-get
           "Asserts the invocation of ajax/get!"
           ([url] `(should= ~url (c3kit.wire.spec-helper/last-ajax-get-url)))
@@ -72,6 +79,12 @@
            `(do (should= ~url (c3kit.wire.spec-helper/last-ajax-get-url))
                 (should= ~params (c3kit.wire.spec-helper/last-ajax-get-params))
                 (should= ~handler (c3kit.wire.spec-helper/last-ajax-get-handler))))))
+
+#?(:clj (defmacro should-not-have-invoked-ajax-get
+          "Asserts the invocation of ajax/get! is not present"
+          ([url] `(should-not-contain ~url (map first (stub/invocations-of :ajax/get!))))
+          ([url params] `(should-not-contain [~url ~params] (map (partial take 2) (stub/invocations-of :ajax/get!))))
+          ([url params handler] `(should-not-contain [~url ~params ~handler] (map (partial take 3) (stub/invocations-of :ajax/get!))))))
 
 #?(:clj (defmacro redefs-around-logs [bindings]
           `(around [it#]
