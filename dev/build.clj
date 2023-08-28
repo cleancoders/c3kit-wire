@@ -45,11 +45,11 @@
 (defn deploy [_]
   (tag nil)
   (jar nil)
-  (aether/deploy {:coordinates [lib version]
-                  :jar-file    jar-file
-                  :pom-file   (str/join "/" [class-dir "META-INF/maven" group-name lib-name "pom.xml"])
-                  :repository {"clojars" {:url      "https://clojars.org/repo"
-                                          :username (System/getenv "CLOJARS_USERNAME")
-                                          :password (System/getenv "CLOJARS_PASSWORD")}}
+  (aether/deploy {:coordinates       [lib version]
+                  :jar-file          jar-file
+                  :pom-file          (str/join "/" [class-dir "META-INF/maven" group-name lib-name "pom.xml"])
+                  :repository        {"clojars" {:url      "https://clojars.org/repo"
+                                                 :username (System/getenv "CLOJARS_USERNAME")
+                                                 :password (System/getenv "CLOJARS_PASSWORD")}}
                   :transfer-listener :stdout}))
 
