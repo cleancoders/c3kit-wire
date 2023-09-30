@@ -62,7 +62,7 @@
 (defn get-doc-listeners [kind]
   (->> (stub/invocations-of kind)
        (filter #(= (wjs/document @bone-node) (first %)))
-       (map #(second %))))
+       (map second)))
 
 (defn get-listeners [kind] (map #(second %) (stub/invocations-of kind)))
 

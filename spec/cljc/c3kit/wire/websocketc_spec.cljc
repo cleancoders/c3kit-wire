@@ -21,8 +21,8 @@
 
 (defn pings []
   (let [sends    (stub/invocations-of :socket/send!)
-        messages (map #(sut/unpack (second %)) sends)]
-    (count (filter #(= :ws/ping (:kind %)) messages))))
+        messages (map (comp sut/unpack second) sends)]
+    (ccc/count-by messages :kind :ws/ping)))
 
 (defn cursor-hack [state id]
   ;; MDM - Cursive (IDE) complains about (sut/-connection-cursor state #?(:clj id))

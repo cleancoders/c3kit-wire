@@ -1,17 +1,17 @@
 (ns c3kit.wire.dnd-demo
   (:require
+    [c3kit.apron.corec :as ccc]
     [c3kit.apron.log :as log]
     [c3kit.wire.dragndrop2 :as dnd]
     [c3kit.wire.js :as wjs]
+    [clojure.string :as string]
     [reagent.core :as reagent]
-    [reagent.dom :as dom]
-    [c3kit.apron.corec :as ccc]
-    [clojure.string :as string]))
+    [reagent.dom :as dom]))
 
-(defn get-element-by-id [id items] (first (filter #(or (= id (keyword (:id %))) (= id (:id %))) items)))
+(defn get-element-by-id [id items] (ccc/ffilter #(or (= id (keyword (:id %))) (= id (:id %))) items))
 (defn get-first-element-id [state owner] (get-in @state [owner :first-item]))
 (defn get-first-element [state items owner] (-> (get-first-element-id state owner) (get-element-by-id items)))
-(defn get-elements-by-owner [owner items] (filter #(= owner (:owner %)) items))
+(defn get-elements-by-owner [owner items] (ccc/find-by items :owner owner))
 
 (defn get-items-order [items owner first-item]
   (let [items (get-elements-by-owner owner items)]
@@ -21,8 +21,8 @@
         (seq (conj ordered-items item))
         (recur (get-element-by-id (:next item) items) (conj ordered-items item))))))
 
-(defn remove-element
-  [elements element] (remove #(= (:id element) (:id %)) elements))
+(defn remove-element [elements element]
+  (ccc/find-by elements :id ['not= (:id element)]))
 
 (defn update-elements [element update-fn elements]
   (if-not element
@@ -45,7 +45,7 @@
 (defn move-element-in-list [source-key source-element target-element state-atom items-atom]
   (let [first-element-name (get-first-element-id state-atom (:owner source-element))
         target-key         (:id target-element)
-        target-previous    (first (filter #(or (= (keyword target-key) (:next %)) (= target-key (:next %))) @items-atom))
+        target-previous    (ccc/ffind-by @items-atom :next [target-key (keyword target-key)])
         updated-elements   (->> @items-atom
                                 (update-elements source-element #(assoc source-element :next target-key :owner (:owner target-element)))
                                 (update-elements target-previous #(assoc target-previous :next source-key)))]
@@ -93,7 +93,7 @@
 (defn truck-drag-started [{:keys [source-key]}]
   (let [source-truck    (get-element-by-id source-key @monster-trucks)
         first-in-list?  (= source-key (get-first-element-id monster-jam-state (:owner source-truck)))
-        source-previous (first (filter #(= (:id source-truck) (:next %)) @monster-trucks))]
+        source-previous (ccc/ffind-by @monster-trucks :next (:id source-truck))]
     (swap! monster-jam-state assoc :dragging source-key :dragged-element source-truck :hover nil :original-state {:items @monster-trucks :state @monster-jam-state})
     (if first-in-list?
       (swap! monster-jam-state assoc-in [(:owner source-truck) :first-item] (:next source-truck))
@@ -101,7 +101,7 @@
     (swap! monster-trucks #(remove-element @monster-trucks source-truck))))
 
 (defn truck-drag-end [{:keys [source-key]}]
-  (when (empty? (filter #(= source-key (:id %)) @monster-trucks))
+  (when-not (ccc/ffind-by @monster-trucks :id source-key)
     (return-to-original-state monster-jam-state monster-trucks))
   (swap! monster-jam-state dissoc :dragging :hover :original-state))
 
@@ -176,7 +176,7 @@
          trucks      (get-items-order @monster-trucks :trucks first-truck)]
      [:ol#-trucks.trucks
       (ccc/for-all [truck trucks]
-                   (truck-wrapper truck))
+        (truck-wrapper truck))
       [:div#-after
        (if (= :after-trucks (:drop-truck @monster-jam-state))
          {:style {:height "50px"} :ref (dnd/register monster-jam-dnd :truck :after-trucks)}
@@ -203,7 +203,7 @@
      [:ol#-team.colors
       (when ordered-trucks
         (ccc/for-all [truck ordered-trucks]
-                     (truck-wrapper truck)))
+          (truck-wrapper truck)))
       [maybe-show-drop-box ordered-trucks]])])
 
 (defn team-demo []
@@ -212,7 +212,7 @@
    [:p "Select 5 to Build Your Jam Team"]
    [:div#lists.list-container
     [:div.team-container
-     [:h3 (str "Jam Team - " (count (filter #(= :team (:owner %)) @monster-trucks)) " Monster Trucks")]
+     [:h3 (str "Jam Team - " (ccc/count-by @monster-trucks :owner :team) " Monster Trucks")]
      [show-team]]
     [:div#-trucks.team-container
      [:h3 "Monster Trucks"]
@@ -227,8 +227,7 @@
 (defn color-drag-started [{:keys [source-key]}]
   (let [source-element  (get-element-by-id source-key @colors)
         first-in-list?  (= source-key (get-in @rainbow-state [(:owner source-element) :first-item]))
-        source-previous (first (filter #(= source-key (:next %)) @colors))
-        ]
+        source-previous (ccc/ffind-by @colors :next source-key)]
     (swap! rainbow-state assoc :dragging source-key :dragged-element source-element :hover nil :original-state {:items @colors :state @rainbow-state})
     (if first-in-list?
       (swap! rainbow-state assoc-in [(:owner source-element) :first-item] (:next source-element))
@@ -236,7 +235,7 @@
     (swap! colors #(remove-element @colors source-element))))
 
 (defn color-drag-end [{:keys [source-key]}]
-  (when (empty? (filter #(= source-key (:id %)) @colors))
+  (when-not (ccc/ffind-by @colors :id source-key)
     (return-to-original-state rainbow-state colors))
   (swap! rainbow-state dissoc :dragging :hover :original-state))
 
@@ -302,8 +301,7 @@
      (let [first-color (get-first-element rainbow-state @colors :colors)
            colors      (get-items-order @colors :colors first-color)]
        [:ol#-colors.colors
-        (ccc/for-all [color colors]
-                     (color-wrapper color))
+        (ccc/map-all color-wrapper colors)
         [:div#-after
          {:style {:height "100px"} :ref (dnd/register rainbow-dnd :color :after)}]
         ])]]])
