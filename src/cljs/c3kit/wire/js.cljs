@@ -83,6 +83,20 @@
 
 (defn o-set [js-obj key value] (gobject/set js-obj key value))
 
+(defn o-update!
+  "Update a JavaScript object key according to a function, f,
+   applied to the current value followed by args."
+  [obj k f & args]
+  (o-set obj k (apply f (o-get obj k) args)))
+
+(defn o-assoc-in!
+  "Assoc a nested value in a JavaScript object according to a path of keys."
+  [obj ks v]
+  (let [key-path (butlast ks)
+        node     (reduce o-get obj key-path)
+        key      (last ks)]
+    (o-set node key v)))
+
 (defn user-agent
   ([] (user-agent js/navigator))
   ([navigator] (.-userAgent navigator)))

@@ -29,6 +29,22 @@
     (should= "nothing%3F=" (sut/->query-string {:nothing? nil}))
     (should= "date=%23inst%20%222022-03-04T23%3A59%3A02.000-00%3A00%22" (sut/->query-string {:date (time/parse :ref3339 "2022-03-04T23:59:02-00:00")})))
 
+  (it "o-update!"
+    (let [obj (clj->js {:value 1})]
+      (sut/o-update! obj "value" + 1)
+      (should= 2 (sut/o-get obj "value"))
+      (sut/o-update! obj "value" + 1 2 3)
+      (should= 8 (sut/o-get obj "value"))))
+
+  (it "o-assoc-in!"
+    (let [obj (clj->js {:child {:grandchild {:value 1}}})]
+      (sut/o-assoc-in! obj ["blah"] 1)
+      (should= 1 (.-blah obj))
+      (sut/o-assoc-in! obj ["child" "grandchild" "value"] 2)
+      (should= 2 (-> obj .-child .-grandchild .-value))
+      (sut/o-assoc-in! obj ["child" "grandchild" "greatGrandchild"] "thing")
+      (should= "thing" (-> obj .-child .-grandchild .-greatGrandchild))))
+
   (it "encode-url"
     (should= "root" (sut/encode-url "root" nil))
     (should= "root" (sut/encode-url "root" {}))
