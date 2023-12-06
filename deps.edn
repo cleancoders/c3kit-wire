@@ -5,7 +5,7 @@
            cljs-http/cljs-http         {:mvn/version "0.1.46"}
            cljsjs/react                {:mvn/version "17.0.2-0"} ; A new major version of cljsjs is available, but reagent.dom/render is not yet compatible with it.
            cljsjs/react-dom            {:mvn/version "17.0.2-0"}
-           com.cleancoders.c3kit/apron {:mvn/version "2.0.4"}
+           com.cleancoders.c3kit/apron {:mvn/version "2.0.5"}
            http-kit/http-kit           {:mvn/version "2.5.1"}
            org.clojure/clojure         {:mvn/version "1.11.1"}
            org.clojure/core.async      {:mvn/version "1.6.673"}
