@@ -125,6 +125,7 @@
 (defn doc-ready? [] (= "complete" (doc-ready-state)))
 (defn document ([] js/document) ([node] (.-ownerDocument node)))
 (defn e-checked? [e] (-> e .-target .-checked))
+(defn e-delta-y [e] (.-deltaY e))
 (defn e-client-x [e] (.-clientX e))
 (defn e-client-y [e] (.-clientY e))
 (defn e-coordinates [e] [(.-clientX e) (.-clientY e)])
@@ -181,6 +182,7 @@
 (defn post-message [window message target-domain] (.postMessage window (clj->js message) target-domain))
 (defn print-page [] (.print js/window))
 (defn query-selector [selector] (.querySelector js/document selector))
+(defn query-selector-all [selector] (.querySelectorAll js/document selector))
 (defn register-post-message-handler [handler] (.addEventListener js/window "message" handler))
 (defn register-storage-handler [handler] (.addEventListener js/window "storage" handler))
 (defn remove-local-storage [key] (.removeItem js/localStorage key))
@@ -368,6 +370,11 @@
 (defn scroll-to-top [] (.scrollTo js/window (clj->js {:behavior "smooth" :top 0})))
 
 (def console-log (partial (.-log js/console)))
+(defn ->inspect
+  "Insert in threading macro to console log the value."
+  [v]
+  (console-log "->inspect:" v)
+  v)
 
 (defn- ->replacer [replacer]
   (cond
