@@ -17,12 +17,19 @@
   (println "cleaning")
   (b/delete {:path "target"}))
 
+(def pom-template
+  [[:licenses
+    [:license
+     [:name "MIT License"]
+     [:url "https://github.com/cleancoders/c3kit-wire/blob/master/LICENSE"]]]])
+
 (defn pom [_]
   (println "writing pom.xml")
   (b/write-pom {:basis     basis
                 :class-dir class-dir
                 :lib       lib
-                :version   version}))
+                :version   version
+                :pom-data  pom-template}))
 
 (defn jar [_]
   (clean nil)
@@ -52,4 +59,3 @@
                                                  :username (System/getenv "CLOJARS_USERNAME")
                                                  :password (System/getenv "CLOJARS_PASSWORD")}}
                   :transfer-listener :stdout}))
-
