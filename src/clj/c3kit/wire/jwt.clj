@@ -67,23 +67,28 @@
         (assoc :jwt/token token))
     (assoc-in request [:jwt/payload :client-id] (new-client-id))))
 
+(defn- assoc-payload [response payload {:keys [cookie-name secret lifespan domain]}]
+  (let [token   (sign payload secret lifespan)
+        payload (unsign! token secret)
+        cookie  (ccc/remove-nils {:value token :secure true :path "/" :domain domain})]
+    (-> response
+        (assoc :jwt/payload payload :jwt/token token)
+        (assoc-in [:cookies cookie-name] cookie))))
+
 (defn sign-response
   "If either the response or request contains a :jwt/payload,
    generate a JWT token and add it to response's cookies."
-  [{:keys [cookie-name secret lifespan]} request response]
+  [options request response]
   (if-let [payload (some-payload response request)]
-    (let [token (sign payload secret lifespan)]
-      (-> response
-          (assoc :jwt/payload (unsign! token secret))
-          (assoc :jwt/token token)
-          (assoc-in [:cookies cookie-name] {:value token :secure true :path "/"})))
+    (assoc-payload response payload options)
     response))
 
 (defn wrap-jwt
   "Options:
     :cookie-name - The name of the browser cookie that the JWT is stored in.
-    :secret - The secret used to sign and read the JWT token.
-    :lifespan - The time in milliseconds that the token is alive for. (default 3600000/1hr)"
+    :secret      - The secret used to sign and read the JWT token.
+    :lifespan    - The time in milliseconds that the token is alive for. (default 3600000/1hr)
+    :domain      - The domain of the cookie (optional)."
   [handler options]
   (fn [request]
     (let [request (ensure-client-id options request)]

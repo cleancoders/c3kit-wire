@@ -131,7 +131,26 @@
             exp           (time/seconds-since-epoch (time/after now (time/hours 1)))
             token         (get-in response [:cookies "sid-cookie" :value])]
         (should= (assoc sid-payload :iat iat :exp exp) (:jwt/payload response))
-        (should= (buddy-jwt/unsign token "secret-sauce") (:jwt/payload response)))))
+        (should= (buddy-jwt/unsign token "secret-sauce") (:jwt/payload response))))
+
+    (it "specifies a domain"
+      (let [sign-response (partial sut/sign-response (assoc jwt-options :domain ".example.com"))
+            response      (sign-response {} {:jwt/payload sid-payload})
+            cookie        (get-in response [:cookies "sid-cookie"])]
+        (should-be string? (:value cookie))
+        (should= true (:secure cookie))
+        (should= "/" (:path cookie))
+        (should= ".example.com" (:domain cookie))))
+
+    (it "does not specify a domain"
+      (let [sign-response (partial sut/sign-response jwt-options)
+            response      (sign-response {} {:jwt/payload sid-payload})
+            cookie        (get-in response [:cookies "sid-cookie"])]
+        (should-be string? (:value cookie))
+        (should= true (:secure cookie))
+        (should= "/" (:path cookie))
+        (should-not-contain :domain cookie)))
+    )
 
   (context "get-token"
     (it "retrieves the client id from the JWT payload"
