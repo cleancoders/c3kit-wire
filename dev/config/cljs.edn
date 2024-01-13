@@ -1,42 +1,43 @@
 {
  ; :env-keys ["property.name" "ENV_NAME"] ; default: ["c3.env" "C3_ENV"]
- :ns-prefix     "c3kit.wire"
- :ignore-errors ["goog/i18n/bidi.js"]
+ :ns-prefix      "c3kit.wire"
+ :ignore-errors  ["goog/i18n/bidi.js"]
  :ignore-console ["Download the React DevTools"]
- :development   {:cache-analysis true
-                 :optimizations  :none
-                 :output-dir     "target/cljs/"
-                 :output-to      "target/cljs/c3kit_wire_dev.js"
-                 :pretty-print   true
-                 :source-map     true
-                 :sources        ["spec/cljc" "spec/cljs" "src/cljc" "src/cljs"]
-                 :specs          true
-                 :verbose        false
-                 :watch-fn       c3kit.scaffold.cljs/on-dev-compiled
-                 }
- :production    {
-                 :cache-analysis false
-                 :infer-externs  true
-                 :optimizations  :advanced
-                 :output-dir     "target/cljs/"
-                 :output-to      "target/cljs/c3kit_wire.js"
-                 :pretty-print   false
-                 ;:pretty-print   true
-                 ;:pseudo-names   true
-                 :sources        ["src/cljc" "src/cljs"]
-                 :specs          false
-                 :verbose        false
-                 }
- :staging       {
-                 :cache-analysis false
-                 :infer-externs  true
-                 :optimizations  :whitespace
-                 :output-dir     "target/cljs/"
-                 :output-to      "target/cljs/c3kit_wire.js"
-                 :pretty-print   true
-                 :pseudo-names   true
-                 :sources        ["src/cljc" "src/cljs"]
-                 :specs          false
-                 :verbose        false
-                 }
+ :development    {:cache-analysis true
+                  :optimizations  :none
+                  :output-dir     "target/cljs/"
+                  :output-to      "target/cljs/c3kit_wire_dev.js"
+                  :pretty-print   true
+                  :source-map     true
+                  :sources        ["spec/cljc" "spec/cljs" "src/cljc" "src/cljs"]
+                  :specs          true
+                  :verbose        false
+                  :watch-fn       c3kit.scaffold.cljs/on-dev-compiled
+                  }
+ :production     {
+                  :cache-analysis false
+                  :externs        ["dev/externs/google.js"]
+                  :infer-externs  true
+                  :optimizations  :advanced
+                  :output-dir     "target/cljs/"
+                  :output-to      "target/cljs/c3kit_wire.js"
+                  :pretty-print   false
+                  ;:pretty-print   true
+                  ;:pseudo-names   true
+                  :sources        ["src/cljc" "src/cljs"]
+                  :specs          false
+                  :verbose        false
+                  }
+ :staging        {
+                  :cache-analysis false
+                  :infer-externs  true
+                  :optimizations  :whitespace
+                  :output-dir     "target/cljs/"
+                  :output-to      "target/cljs/c3kit_wire.js"
+                  :pretty-print   true
+                  :pseudo-names   true
+                  :sources        ["src/cljc" "src/cljs"]
+                  :specs          false
+                  :verbose        false
+                  }
  }

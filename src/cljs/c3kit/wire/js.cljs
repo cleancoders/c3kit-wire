@@ -81,6 +81,10 @@
   ([js-obj key] (gobject/get js-obj key nil))
   ([js-obj key default] (gobject/get js-obj key default)))
 
+(defn o-get-in
+  ([js-obj ks] (reduce o-get js-obj ks))
+  ([js-obj ks default] (or (o-get-in js-obj ks) default)))
+
 (defn o-set [js-obj key value] (gobject/set js-obj key value))
 
 (defn o-update!
@@ -89,13 +93,32 @@
   [obj k f & args]
   (o-set obj k (apply f (o-get obj k) args)))
 
+(defn o-dissoc!
+  "Dissoc a key in a JavaScript object according to a path of keys."
+  [obj key]
+  (js-delete obj key)
+  obj)
+
+(defn- get-or-create-node [obj k]
+  (or (o-get obj k)
+      (let [node (js/Object.)]
+        (o-set obj k node)
+        node)))
+
 (defn o-assoc-in!
   "Assoc a nested value in a JavaScript object according to a path of keys."
   [obj ks v]
   (let [key-path (butlast ks)
-        node     (reduce o-get obj key-path)
+        node     (reduce get-or-create-node obj key-path)
         key      (last ks)]
     (o-set node key v)))
+
+(defn o-dissoc-in!
+  "Dissoc a nested value in a JavaScript object according to a path of keys."
+  [obj ks]
+  (some-> (o-get-in obj (butlast ks))
+          (js-delete (last ks)))
+  obj)
 
 (defn user-agent
   ([] (user-agent js/navigator))

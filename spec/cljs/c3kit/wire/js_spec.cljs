@@ -36,6 +36,11 @@
       (sut/o-update! obj "value" + 1 2 3)
       (should= 8 (sut/o-get obj "value"))))
 
+  (it "o-dissoc!"
+    (let [obj (clj->js {:child {:grandchild {:value 1}}})]
+      (should= {} (js->clj (sut/o-dissoc! obj "child")))
+      (should= obj (sut/o-dissoc! obj "blah"))))
+
   (it "o-assoc-in!"
     (let [obj (clj->js {:child {:grandchild {:value 1}}})]
       (sut/o-assoc-in! obj ["blah"] 1)
@@ -43,7 +48,16 @@
       (sut/o-assoc-in! obj ["child" "grandchild" "value"] 2)
       (should= 2 (-> obj .-child .-grandchild .-value))
       (sut/o-assoc-in! obj ["child" "grandchild" "greatGrandchild"] "thing")
-      (should= "thing" (-> obj .-child .-grandchild .-greatGrandchild))))
+      (should= "thing" (-> obj .-child .-grandchild .-greatGrandchild))
+      (sut/o-assoc-in! obj ["does" "not" "exist"] "thing")
+      (should= "thing" (-> obj .-does .-not .-exist))))
+
+  (it "o-dissoc-in!"
+    (let [obj (clj->js {:child {:grandchild {:value 1}}})]
+      (should= {"child" {"grandchild" {}}} (js->clj (sut/o-dissoc-in! obj ["child" "grandchild" "value"])))
+      (should= obj (sut/o-dissoc-in! obj ["does" "not" "exist"]))
+      (sut/o-dissoc-in! obj ["child"])
+      (should= {} (js->clj obj))))
 
   (it "encode-url"
     (should= "root" (sut/encode-url "root" nil))
