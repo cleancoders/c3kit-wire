@@ -6,15 +6,9 @@
 
 ;; https://developers.google.com/identity/gsi/web/reference/html-reference#element_with_class_g_id_signin
 
-(defn account-id []
-  (wjs/o-get-in js/window ["google" "accounts" "id"]))
-
-(defn render-button [account-id node options]
-  (.renderButton account-id node options))
-
 (defn mount-oauth-button [node options]
-  (if-let [google-id (account-id)]
-    (render-button google-id node (clj->js options))
+  (if-let [google-id (wjs/o-get-in js/window ["google" "accounts" "id"])]
+    (js-invoke google-id "renderButton" node (clj->js options))
     (log/warn "window.google.accounts.id doesn't exist")))
 
 (defn- on-button-mount [options this]

@@ -15,9 +15,9 @@
 (describe "Google OAuth"
   (with-stubs)
   (helper/with-root-dom)
-  (redefs-around [sut/render-button (stub :render-button)
-                  wjs/add-listener  (stub :add-listener)
-                  wjs/doc-ready?    (constantly true)])
+  (redefs-around [js-invoke        (stub :js-invoke)
+                  wjs/add-listener (stub :add-listener)
+                  wjs/doc-ready?   (constantly true)])
 
   (before (wjs/o-assoc-in! js/window ["google" "accounts" "id"] "goog-id"))
   (after-all (wjs/o-dissoc! js/window "google"))
@@ -30,8 +30,9 @@
 
   (it "mounts button when doc is ready"
     (render-oauth-button)
-    (let [[account-id node options] (stub/last-invocation-of :render-button)]
+    (let [[account-id func node options] (stub/last-invocation-of :js-invoke)]
       (should= "goog-id" account-id)
+      (should= "renderButton" func)
       (should= (wire/select "#-oauth-button") node)
       (should= {"oauth" "options"} (js->clj options))))
 
@@ -42,14 +43,15 @@
         (should= js/window node)
         (should= "load" event)
         (handler))
-      (let [[account-id node options] (stub/last-invocation-of :render-button)]
+      (let [[account-id func node options] (stub/last-invocation-of :js-invoke)]
         (should= "goog-id" account-id)
+        (should= "renderButton" func)
         (should= (wire/select "#-oauth-button") node)
         (should= {"oauth" "options"} (js->clj options)))))
 
   (it "account id is missing"
     (wjs/o-dissoc-in! js/window ["google" "accounts" "id"])
     (render-oauth-button)
-    (should-not-have-invoked :render-button)
+    (should-not-have-invoked :js-invoke)
     (should= "window.google.accounts.id doesn't exist" (log/captured-logs-str)))
   )
