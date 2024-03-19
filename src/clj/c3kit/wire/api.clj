@@ -33,7 +33,7 @@
       (apic/flash-warn "Validation errors...")))
 
 (defn maybe-validation-errors [entity]
-  (some-> entity schema/error-message-map validation-errors-response))
+  (some-> entity schema/message-map validation-errors-response))
 
 (defn maybe-entity-errors [entity]
-  (some->> entity schema/messages (str/join " , ") (apic/fail nil)))
+  (some->> entity schema/message-seq (str/join " , ") (apic/fail nil)))

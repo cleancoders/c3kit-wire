@@ -82,7 +82,7 @@
       (catch ExceptionInfo exi
         (let [data (ex-data exi)]
           (cond
-            (schema/error? data) (apic/error (schema/error-message-map data) (.getMessage exi))
+            (schema/error? data) (apic/error (schema/message-map data) (.getMessage exi))
             (:errors data) (apic/error (:errors data) (.getMessage exi))
             :else (apic/error nil (.getMessage exi)))))
       (catch Throwable e
