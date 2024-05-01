@@ -342,6 +342,14 @@
     (download url filename)
     (timeout 100 #(.revokeObjectURL js/URL url))))
 
+(defn ->audio [src]
+  (let [audio (js-invoke js/document "createElement" "audio")]
+    (o-set audio "src" src)
+    audio))
+
+(defn play-audio [audio] (js-invoke audio "play"))
+(defn pause-audio [audio] (js-invoke audio "pause"))
+
 (defn copy-to-clipboard-fallback [text]
   (let [textarea (.createElement js/document "textarea")
         body     (.-body js/document)]

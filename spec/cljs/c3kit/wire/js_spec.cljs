@@ -1,5 +1,5 @@
 (ns c3kit.wire.js-spec
-  (:require-macros [speclj.core :refer [before context describe focus-it it redefs-around should should-be-nil should-have-invoked should-not should-not-have-invoked should= stub with-stubs]])
+  (:require-macros [speclj.core :refer [before context describe it redefs-around should should-end-with should-have-invoked should-not should-not-have-invoked should= stub with-stubs]])
   (:require [c3kit.apron.corec :as ccc]
             [c3kit.apron.time :as time]
             [c3kit.wire.js :as sut]
@@ -63,6 +63,24 @@
     (should= "root" (sut/encode-url "root" nil))
     (should= "root" (sut/encode-url "root" {}))
     (should= "root?foo=%3Abar" (sut/encode-url "root" {:foo :bar})))
+
+  (context "audio"
+
+    (it "create"
+      (let [audio (sut/->audio "foo.mp3")]
+        (should= js/HTMLAudioElement (type audio))
+        (should-end-with "foo.mp3" (sut/o-get audio "src"))))
+
+    (it "play"
+      (let [audio (js-obj "play" (stub :play))]
+        (sut/play-audio audio)
+        (should-have-invoked :play)))
+
+    (it "pause"
+      (let [audio (js-obj "pause" (stub :pause))]
+        (sut/pause-audio audio)
+        (should-have-invoked :pause)))
+    )
 
   (it "stringify-json"
     (should= "null" (sut/stringify-json nil))
