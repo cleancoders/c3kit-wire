@@ -17,6 +17,8 @@
       (mount-oauth-button node options)
       (wjs/add-listener js/window "load" (partial mount-oauth-button node options)))))
 
+;; TODO [BAC]: reagent.dom/dom-node is deprecated
+;;  We need a new strategy for handling component mount
 (defn oauth-button
   "Renders the Google OAuth Button."
   [options _body]
