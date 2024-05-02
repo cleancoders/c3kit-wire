@@ -1,6 +1,6 @@
 (ns c3kit.wire.spec-helper
   (:refer-clojure :exclude [flush])
-  (:require-macros [speclj.core :refer [before redefs-around should-have-invoked should= stub with-stubs]])
+  (:require-macros [speclj.core :refer [after before redefs-around should-have-invoked should= stub with-stubs]])
   (:require [c3kit.apron.corec :as ccc]
             [c3kit.apron.log :as log]
             [c3kit.wire.ajax :as ajax]
@@ -33,7 +33,10 @@
 
 (defn with-clean-dom
   ([] (with-clean-dom []))
-  ([content] (before (reset-dom! content))))
+  ([content]
+   (list
+     (before (reset-dom! content))
+     (after (reset-dom! content)))))
 
 (defn with-root-dom [] (with-clean-dom "<div id='root'/>"))
 
@@ -505,4 +508,3 @@
 (defn last-ws-call-handler [] (when-let [args (stub/last-invocation-of :ws/call!)] (nth args 2)))
 (defn last-ws-call-options [] (when-let [args (stub/last-invocation-of :ws/call!)] (ccc/->options (drop 3 args))))
 (defn invoke-last-ws-call-handler [payload] (some-> (last-ws-call-handler) (ccc/invoke payload)))
-

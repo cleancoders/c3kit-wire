@@ -1,10 +1,9 @@
 (ns c3kit.wire.demo-spec
-  (:require-macros [speclj.core :refer [describe context it should-not-be-nil should-be-nil should= should-not
-                                        should-not= should-have-invoked after before before-all with-stubs with around
-                                        stub should-contain should-not-contain should]]
-                   [c3kit.wire.spec-helperc :refer [should-select should-not-select should-have-invoked-ws]])
-  (:require [c3kit.wire.spec-helper :as helper]
-            [c3kit.wire.dnd-demo :as sut]
+  (:require-macros [c3kit.wire.spec-helperc :refer [should-select]]
+                   [speclj.core :refer [before context describe it should-be-nil should-not-contain should-not= should=]])
+  (:require [c3kit.wire.dnd-demo :as sut]
+            [c3kit.wire.spec-helper :as wire]
+            [c3kit.wire.spec-helper :as helper]
             [clojure.string :as string]))
 
 (def colors [{:id :red :name "red" :color "red" :owner :colors :next :orange} {:id :orange :name "orange" :color "orange" :owner :colors :next :yellow} {:id :yellow :name "yellow" :color "yellow" :owner :colors :next :green} {:id :green :name "green" :color "green" :owner :colors :next :blue} {:id :blue :name "blue" :color "blue" :owner :colors :next :indigo} {:id :indigo :name "indigo" :color "indigo" :owner :colors :next :violet} {:id :violet :name "violet" :color "blueviolet" :owner :colors}])
@@ -20,17 +19,15 @@
                      {:id :dragon :name "Dragon" :owner :trucks}])
 
 (describe "Dragon Drops"
+  (helper/with-root-dom)
   (before (reset! sut/golf-state (assoc (sut/golf-locations) :score 0))
           (reset! sut/rainbow-state {:colors {:first-item :red}})
           (reset! sut/colors colors)
           (reset! sut/monster-jam-state {:trucks {:first-item :megalodon} :team {:first-item nil}})
-          (reset! sut/monster-trucks monster-trucks))
+          (reset! sut/monster-trucks monster-trucks)
+          (helper/render [sut/content]))
 
   (context "content"
-    (helper/with-root-dom)
-    (before
-      (helper/render [sut/content])
-      (helper/flush))
 
     (it "shows demo items"
       (should-select "#golf-demo")
@@ -129,7 +126,8 @@
       (before (reset! sut/monster-trucks [{:id :megalodon :name "Megalodon" :owner :trucks :next :son-uva-digger}
                                           {:id :son-uva-digger :name "Son-Uva-Digger" :owner :trucks :next :dragon}
                                           {:id :dragon :name "Dragon" :owner :trucks :next :grave-digger}
-                                          {:id :grave-digger :name "Grave Digger" :owner :trucks}]))
+                                          {:id :grave-digger :name "Grave Digger" :owner :trucks}])
+              (wire/flush))
 
       (it "gets item order"
         (let [first-element-id (sut/get-first-element-id sut/monster-jam-state :trucks)
@@ -293,6 +291,7 @@
 
           )
         )
+
       (context "dragon drop"
 
         (it "grabs a truck on hover"
@@ -316,8 +315,7 @@
             (should= #{:megalodon :grave-digger :son-uva-digger :dragon :after-trucks} (set (keys (get-in @sut/monster-jam-dnd [:groups :truck :members]))))
             (should= #{:team} (set (keys (get-in @sut/monster-jam-dnd [:groups :truck-drop :members]))))
             (for [truck (map :id @sut/monster-trucks)]
-              (should= droppables (keys (get-in @sut/monster-jam-dnd [:groups :truck :members truck]))))
-            ))
+              (should= droppables (keys (get-in @sut/monster-jam-dnd [:groups :truck :members truck]))))))
 
         (it "drags a megalodon to a monster-mutt-rottweiler"
           (swap! sut/monster-jam-dnd assoc :source-key :megalodon)
