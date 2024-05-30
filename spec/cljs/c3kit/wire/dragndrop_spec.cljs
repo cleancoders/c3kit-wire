@@ -1,6 +1,6 @@
 (ns c3kit.wire.dragndrop-spec
   (:require-macros [c3kit.wire.spec-helperc :refer [should-select]]
-                   [speclj.core :refer [around before context describe it
+                   [speclj.core :refer [around before context describe it redefs-around
                                         should-contain should-have-invoked should-not-be-nil should-not-contain should-not-have-invoked
                                         should-not= should= stub with-stubs]])
   (:require
@@ -64,16 +64,17 @@
        (filter #(= (wjs/document @bone-node) (first %)))
        (map second)))
 
-(defn get-listeners [kind] (map #(second %) (stub/invocations-of kind)))
+(defn get-listeners [kind] (map second (stub/invocations-of kind)))
 
 (describe "Drag and Drop"
   (with-stubs)
   (helper/with-root-dom)
   (before (reset! blank-dnd {}))
-  (around [it] (with-redefs [wjs/add-listener (stub :add-listener)
-                             wjs/remove-listener (stub :remove-listener)
-                             wjs/nod (stub :nod)]
-                 (log/capture-logs (it))))
+  (around [it] (log/capture-logs (it)))
+
+  (redefs-around [wjs/add-listener    (stub :add-listener)
+                  wjs/remove-listener (stub :remove-listener)
+                  wjs/nod             (stub :nod)])
 
   (context "invalid dnd"
     (it "registers an unknown group"
@@ -327,7 +328,7 @@
                 (should= 2 (- (count (get-doc-listeners :remove-listener)) (count rmv-listeners-before)))
                 (should= "brusly" (:drop @state))
                 (should= :drag-end (:last-call @state))
-                (should-not-contain "_dragndrop-drag-node_" (map #(helper/id %) (wjs/node-children (wjs/doc-body (wjs/document)))))))
+                (should-not-contain "_dragndrop-drag-node_" (map helper/id (wjs/node-children (wjs/doc-body (wjs/document)))))))
             )
           )
         )

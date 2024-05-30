@@ -99,6 +99,18 @@
   (js-delete obj key)
   obj)
 
+(defn o-merge!
+  "Returns the first object with the subsequent objects merged onto it"
+  [obj other & others]
+  (cond
+    (map? other)
+    (doseq [[k v] (seq other)] (o-set obj k v))
+    (instance? js/Object other)
+    (doseq [k (.keys js/Object other)] (o-set obj k (o-get other k))))
+  (if (seq others)
+    (apply o-merge! obj others)
+    obj))
+
 (defn- get-or-create-node [obj k]
   (or (o-get obj k)
       (let [node (js/Object.)]
@@ -306,19 +318,15 @@
   "True if the element is not the document's activeElement."
   [thing] (not (active? thing)))
 
-(defn add-listener
-  ([node event listener] (add-listener node event listener nil))
-  ([node event listener options]
-   (if node
-     (.addEventListener node event listener (when options (clj->js options)))
-     (log/warn "add-listener to nil node"))))
+(defn add-listener [node event listener & {:as options}]
+  (if node
+    (.addEventListener node event listener (some-> options clj->js))
+    (log/warn "add-listener to nil node")))
 
-(defn remove-listener
-  ([node event listener] (remove-listener node event listener nil))
-  ([node event listener options]
-   (if node
-     (.removeEventListener node event listener (when options (clj->js options)))
-     (log/warn "remove-listener to nil node"))))
+(defn remove-listener [node event listener & {:as options}]
+  (if node
+    (.removeEventListener node event listener (some-> options clj->js))
+    (log/warn "remove-listener to nil node")))
 
 (defn add-doc-listener [event handler] (add-listener js/document event handler))
 (defn remove-doc-listener [event handler] (remove-listener js/document event handler))
@@ -407,10 +415,25 @@
   (console-log "->inspect:" v)
   v)
 
+(defn ->event
+  "Creates a JavaScript Event of a given type with optional added attributes"
+  [type & {:as kvs}]
+  (o-merge! (js/Event. type) kvs))
+
+(defn dispatch-event
+  "Dispatches the event to the node.
+   If given an event, kvs is merged onto it.
+   If given a string, creates a new event of that type with kvs."
+  [node e & {:as kvs}]
+  (let [e (if (string? e)
+            (->event e kvs)
+            (o-merge! e kvs))]
+    (js-invoke node "dispatchEvent" e)))
+
 (defn- ->replacer [replacer]
   (cond
     (fn? replacer) replacer
-    (map? replacer) (partial get replacer)
+    (map? replacer) (fn [k v] (get replacer k v))
     :else (clj->js replacer)))
 
 (defn stringify-json

@@ -15,7 +15,7 @@
   (let [node (reagent-dom/dom-node this)]
     (if (wjs/doc-ready?)
       (mount-oauth-button node options)
-      (wjs/add-listener js/window "load" (partial mount-oauth-button node options)))))
+      (wjs/add-listener js/window "load" #(mount-oauth-button node options)))))
 
 ;; TODO [BAC]: reagent.dom/dom-node is deprecated
 ;;  We need a new strategy for handling component mount

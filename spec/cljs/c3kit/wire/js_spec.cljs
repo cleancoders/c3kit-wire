@@ -1,5 +1,5 @@
 (ns c3kit.wire.js-spec
-  (:require-macros [speclj.core :refer [before context describe it redefs-around should should-end-with should-have-invoked should-not should-not-have-invoked should= stub with-stubs]])
+  (:require-macros [speclj.core :refer [before context describe it redefs-around should should-be-a should-be-same should-end-with should-have-invoked should-not should-not-have-invoked should= stub with-stubs]])
   (:require [c3kit.apron.corec :as ccc]
             [c3kit.apron.time :as time]
             [c3kit.wire.js :as sut]
@@ -14,7 +14,9 @@
 
 (defn test-user-agent [user-agent expected pred]
   (it user-agent
-    (with-redefs [sut/user-agent (constantly user-agent)]
+    (with-redefs [sut/user-agent (fn
+                                   ([] user-agent)
+                                   ([_] user-agent))]
       (should= expected (pred)))))
 
 (describe "JavaScript"
@@ -28,6 +30,60 @@
     (should= "one=1&two=2&pi=3.1415926" (sut/->query-string {:one 1 :two 2 :pi 3.1415926}))
     (should= "nothing%3F=" (sut/->query-string {:nothing? nil}))
     (should= "date=%23inst%20%222022-03-04T23%3A59%3A02.000-00%3A00%22" (sut/->query-string {:date (time/parse :ref3339 "2022-03-04T23:59:02-00:00")})))
+
+  (it "->event"
+    (let [load  (sut/->event "load")
+          close (sut/->event "close" "code" 1000 "reason" "none" "wasClean" true)]
+      (should-be-a js/Event load)
+      (should= "load" (sut/o-get load "type"))
+      (should= "close" (sut/o-get close "type"))
+      (should= 1000 (sut/o-get close "code"))
+      (should= "none" (sut/o-get close "reason"))
+      (should= true (sut/o-get close "wasClean"))))
+
+  (it "dispatch-event"
+    (let [event (atom nil)
+          obj   (js-obj "dispatchEvent" #(reset! event %))]
+      (sut/dispatch-event obj "close" "code" 1234 "reason" "foo")
+      (should-be-a js/Event @event)
+      (should= "close" (sut/o-get @event "type"))
+      (should= 1234 (sut/o-get @event "code"))
+      (should= "foo" (sut/o-get @event "reason"))
+      (let [original-event @event]
+        (sut/dispatch-event obj @event "code" 4000 "reason" "overridden")
+        (should-be-same @event original-event)
+        (should= 4000 (sut/o-get @event "code"))
+        (should= "overridden" (sut/o-get @event "reason")))))
+
+  (it "o-merge!"
+    (let [this     (js-obj)
+          other    (js-obj)
+          nancy    (js-obj "name" "nancy" "age" 3)
+          phillip  (js-obj "name" "phillip" "age" 1)
+          children (into-array [nancy phillip])
+          george   (js-obj "name" "george"
+                           "age" 23
+                           "children" children)]
+      (should-be-same this (sut/o-merge! this {}))
+      (should= {} (js->clj this))
+      (sut/o-merge! this {:k :v})
+      (should= :v (sut/o-get this :k))
+      (sut/o-merge! this {"b" "c" "d" (clj->js {"e" {"f" other}})})
+      (should= "c" (sut/o-get this "b"))
+      (should= other (sut/o-get-in this ["d" "e" "f"]))
+      (sut/o-merge! this {"h" {:some {:hash :map}}})
+      (should= {:some {:hash :map}} (sut/o-get this "h"))
+      (sut/o-merge! this george)
+      (should= "george" (sut/o-get this "name"))
+      (should= 23 (sut/o-get this "age"))
+      (let [this-children (sut/o-get this "children")]
+        (should-be-same children this-children)
+        (should-be-same nancy (first this-children))
+        (should-be-same phillip (second this-children)))
+      (sut/o-merge! this {"x" 1 "y" 2} {"y" 3 "z" 4})
+      (should= 1 (sut/o-get this "x"))
+      (should= 3 (sut/o-get this "y"))
+      (should= 4 (sut/o-get this "z"))))
 
   (it "o-update!"
     (let [obj (clj->js {:value 1})]
@@ -44,13 +100,13 @@
   (it "o-assoc-in!"
     (let [obj (clj->js {:child {:grandchild {:value 1}}})]
       (sut/o-assoc-in! obj ["blah"] 1)
-      (should= 1 (.-blah obj))
+      (should= 1 (sut/o-get obj "blah"))
       (sut/o-assoc-in! obj ["child" "grandchild" "value"] 2)
-      (should= 2 (-> obj .-child .-grandchild .-value))
+      (should= 2 (sut/o-get-in obj ["child" "grandchild" "value"]))
       (sut/o-assoc-in! obj ["child" "grandchild" "greatGrandchild"] "thing")
-      (should= "thing" (-> obj .-child .-grandchild .-greatGrandchild))
+      (should= "thing" (sut/o-get-in obj ["child" "grandchild" "greatGrandchild"]))
       (sut/o-assoc-in! obj ["does" "not" "exist"] "thing")
-      (should= "thing" (-> obj .-does .-not .-exist))))
+      (should= "thing" (sut/o-get-in obj ["does" "not" "exist"]))))
 
   (it "o-dissoc-in!"
     (let [obj (clj->js {:child {:grandchild {:value 1}}})]

@@ -233,7 +233,7 @@
 (defn drag-from-to
   "Configures the context to allows drag and drop actions where from-key objects will be dragged to target-key objects."
   [dnd from-key target-key]
-  (swap! dnd update-in [:groups from-key :targets] #(-> (conj % target-key) set))
+  (swap! dnd update-in [:groups from-key :targets] #(set (conj % target-key)))
   dnd)
 
 (defn drag-fake-hiccup-fn
