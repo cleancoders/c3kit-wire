@@ -1,4 +1,4 @@
-name: Scaffold Build
+name: Wire Build
 
 on:
   push:
