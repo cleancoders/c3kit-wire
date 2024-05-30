@@ -14,6 +14,16 @@
                   :verbose        false
                   :watch-fn       c3kit.scaffold.cljs/on-dev-compiled
                   }
+ :ci             {
+                  :cache-analysis false
+                  :optimizations  :advanced
+                  :output-dir     "target/cljs/"
+                  :output-to      "target/cljs/c3kit_wire.js"
+                  :pretty-print   false
+                  :sources        ["spec/cljc" "spec/cljs" "src/cljs" "src/cljc"]
+                  :specs          true
+                  :verbose        false
+                  }
  :production     {
                   :cache-analysis false
                   :externs        ["dev/externs/google.js"]

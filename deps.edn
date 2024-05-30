@@ -16,7 +16,7 @@
  :aliases {
            :test  {:extra-deps    {speclj/speclj                           {:mvn/version "3.4.8"}
                                    org.clojure/clojurescript               {:mvn/version "1.11.132"}
-                                   com.cleancoders.c3kit/scaffold          {:mvn/version "2.0.2"}
+                                   com.cleancoders.c3kit/scaffold          {:mvn/version "2.0.3"}
                                    com.google.api-client/google-api-client {:mvn/version "2.6.0"}
                                    io.github.clojure/tools.build           {:mvn/version "0.10.3"}
                                    clj-commons/pomegranate                 {:mvn/version "1.2.24"}}
