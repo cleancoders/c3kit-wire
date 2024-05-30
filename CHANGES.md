@@ -1,4 +1,4 @@
-### 2.1.3
+### 2.1.4
  * Upgrades deps
  * Adds `->event`, `dispatch-event`, and `o-merge!` to `c3kit.wire.js`
  * Passes cljs specs under `:advanced` optimizations
