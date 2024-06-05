@@ -6,6 +6,8 @@ A library component of [c3kit - Clean Coders Clojure Kit](https://github.com/cle
 
 _"If you look very closely at just one wire in the cage, you cannot see the other wires."_ - Marilyn Frye
 
+[![Wire Build](https://github.com/cleancoders/c3kit-wire/actions/workflows/test.yml/badge.svg)](https://github.com/cleancoders/c3kit-wire/actions/workflows/test.yml)
+
 Wire is a toolset for building rich-client web applications, clojure on the server side and clojurescript on the client side.
 
  * __ajax.clj(s)__ : AJAX comm between client and server
