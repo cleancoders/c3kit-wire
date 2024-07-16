@@ -51,20 +51,20 @@
 (def args (atom :none))
 
 (defmacro check-route [path method route-handler handler]
-  (require `~(symbol (namespace handler)) :verbose)
+  (require `~(symbol (namespace handler)))
   `(let [stub-key# ~(keyword handler)]
      (with-redefs [~handler (stub stub-key#)]
-       (route-handler {:uri ~path :request-method ~method})
+       (~route-handler {:uri ~path :request-method ~method})
        (should-have-invoked stub-key#)
        (reset! args (stub/first-invocation-of stub-key#)))))
 
 (defmacro test-route [path method route-handler handler & body]
   `(it ~path
-     (check-route ~path ~route-handler ~method ~handler)
+     (check-route ~path ~method ~route-handler ~handler)
      ~@body))
 
 (defmacro test-webs [id sym]
   `(it (str "remote " ~id " -> " '~sym)
      (let [action# (ws/resolve-handler ~id)]
-       (should-not= nil action#)
+       (should-not-be-nil action#)
        (should= '~sym (.toSymbol action#)))))
