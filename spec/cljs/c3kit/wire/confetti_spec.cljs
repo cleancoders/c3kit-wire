@@ -6,6 +6,11 @@
             [c3kit.wire.spec-helper :as wire]
             [c3kit.wire.spec-helper]))
 
+(def rand-ratom (atom 0))
+
+(defmethod sut/-rand :mock [& _]
+  @rand-ratom)
+
 (def now-counter (atom 0))
 (def rand-nth-counter (atom 0))
 (def baseline-fps (/ 60 1000))
@@ -14,10 +19,11 @@
 (describe "Confetti"
   (with-stubs)
   (wire/with-root-dom)
-  (before (reset! now-counter 0))
+  (before (reset! sut/rand-impl :mock)
+          (reset! rand-ratom 0)
+          (reset! now-counter 0))
 
   (redefs-around [sut/performance-now #(swap! now-counter inc)
-                  rand (constantly 0)
                   rand-nth (fn [coll]
                              (nth coll (mod (swap! rand-nth-counter inc) (count coll))))])
 
@@ -43,31 +49,31 @@
       (should= 0 (:wave-angle sparkle))))
 
   (it "creates a bomb sparkle"
-    (with-redefs [rand (constantly 1)]
-      (let [sparkle (sut/-create-sparkle :bomb 100 100)]
-        (should= 1 (:last-time sparkle))
-        (should= 1 (:start-time sparkle))
-        (should= :bomb (:kind sparkle))
-        (should= 150 (sut/x-pos (:transform sparkle)))
-        (should= 100 (sut/y-pos (:transform sparkle)) 0.0001)
-        (should= 20 (sut/x-vel (:transform sparkle)))
-        (should= 0 (sut/y-vel (:transform sparkle)) 0.0001)
-        (should= 0 (sut/x-accel (:transform sparkle)) 0.0001)
-        (should= 0.1 (sut/y-accel (:transform sparkle)) 0.0001)
-        (should= 15 (:diameter sparkle))
-        (should= 0 (:tilt sparkle))
-        (should= 0.12 (:tilt-angle-inc sparkle))
-        (should= Math/PI (:tilt-angle sparkle))
-        (should-not (= (first (:colors sparkle)) (last (:colors sparkle))))
-        (should= 0 (:wave-angle sparkle))
-        (should= 50 (:max-ball-radius sparkle))
-        (should= 50 (:ball-radius sparkle))
-        (should (:invisible? sparkle)))))
+    (reset! rand-ratom 1)
+    (let [sparkle (sut/-create-sparkle :bomb 100 100)]
+      (should= 1 (:last-time sparkle))
+      (should= 1 (:start-time sparkle))
+      (should= :bomb (:kind sparkle))
+      (should= 150 (sut/x-pos (:transform sparkle)))
+      (should= 100 (sut/y-pos (:transform sparkle)) 0.0001)
+      (should= 20 (sut/x-vel (:transform sparkle)))
+      (should= 0 (sut/y-vel (:transform sparkle)) 0.0001)
+      (should= 0 (sut/x-accel (:transform sparkle)) 0.0001)
+      (should= 0.1 (sut/y-accel (:transform sparkle)) 0.0001)
+      (should= 15 (:diameter sparkle))
+      (should= 0 (:tilt sparkle))
+      (should= 0.12 (:tilt-angle-inc sparkle))
+      (should= Math/PI (:tilt-angle sparkle))
+      (should-not (= (first (:colors sparkle)) (last (:colors sparkle))))
+      (should= 0 (:wave-angle sparkle))
+      (should= 50 (:max-ball-radius sparkle))
+      (should= 50 (:ball-radius sparkle))
+      (should (:invisible? sparkle))))
 
   (context "drop sparkle"
+    (before (reset! rand-ratom 1))
     (redefs-around [sut/width (constantly 400)
                     sut/height (constantly 300)
-                    rand (constantly 1)
                     sut/performance-now (fn [] 2)])
 
     (it "creates a drop sparkle with correct initial properties"
@@ -168,48 +174,48 @@
     (context "bomb"
       (context "pre-explosion"
         (it "is invisible"
-          (with-redefs [rand (constantly 1)]
-            (let [sparkle         (sut/-create-sparkle :bomb 200 200)
-                  updated-sparkle (sut/-update-sparkle sparkle)]
-              (should= 2 (:last-time updated-sparkle))
-              (should (:invisible? updated-sparkle))
-              (should-not (:exploded? updated-sparkle)))))
+          (reset! rand-ratom 1)
+          (let [sparkle (sut/-create-sparkle :bomb 200 200)
+                updated-sparkle (sut/-update-sparkle sparkle)]
+            (should= 2 (:last-time updated-sparkle))
+            (should (:invisible? updated-sparkle))
+            (should-not (:exploded? updated-sparkle))))
 
         (it "is visible"
-          (with-redefs [rand (constantly 0)]
-            (let [sparkle         (sut/-create-sparkle :bomb 200 200)
-                  updated-sparkle (sut/-update-sparkle sparkle)]
-              (should= 2 (:last-time updated-sparkle))
-              (should-not (:invisible? updated-sparkle))
-              (should-not (:exploded? updated-sparkle))))))
+          (reset! rand-ratom 0)
+          (let [sparkle (sut/-create-sparkle :bomb 200 200)
+                updated-sparkle (sut/-update-sparkle sparkle)]
+            (should= 2 (:last-time updated-sparkle))
+            (should-not (:invisible? updated-sparkle))
+            (should-not (:exploded? updated-sparkle)))))
 
       (context "post-explosion"
         (it "updates transform"
-          (with-redefs [rand (constantly 1)]
-            (let [sparkle         (sut/-create-sparkle :bomb 200 200)
-                  _               (dotimes [_ 999] (sut/performance-now))
-                  updated-sparkle (sut/-update-sparkle sparkle)
-                  rounding-error  0.0001]
-              (should= 1001 (:last-time updated-sparkle))
-              (should-not (:invisible? updated-sparkle))
-              (should= 270 (sut/x-pos (:transform updated-sparkle)))
-              (should= 200 (sut/y-pos (:transform updated-sparkle)) rounding-error)
-              (should= 20 (sut/x-vel (:transform updated-sparkle)))
-              (should= 0.1 (sut/y-vel (:transform updated-sparkle)) rounding-error)
-              (should= 0 (sut/x-accel (:transform updated-sparkle)) rounding-error)
-              (should= 0.1 (sut/y-accel (:transform updated-sparkle)) rounding-error)
-              (should= 15 (:diameter sparkle))
-              (should= 0 (:tilt sparkle))
-              (should= 0.12 (:tilt-angle-inc sparkle))
-              (should= Math/PI (:tilt-angle sparkle) rounding-error)
-              (should-not (= (first (:colors sparkle)) (last (:colors sparkle))))
-              (should= 0 (:wave-angle sparkle)))))
+          (reset! rand-ratom 1)
+          (let [sparkle (sut/-create-sparkle :bomb 200 200)
+                _ (dotimes [_ 999] (sut/performance-now))
+                updated-sparkle (sut/-update-sparkle sparkle)
+                rounding-error 0.0001]
+            (should= 1001 (:last-time updated-sparkle))
+            (should-not (:invisible? updated-sparkle))
+            (should= 270 (sut/x-pos (:transform updated-sparkle)))
+            (should= 200 (sut/y-pos (:transform updated-sparkle)) rounding-error)
+            (should= 20 (sut/x-vel (:transform updated-sparkle)))
+            (should= 0.1 (sut/y-vel (:transform updated-sparkle)) rounding-error)
+            (should= 0 (sut/x-accel (:transform updated-sparkle)) rounding-error)
+            (should= 0.1 (sut/y-accel (:transform updated-sparkle)) rounding-error)
+            (should= 15 (:diameter sparkle))
+            (should= 0 (:tilt sparkle))
+            (should= 0.12 (:tilt-angle-inc sparkle))
+            (should= Math/PI (:tilt-angle sparkle) rounding-error)
+            (should-not (= (first (:colors sparkle)) (last (:colors sparkle))))
+            (should= 0 (:wave-angle sparkle))))
 
         (it "removes when landed"
-          (with-redefs [rand (constantly 1)]
-            (let [sparkle         (sut/-create-sparkle :bomb 200 301)
-                  updated-sparkle (sut/-update-sparkle sparkle)]
-              (should-be-nil updated-sparkle)))))))
+          (reset! rand-ratom 1)
+          (let [sparkle (sut/-create-sparkle :bomb 200 301)
+                updated-sparkle (sut/-update-sparkle sparkle)]
+            (should-be-nil updated-sparkle))))))
 
   (it "destroys a sparkles when it hits the floor"
     (should-be-nil (sut/-update-sparkle

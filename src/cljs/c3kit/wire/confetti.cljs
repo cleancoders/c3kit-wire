@@ -2,6 +2,13 @@
   (:require [c3kit.apron.time :as time]
             [c3kit.wire.js :as wjs]))
 
+(def rand-impl (atom :real))
+
+(defmulti -rand (fn [& _] @rand-impl))
+
+(defmethod -rand :real [n]
+  (rand n))
+
 (def width #(.-innerWidth js/window))
 (def height #(.-innerHeight js/window))
 
@@ -18,7 +25,7 @@
 (def max-sparkles 200)
 
 (defn -pick-a-color []
-  (let [color (conj (rand-nth confetti-colors) (rand 1))]
+  (let [color (conj (rand-nth confetti-colors) (-rand 1))]
     (str "rgba(" (apply str (interpose ", " color)) ")")))
 
 (def base-sparkle
@@ -110,12 +117,12 @@
 
 (defn rand-between [min max]
   (let [difference (- max min)]
-    (+ min (* (rand) difference))))
+    (+ min (* (-rand 1) difference))))
 
 (defn should-drop? [drop y-vel]
   (let [threshold   (rand-between -5 12)
         drop-chance 0.997]
-    (or drop (> (rand 1) drop-chance) (< y-vel threshold))))
+    (or drop (> (-rand 1) drop-chance) (< y-vel threshold))))
 
 (defmulti -calculate-new-transform (fn [sparkle & _] (:kind sparkle)))
 
@@ -207,7 +214,7 @@
              :colors         (repeatedly 2 -pick-a-color)
              :tilt           (rand-between -10 0)
              :tilt-angle-inc (rand-between 0.05 0.12)
-             :tilt-angle     (* (rand) Math/PI)}]
+             :tilt-angle     (* (-rand 1) Math/PI)}]
            maps)))
 
 (defmulti -create-sparkle (fn [& [kind]] kind))
@@ -215,7 +222,7 @@
 (defmethod -create-sparkle :drop [_ w h]
   (merge-sparkle {:last-time (performance-now)
                   :kind      :drop
-                  :transform {:position     {:x (* w (rand 1)) :y (* -1 h (rand 0.2))}
+                  :transform {:position     {:x (* w (-rand 1)) :y (* -1 h (-rand 0.2))}
                               :velocity     {:x (rand-between -0.5 0.5) :y 0}
                               :acceleration {:x 0 :y 0}
                               :drop?        true}}))
