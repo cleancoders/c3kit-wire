@@ -3,7 +3,9 @@
             [c3kit.wire.ajax :as ajax]
             [c3kit.wire.apic :as apic]
             [c3kit.wire.flashc :as flashc]
-            [speclj.core :refer :all]))
+            [c3kit.wire.websocket :as ws]
+            [speclj.core :refer :all]
+            [speclj.stub :as stub]))
 
 (log/warn!)
 
@@ -45,3 +47,24 @@
      (should= :fail (-> response# :status))
      (should= ~message (-> response# apic/first-flash-text))
      (should (-> response# apic/first-flash flashc/error?))))
+
+(def args (atom :none))
+
+(defmacro check-route [path method route-handler handler]
+  (require `~(symbol (namespace handler)))
+  `(let [stub-key# ~(keyword handler)]
+     (with-redefs [~handler (stub stub-key#)]
+       (~route-handler {:uri ~path :request-method ~method})
+       (should-have-invoked stub-key#)
+       (reset! args (stub/first-invocation-of stub-key#)))))
+
+(defmacro test-route [path method route-handler handler & body]
+  `(it ~path
+     (check-route ~path ~method ~route-handler ~handler)
+     ~@body))
+
+(defmacro test-webs [id sym]
+  `(it (str "remote " ~id " -> " '~sym)
+     (let [action# (ws/resolve-handler ~id)]
+       (should-not-be-nil action#)
+       (should= '~sym (.toSymbol action#)))))
