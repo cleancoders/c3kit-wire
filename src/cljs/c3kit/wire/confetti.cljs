@@ -41,12 +41,12 @@
 (defn y-accel [transform] (-> transform :acceleration :y))
 
 (defn- draw-sparkle! [context {:keys [diameter transform tilt colors] :as sparkle}]
-  (let [x     (x-pos transform)
-        y     (y-pos transform)
-        r     (/ diameter 2)
-        x2    (+ x tilt)
-        x     (+ x2 r)
-        y2    (+ y tilt r)
+  (let [x (x-pos transform)
+        y (y-pos transform)
+        r (/ diameter 2)
+        x2 (+ x tilt)
+        x (+ x2 r)
+        y2 (+ y tilt r)
         color (first colors)]
     (wjs/begin-path! context)
     (wjs/stroke! context)
@@ -58,8 +58,8 @@
 
 (defn- draw-confetti! [canvas sparkles]
   (let [context (wjs/context-2d canvas)
-        w       (width)
-        h       (height)]
+        w (width)
+        h (height)]
     (clear-rect context w h)
     (doseq [sparkle sparkles]
       (draw-sparkle! context sparkle))))
@@ -86,9 +86,9 @@
   (+ tilt-angle (* tilt-angle-inc (calculate-fall-coefficient elapsed) 2)))
 
 (defn calculate-drop-x [x wave-angle elapsed x-vel longer-time]
-  (let [value             (- (Math/sin wave-angle) (calculate-fall-coefficient elapsed))
-        sinusoidal        (if (> x-vel 0) value (- value))
-        w                 (width)
+  (let [value (- (Math/sin wave-angle) (calculate-fall-coefficient elapsed))
+        sinusoidal (if (> x-vel 0) value (- value))
+        w (width)
         x-vel-coefficient (* 0.1 (/ w 1302))]
     (+ x sinusoidal (* x-vel-coefficient longer-time x-vel))))
 
@@ -120,45 +120,60 @@
     (+ min (* (-rand 1) difference))))
 
 (defn should-drop? [drop y-vel]
-  (let [threshold   (rand-between -5 12)
+  (let [threshold (rand-between -5 12)
         drop-chance 0.997]
     (or drop (> (-rand 1) drop-chance) (< y-vel threshold))))
+
+(defn square [val]
+  (* val val))
 
 (defmulti -calculate-new-transform (fn [sparkle & _] (:kind sparkle)))
 
 (defmethod -calculate-new-transform :drop [{:keys [transform wave-angle diameter] :as sparkle} elapsed]
   (let [wave-angle (rand-between (- wave-angle) wave-angle)
-        x-pos      (+ (x-pos transform) (Math/sin wave-angle))
-        y-pos      (calculate-drop-y (y-pos transform) wave-angle diameter elapsed)]
+        x-pos (+ (x-pos transform) (Math/sin wave-angle))
+        y-pos (calculate-drop-y (y-pos transform) wave-angle diameter elapsed)]
     (assoc transform :position {:x x-pos :y y-pos})))
 
 (defmethod -calculate-new-transform :cannon [{:keys [transform] :as sparkle} elapsed]
-  (let [x-vel         (+ (x-vel transform) (x-accel transform))
+  (let [x-vel (+ (x-vel transform) (x-accel transform))
         extended-time (/ elapsed 50)
-        y-vel         (calculate-new-y-speed transform extended-time)
-        dropping?     (should-drop? (:drop? transform) y-vel)
-        y-pos         (calculate-y-position sparkle dropping? elapsed extended-time y-vel)
-        x-pos         (calculate-x-position sparkle dropping? elapsed extended-time x-vel)]
+        y-vel (calculate-new-y-speed transform extended-time)
+        dropping? (should-drop? (:drop? transform) y-vel)
+        y-pos (calculate-y-position sparkle dropping? elapsed extended-time y-vel)
+        x-pos (calculate-x-position sparkle dropping? elapsed extended-time x-vel)]
     (assoc transform :position {:x x-pos :y y-pos}
                      :velocity {:x x-vel :y y-vel}
                      :drop? dropping?)))
 
 (defmethod -calculate-new-transform :bomb [{:keys [transform] :as _sparkle} elapsed]
-  (let [x-pos   (x-pos transform)
-        y-pos   (y-pos transform)
-        x-vel   (x-vel transform)
-        y-vel   (y-vel transform)
+  (let [x-pos (x-pos transform)
+        y-pos (y-pos transform)
+        x-vel (x-vel transform)
+        y-vel (y-vel transform)
         x-accel (x-accel transform)
         y-accel (y-accel transform)]
     (assoc transform :position {:x (+ x-pos x-vel) :y (+ y-pos y-vel)}
                      :velocity {:x x-vel :y (+ y-vel y-accel)}
                      :acceleration {:x x-accel :y y-accel})))
 
+(defmethod -calculate-new-transform :fountain [{:keys [transform] :as sparkle} delta-t t]
+  (let [x-vel (+ (x-vel transform) (x-accel transform))
+        extended-time (/ delta-t 50)
+        y-vel (calculate-new-y-speed transform extended-time)
+        y-pos (calculate-y-position sparkle false delta-t extended-time y-vel)
+        sign (if (pos? (- (/ (:window-w sparkle) 2) (:x-pos-init sparkle))) 1 -1)
+        curve-modifier (* 0.2 (- 1 (/ (/ (:window-w sparkle) 2) (:x-pos-init sparkle))))
+        starting-pos (* -50 (- 1 (/ (/ (:window-w sparkle) 2) (:x-pos-init sparkle))))
+        x-pos (+ (:x-pos-init sparkle) (* 0.3 sign (square (- (* t curve-modifier) starting-pos))))]
+    (assoc transform :position {:x x-pos :y y-pos}
+                     :velocity {:x x-vel :y y-vel})))
+
 (defmulti -update-sparkle :kind)
 
 (defmethod -update-sparkle :drop [{:keys [wave-angle tilt-angle tilt-angle-inc last-time] :as sparkle}]
   (when-not (sparkle-has-landed? sparkle)
-    (let [now     (performance-now)
+    (let [now (performance-now)
           elapsed (- now last-time)]
       (assoc sparkle :last-time now
                      :wave-angle (calculate-new-wave-angle wave-angle elapsed)
@@ -168,7 +183,7 @@
 
 (defmethod -update-sparkle :cannon [{:keys [wave-angle tilt-angle tilt-angle-inc last-time] :as sparkle}]
   (when-not (sparkle-has-landed? sparkle)
-    (let [now     (performance-now)
+    (let [now (performance-now)
           elapsed (- now last-time)]
       (if (zero? elapsed)
         sparkle
@@ -181,12 +196,12 @@
 (defmethod -update-sparkle :bomb [{:keys [invisible? ball-radius max-ball-radius start-time
                                           wave-angle tilt-angle tilt-angle-inc last-time] :as sparkle}]
   (when-not (sparkle-has-landed? sparkle)
-    (let [now          (performance-now)
-          time-ratio   (/ (- now start-time) (time/seconds 1))
+    (let [now (performance-now)
+          time-ratio (/ (- now start-time) (time/seconds 1))
           radius-ratio (/ ball-radius max-ball-radius)
-          visible?     (or (not invisible?) (>= time-ratio radius-ratio))
-          exploded?    (>= time-ratio 1)
-          elapsed      (- now last-time)]
+          visible? (or (not invisible?) (>= time-ratio radius-ratio))
+          exploded? (>= time-ratio 1)
+          elapsed (- now last-time)]
       (merge sparkle
              {:last-time  now
               :invisible? (not visible?)}
@@ -194,6 +209,19 @@
                               :wave-angle (calculate-new-wave-angle wave-angle elapsed)
                               :tilt-angle (calculate-new-tilt-angle tilt-angle tilt-angle-inc elapsed)
                               :tilt       (* 6 (Math/sin tilt-angle))})))))
+
+(defmethod -update-sparkle :fountain [{:keys [wave-angle tilt-angle tilt-angle-inc last-time start-time] :as sparkle}]
+  (when-not (sparkle-has-landed? sparkle)
+    (let [now (performance-now)
+          delta-t (- now last-time)
+          t (- now start-time)]
+      (if (zero? delta-t)
+        sparkle
+        (assoc sparkle :last-time now
+                       :wave-angle (calculate-new-wave-angle wave-angle delta-t)
+                       :tilt-angle (calculate-new-tilt-angle tilt-angle tilt-angle-inc delta-t)
+                       :transform (-calculate-new-transform sparkle delta-t t)
+                       :tilt (* 15 (Math/sin tilt-angle)))))))
 
 (defn -update-sparkles [sparkles]
   (keep -update-sparkle sparkles))
@@ -228,7 +256,7 @@
                               :drop?        true}}))
 
 (defmethod -create-sparkle :cannon [_ h x-pos-init x-vel-init]
-  (let [y-normalize   (/ h 1028)
+  (let [y-normalize (/ h 1028)
         initial-y-vel (* y-normalize (rand-between 70 90))]
     (merge-sparkle {:last-time (performance-now)
                     :kind      :cannon
@@ -239,11 +267,11 @@
 
 (defmethod -create-sparkle :bomb [_ center-x center-y]
   (let [max-radius 50
-        radius     (rand-between 0 max-radius)
-        angle      (rand-between 0 (* 2 Math/PI))
-        delta-x    (* radius (Math/cos angle))
-        delta-y    (* radius (Math/sin angle))
-        now        (performance-now)]
+        radius (rand-between 0 max-radius)
+        angle (rand-between 0 (* 2 Math/PI))
+        delta-x (* radius (Math/cos angle))
+        delta-y (* radius (Math/sin angle))
+        now (performance-now)]
     (merge-sparkle {:last-time       now
                     :start-time      now
                     :kind            :bomb
@@ -253,6 +281,18 @@
                     :invisible?      true
                     :max-ball-radius max-radius
                     :ball-radius     radius})))
+
+(defmethod -create-sparkle :fountain [_ x-pos-init h]
+  (let [y-normalize (/ h 1028)
+        initial-y-vel (* y-normalize (rand-between 75 80))
+        now (performance-now)]
+    (merge-sparkle {:start-time now
+                    :last-time  now
+                    :x-pos-init x-pos-init
+                    :kind       :fountain
+                    :transform  {:position     {:x x-pos-init :y h}
+                                 :velocity     {:x 0 :y initial-y-vel}
+                                 :acceleration {:x 0 :y (* y-normalize (rand-between 3 4))}}})))
 
 (defn- set-size [canvas]
   (set-width! canvas)
@@ -270,25 +310,32 @@
   (-prepend canvas)
   (-request-animation-frame #(-animate! canvas sparkles)))
 
-(defmulti simulate! (fn [kind] kind))
-
-(defmethod simulate! :drop [_]
-  (let [canvas   (-create-canvas!)
+(defn simulate-drop! []
+  (let [canvas (-create-canvas!)
         sparkles (repeatedly (* max-sparkles 1.5) #(-create-sparkle :drop (width) (height)))]
     (animate-canvas canvas sparkles)))
 
-(defmethod simulate! :cannon [_]
-  (let [canvas         (-create-canvas!)
+(defn simulate-cannon! []
+  (let [canvas (-create-canvas!)
         [w h] [(width) (height)]
-        x-normalize    (/ w 1302)
-        x-offset       (* x-normalize 300)
-        left-sparkles  (repeatedly max-sparkles #(-create-sparkle :cannon h (- x-offset) (* x-normalize (rand-between 40 50))))
+        x-normalize (/ w 1302)
+        x-offset (* x-normalize 300)
+        left-sparkles (repeatedly max-sparkles #(-create-sparkle :cannon h (- x-offset) (* x-normalize (rand-between 40 50))))
         right-sparkles (repeatedly max-sparkles #(-create-sparkle :cannon h (+ w x-offset) (* -1 x-normalize (rand-between 40 50))))
-        sparkles       (concat left-sparkles right-sparkles)]
+        sparkles (concat left-sparkles right-sparkles)]
     (animate-canvas canvas sparkles)))
 
-(defmethod simulate! :bomb [_]
-  (let [canvas   (-create-canvas!)
+(defn simulate-bomb! []
+  (let [canvas (-create-canvas!)
         [w h] [(width) (height)]
         sparkles (repeatedly (* max-sparkles 3) #(-create-sparkle :bomb (/ w 2) (/ h 2.75)))]
     (animate-canvas canvas sparkles)))
+
+(defn simulate-fountain! []
+  (doseq [i (range 0 100)]
+    (wjs/timeout (* 20 i)
+                 (fn []
+                   (let [canvas (-create-canvas!)
+                         [w h] [(width) (height)]
+                         sparkles (repeatedly (/ max-sparkles 20) #(-create-sparkle :fountain (* (/ w 2) (rand-between 0.90 1.10)) h))]
+                     (animate-canvas canvas sparkles))))))

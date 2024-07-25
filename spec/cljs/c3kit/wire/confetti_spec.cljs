@@ -1,10 +1,12 @@
 (ns c3kit.wire.confetti-spec
   (:require-macros [speclj.core :refer [focus-context before context describe it redefs-around should should-be-nil should-contain should-have-invoked
                                         should-not should-not-have-invoked should-not= should= stub with-stubs focus-it]])
-  (:require [clojure.string :as str]
+  (:require [c3kit.wire.js :as wjs]
+            [clojure.string :as str]
             [c3kit.wire.confetti :as sut]
             [c3kit.wire.spec-helper :as wire]
-            [c3kit.wire.spec-helper]))
+            [c3kit.wire.spec-helper]
+            [speclj.stub :as stub]))
 
 (def rand-ratom (atom 0))
 
@@ -70,6 +72,25 @@
       (should= 50 (:ball-radius sparkle))
       (should (:invisible? sparkle))))
 
+  (it "creates a fountain sparkle"
+    (reset! rand-ratom 1)
+    (let [sparkle (sut/-create-sparkle :fountain 50 100)]
+      (should= 1 (:last-time sparkle))
+      (should= 1 (:start-time sparkle))
+      (should= :fountain (:kind sparkle))
+      (should= 50 (sut/x-pos (:transform sparkle)))
+      (should= 100 (sut/y-pos (:transform sparkle)) 0.0001)
+      (should= 0 (sut/x-vel (:transform sparkle)))
+      (should= (* (/ 100 1028) 80) (sut/y-vel (:transform sparkle)) 0.0001)
+      (should= 0 (sut/x-accel (:transform sparkle)) 0.0001)
+      (should= (* (/ 100 1028) 4) (sut/y-accel (:transform sparkle)) 0.0001)
+      (should= 15 (:diameter sparkle))
+      (should= 0 (:tilt sparkle))
+      (should= 0.12 (:tilt-angle-inc sparkle))
+      (should= Math/PI (:tilt-angle sparkle))
+      (should-not (= (first (:colors sparkle)) (last (:colors sparkle))))
+      (should= 0 (:wave-angle sparkle))))
+
   (context "drop sparkle"
     (before (reset! rand-ratom 1))
     (redefs-around [sut/width (constantly 400)
@@ -95,9 +116,9 @@
         (should= Math/PI (:tilt-angle sparkle))))
 
     (it "updates a drop sparkle correctly"
-      (let [sparkle         (sut/-create-sparkle :drop (sut/width) (sut/height))
+      (let [sparkle (sut/-create-sparkle :drop (sut/width) (sut/height))
             updated-sparkle (sut/-update-sparkle sparkle)
-            elapsed         (- (:last-time updated-sparkle) (:last-time sparkle))]
+            elapsed (- (:last-time updated-sparkle) (:last-time sparkle))]
         (should= 2 (:last-time updated-sparkle))
         (should= (+ (/ (* baseline-fps elapsed) 50) (:wave-angle sparkle))
                  (:wave-angle updated-sparkle))
@@ -117,12 +138,12 @@
                     sut/height (constantly 300)])
 
     (it "flying"
-      (let [sparkle         (sut/-create-sparkle :cannon (sut/height) 0 100)
+      (let [sparkle (sut/-create-sparkle :cannon (sut/height) 0 100)
             updated-sparkle (sut/-update-sparkle sparkle)
-            elapsed         (- (:last-time updated-sparkle) (:last-time sparkle))
-            extended-time   (/ elapsed 50)
-            transform       (:transform sparkle)
-            y-vel           (- (sut/y-vel transform) (* (sut/y-accel transform) extended-time))]
+            elapsed (- (:last-time updated-sparkle) (:last-time sparkle))
+            extended-time (/ elapsed 50)
+            transform (:transform sparkle)
+            y-vel (- (sut/y-vel transform) (* (sut/y-accel transform) extended-time))]
         (should= 2 (:last-time updated-sparkle))
         (should= (* 15 (Math/sin (:tilt-angle sparkle)))
                  (:tilt updated-sparkle))
@@ -140,11 +161,11 @@
 
     (context "dropping"
       (it "with positive x velocity"
-        (let [sparkle         (assoc-in (sut/-create-sparkle :cannon (sut/height) (sut/width) 100) [:transform :drop?] true)
+        (let [sparkle (assoc-in (sut/-create-sparkle :cannon (sut/height) (sut/width) 100) [:transform :drop?] true)
               updated-sparkle (sut/-update-sparkle sparkle)
-              elapsed         (- (:last-time updated-sparkle) (:last-time sparkle))
-              extended-time   (/ elapsed 50)
-              transform       (:transform sparkle)]
+              elapsed (- (:last-time updated-sparkle) (:last-time sparkle))
+              extended-time (/ elapsed 50)
+              transform (:transform sparkle)]
           (should= 2 (:last-time updated-sparkle))
           (should= (* 15 (Math/sin (:tilt-angle sparkle)))
                    (:tilt updated-sparkle))
@@ -161,17 +182,17 @@
                    (sut/y-pos (:transform updated-sparkle)))))
 
       (it "with negative x velocity"
-        (let [sparkle         (assoc-in (sut/-create-sparkle :cannon (sut/height) (sut/width) -100) [:transform :drop?] true)
+        (let [sparkle (assoc-in (sut/-create-sparkle :cannon (sut/height) (sut/width) -100) [:transform :drop?] true)
               updated-sparkle (sut/-update-sparkle sparkle)
-              elapsed         (- (:last-time updated-sparkle) (:last-time sparkle))
-              extended-time   (/ elapsed 50)
-              transform       (:transform sparkle)]
+              elapsed (- (:last-time updated-sparkle) (:last-time sparkle))
+              extended-time (/ elapsed 50)
+              transform (:transform sparkle)]
           (should= (+ (sut/x-pos (:transform sparkle))
                       (- (* 1 baseline-fps fall-speed) (Math/sin (:wave-angle sparkle)))
                       (* (* 0.1 (/ (sut/width) 1302)) extended-time (sut/x-vel transform)))
                    (sut/x-pos (:transform updated-sparkle))))))
 
-    (context "bomb"
+    (context "bombing"
       (context "pre-explosion"
         (it "is invisible"
           (reset! rand-ratom 1)
@@ -215,7 +236,33 @@
           (reset! rand-ratom 1)
           (let [sparkle (sut/-create-sparkle :bomb 200 301)
                 updated-sparkle (sut/-update-sparkle sparkle)]
-            (should-be-nil updated-sparkle))))))
+            (should-be-nil updated-sparkle)))))
+
+    (it "fountaining"
+      (let [sparkle (sut/-create-sparkle :fountain 50 100)
+            updated-sparkle (sut/-update-sparkle sparkle)
+            elapsed (- (:last-time updated-sparkle) (:last-time sparkle))
+            extended-time (/ elapsed 50)
+            transform (:transform sparkle)]
+        (should= 2 (:last-time updated-sparkle))
+        (should= (* 15 (Math/sin (:tilt-angle sparkle)))
+                 (:tilt updated-sparkle))
+        (should= (+ (/ (* baseline-fps elapsed) 50) (:wave-angle sparkle))
+                 (:wave-angle updated-sparkle))
+        (should= (+ (:tilt-angle sparkle) (* (:tilt-angle-inc sparkle) elapsed baseline-fps fall-speed 2))
+                 (:tilt-angle updated-sparkle))
+        (let [sign (if (pos? (- (/ (:window-w sparkle) 2) (:x-pos-init sparkle))) 1 -1)
+              curve-modifier (* 0.2 (- 1 (/ (/ (:window-w sparkle) 2) (:x-pos-init sparkle))))
+              starting-pos (* -50 (- 1 (/ (/ (:window-w sparkle) 2) (:x-pos-init sparkle))))]
+          (should= (+ (:x-pos-init sparkle) (* 0.3 sign (sut/square (- (* 1 curve-modifier) starting-pos))))
+                   (sut/x-pos (:transform updated-sparkle))))
+        (should= (+ (sut/y-pos (:transform sparkle)) (* -1 (sut/y-vel transform) extended-time) (* 0.5 (sut/y-accel transform) (* extended-time extended-time)))
+                 (sut/y-pos (:transform updated-sparkle)) 0.001)
+        (should= 0 (sut/x-vel (:transform updated-sparkle)))
+        (should= (- (sut/y-vel transform) (* (sut/y-accel transform) (/ 1 50)))
+          (sut/y-vel (:transform updated-sparkle)) 0.0001))
+      )
+    )
 
   (it "destroys a sparkles when it hits the floor"
     (should-be-nil (sut/-update-sparkle
@@ -230,13 +277,39 @@
   (it "picks an rgba color"
     (let [color (sut/-pick-a-color)
           split (str/split color #"[() \\s ,]")
-          rgb   [(second split) (nth split 3) (nth split 5)]]
+          rgb [(second split) (nth split 3) (nth split 5)]]
       (should= "rgba" (first split))
       (should-not= ["0" "0" "0"] rgb)
       (should (int? (int (second split))))
       (should (int? (int (nth split 3))))
       (should (int? (int (nth split 5))))
       (should (and (>= (last split) 0) (<= (last split) 1)))))
+
+  (context "calls fountain"
+    (it "100 times"
+      (with-redefs [wjs/timeout (stub :timeout)]
+        (sut/simulate-fountain!)
+        (should-have-invoked :timeout {:times 100})))
+
+    (it "with sparkles"
+      (reset! rand-ratom 1)
+      (with-redefs [wjs/timeout (stub :timeout)
+                    sut/animate-canvas (stub :animate-canvas)
+                    sut/width (stub :width {:return 100})
+                    sut/height (stub :height {:return 200})
+                    sut/-create-canvas! (stub :create-canvas {:return :canvas})
+                    sut/performance-now (stub :performance-now {:return 1})
+                    sut/-pick-a-color (stub :pick-a-color {:return :red})]
+        (sut/simulate-fountain!)
+        ((last (stub/last-invocation-of :timeout)))
+        (should-have-invoked :animate-canvas {:with [:canvas (repeatedly (/ 200 20) #(sut/-create-sparkle :fountain (* (/ 100 2) 1.10) 200))]})
+        (should-have-invoked :width)
+        (should-have-invoked :height)
+        (should-have-invoked :performance-now)
+        (should-have-invoked :create-canvas)
+        (should-have-invoked :pick-a-color)
+        ))
+    )
 
   (context "stopping animation"
 
