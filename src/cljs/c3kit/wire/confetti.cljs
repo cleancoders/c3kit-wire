@@ -28,7 +28,7 @@
   (let [color (conj (rand-nth confetti-colors) (-rand 1))]
     (str "rgba(" (apply str (interpose ", " color)) ")")))
 
-(def base-sparkle
+(defn base-sparkle []
   {:window-w   (width)
    :window-h   (height)
    :wave-angle 0})
@@ -237,7 +237,7 @@
 (defn merge-sparkle [& maps]
   (apply merge
          (concat
-           [base-sparkle
+           [(base-sparkle)
             {:diameter       (rand-between 5 15)
              :colors         (repeatedly 2 -pick-a-color)
              :tilt           (rand-between -10 0)
