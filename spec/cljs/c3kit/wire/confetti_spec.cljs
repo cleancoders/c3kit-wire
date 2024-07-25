@@ -294,7 +294,7 @@
     (it "with sparkles"
       (reset! rand-ratom 1)
       (with-redefs [wjs/timeout (stub :timeout)
-                    sut/animate-canvas (stub :animate-canvas)
+                    sut/animate-canvas! (stub :animate-canvas)
                     sut/width (stub :width {:return 100})
                     sut/height (stub :height {:return 200})
                     sut/-create-canvas! (stub :create-canvas {:return :canvas})
@@ -302,13 +302,14 @@
                     sut/-pick-a-color (stub :pick-a-color {:return :red})]
         (sut/simulate-fountain!)
         ((last (stub/last-invocation-of :timeout)))
-        (should-have-invoked :animate-canvas {:with [:canvas (repeatedly (/ 200 20) #(sut/-create-sparkle :fountain (* (/ 100 2) 1.10) 200))]})
-        (should-have-invoked :width)
-        (should-have-invoked :height)
-        (should-have-invoked :performance-now)
-        (should-have-invoked :create-canvas)
-        (should-have-invoked :pick-a-color)
-        ))
+        (let [sparkles (repeatedly (/ 200 20) #(sut/-create-sparkle :fountain (* (/ 100 2) 1.10) 200))]
+          (should= (concat sparkles sparkles)
+                   (deref (last (stub/last-invocation-of :animate-canvas))))
+          (should-have-invoked :width)
+          (should-have-invoked :height)
+          (should-have-invoked :performance-now)
+          (should-have-invoked :create-canvas)
+          (should-have-invoked :pick-a-color))))
     )
 
   (context "stopping animation"
@@ -317,11 +318,33 @@
                     sut/-remove-from-dom (stub :remove-from-dom)])
 
     (it "animates when active"
-      (sut/-animate! (sut/-create-canvas!) (repeatedly 5 #(sut/-create-sparkle :cannon 300 0 0)))
+      (sut/-animate (sut/-create-canvas!) (repeatedly 5 #(sut/-create-sparkle :cannon 300 0 0)))
       (should-have-invoked :request-animation-frame)
       (should-not-have-invoked :remove-from-dom))
 
     (it "doesn't animate when not active"
-      (sut/-animate! :canvas [])
+      (sut/-animate :canvas [])
       (should-not-have-invoked :request-animation-frame)
-      (should-have-invoked :remove-from-dom))))
+      (should-have-invoked :remove-from-dom)))
+
+  (context "stateful animate"
+
+    (redefs-around [sut/-request-animation-frame (stub :request-animation-frame)
+                    sut/-remove-from-dom (stub :remove-from-dom)
+                    sut/width (stub :width {:return 400})
+                    sut/height (stub :height {:return 400})
+                    sut/performance-now (stub :performance-now {:return 1})
+                    sut/-pick-a-color (stub :pick-a-color {:return :red})])
+
+    (it "animates when active"
+      (let [sparkles (atom (repeatedly 5 #(sut/-create-sparkle :cannon 300 0 0)))]
+        (sut/-animate! (sut/-create-canvas!) sparkles)
+        (should= (sut/-update-sparkles @sparkles) @sparkles)
+        (should-have-invoked :request-animation-frame)
+        (should-not-have-invoked :remove-from-dom)))
+
+    (it "doesn't animate when not active"
+      (let [sparkles (atom [])]
+        (sut/-animate! :canvas sparkles)
+        (should-not-have-invoked :request-animation-frame)
+        (should-have-invoked :remove-from-dom)))))

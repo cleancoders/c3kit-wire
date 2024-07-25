@@ -226,13 +226,21 @@
 (defn -update-sparkles [sparkles]
   (keep -update-sparkle sparkles))
 
-(defn -animate! [canvas sparkles]
+(defn -animate [canvas sparkles]
   (let [new-sparkles (-update-sparkles sparkles)]
     (if (empty? new-sparkles)
       (-remove-from-dom canvas)
       (do
         (draw-confetti! canvas (remove :invisible? new-sparkles))
-        (-request-animation-frame #(-animate! canvas new-sparkles))))))
+        (-request-animation-frame #(-animate canvas new-sparkles))))))
+
+(defn -animate! [canvas sparkles-atom]
+  (swap! sparkles-atom -update-sparkles)
+  (if (empty? @sparkles-atom)
+    (-remove-from-dom canvas)
+    (do
+      (draw-confetti! canvas (remove :invisible? @sparkles-atom))
+      (-request-animation-frame #(-animate! canvas sparkles-atom)))))
 
 (defn merge-sparkle [& maps]
   (apply merge
@@ -308,7 +316,11 @@
 
 (defn animate-canvas [canvas sparkles]
   (-prepend canvas)
-  (-request-animation-frame #(-animate! canvas sparkles)))
+  (-request-animation-frame #(-animate canvas sparkles)))
+
+(defn animate-canvas! [canvas sparkles-atom]
+  (-prepend canvas)
+  (-request-animation-frame #(-animate! canvas sparkles-atom)))
 
 (defn simulate-drop! []
   (let [canvas (-create-canvas!)
@@ -332,10 +344,12 @@
     (animate-canvas canvas sparkles)))
 
 (defn simulate-fountain! []
-  (doseq [i (range 0 100)]
-    (wjs/timeout (* 20 i)
-                 (fn []
-                   (let [canvas (-create-canvas!)
-                         [w h] [(width) (height)]
-                         sparkles (repeatedly (/ max-sparkles 20) #(-create-sparkle :fountain (* (/ w 2) (rand-between 0.90 1.10)) h))]
-                     (animate-canvas canvas sparkles))))))
+  (let [canvas (-create-canvas!)
+        [w h] [(width) (height)]
+        sparkles (atom (repeatedly (/ max-sparkles 20) #(-create-sparkle :fountain (* (/ w 2) (rand-between 0.90 1.10)) h)))]
+    (animate-canvas! canvas sparkles)
+    (doseq [i (range 0 100)]
+      (wjs/timeout (* 20 i)
+                   (fn []
+                     (let [new-sparkles (repeatedly (/ max-sparkles 20) #(-create-sparkle :fountain (* (/ w 2) (rand-between 0.90 1.10)) h))]
+                       (swap! sparkles concat new-sparkles)))))))
