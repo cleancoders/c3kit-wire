@@ -16,7 +16,7 @@
 (def now-counter (atom 0))
 (def rand-nth-counter (atom 0))
 (def baseline-fps (/ 60 1000))
-(def fall-speed 0.65)
+(def fall-speed 0.5)
 
 (describe "Confetti"
   (with-stubs)

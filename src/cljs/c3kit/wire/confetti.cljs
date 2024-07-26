@@ -68,7 +68,7 @@
   (> (y-pos transform) (height)))
 
 (def baseline-fps (/ 60 1000))
-(def fall-speed 0.65)
+(def fall-speed 0.5)
 
 (defn calculate-time-correction [elapsed]
   (* elapsed baseline-fps))
@@ -197,7 +197,7 @@
                                           wave-angle tilt-angle tilt-angle-inc last-time] :as sparkle}]
   (when-not (sparkle-has-landed? sparkle)
     (let [now (performance-now)
-          time-ratio (/ (- now start-time) (time/seconds 1))
+          time-ratio (/ (- now start-time) (time/seconds 0.5))
           radius-ratio (/ ball-radius max-ball-radius)
           visible? (or (not invisible?) (>= time-ratio radius-ratio))
           exploded? (>= time-ratio 1)
