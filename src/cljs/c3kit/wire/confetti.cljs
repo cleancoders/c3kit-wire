@@ -267,16 +267,13 @@
 (defn merge-sparkle [& maps]
   (apply merge
          (concat
-          [(base-sparkle)
-           {:diameter       (rand-between 5 15)
-            :colors         (repeatedly 2 -pick-a-color)
-            :tilt           (rand-between -10 0)
-            :tilt-angle-inc (rand-between 0.05 0.12)
-            :tilt-angle     (* (-rand 1) Math/PI)}]
-          maps)))
-
-(defmulti -create-sparkle (fn [& [kind]] kind))
-
+           [(base-sparkle)
+            {:diameter       (rand-between 5 15)
+             :colors         (repeatedly 2 -pick-a-color)
+             :tilt           (rand-between -10 0)
+             :tilt-angle-inc (rand-between 0.05 0.12)
+             :tilt-angle     (* (-rand 1) Math/PI)}]
+           maps)))
 
 (defn -create-drop-sparkle [w h]
   (merge-sparkle {:last-time (performance-now)
@@ -286,7 +283,7 @@
                               :acceleration {:x 0 :y 0}
                               :drop?        true}}))
 
-(defmethod -create-sparkle :cannon [_ h x-pos-init x-vel-init]
+(defn -create-cannon-sparkle [h x-pos-init x-vel-init]
   (let [y-normalize   (/ h 1028)
         initial-y-vel (* y-normalize (rand-between 70 90))]
     (merge-sparkle {:last-time (performance-now)
@@ -296,7 +293,7 @@
                                 :acceleration {:x 0 :y (* y-normalize (rand-between 3 4))}
                                 :drop?        false}})))
 
-(defmethod -create-sparkle :bomb [_ center-x center-y]
+(defn -create-bomb-sparkle [center-x center-y]
   (let [max-radius 50
         radius     (rand-between 0 max-radius)
         angle      (rand-between 0 (* 2 Math/PI))
@@ -313,7 +310,7 @@
                     :max-ball-radius max-radius
                     :ball-radius     radius})))
 
-(defmethod -create-sparkle :fireworks [_ center-x center-y]
+(defn -create-fireworks-sparkle [center-x center-y]
   (let [now        (performance-now)
         max-radius 50
         radius     (rand-between 0 max-radius)
@@ -322,18 +319,18 @@
         delta-y    (* radius (Math/sin angle))
         ]
     (merge-sparkle
-     {:start-time      now
-      :last-time       now
-      :kind            :fireworks
-      :transform       {:position     {:x (+ center-x delta-x) :y (+ center-y delta-y)}
-                        :velocity     {:x (/ delta-x 2.5) :y (/ delta-y 2.5)}
-                        :acceleration {:x 0 :y 0.1}}
-      :invisible?      false
-      :max-ball-radius max-radius
-      :ball-radius     radius
-      })))
+      {:start-time      now
+       :last-time       now
+       :kind            :fireworks
+       :transform       {:position     {:x (+ center-x delta-x) :y (+ center-y delta-y)}
+                         :velocity     {:x (/ delta-x 2.5) :y (/ delta-y 2.5)}
+                         :acceleration {:x 0 :y 0.1}}
+       :invisible?      false
+       :max-ball-radius max-radius
+       :ball-radius     radius
+       })))
 
-(defmethod -create-sparkle :fountain [_ x-pos-init h]
+(defn -create-fountain-sparkle [x-pos-init h]
   (let [y-normalize   (/ h 1028)
         initial-y-vel (* y-normalize (rand-between 75 80))
         now           (performance-now)]
@@ -345,6 +342,9 @@
                                  :velocity     {:x 0 :y initial-y-vel}
                                  :acceleration {:x 0 :y (* y-normalize (rand-between 3 4))}}})))
 
+(defmulti -create-sparkle (fn [& [kind]] kind))
+
+
 (defn random-position [w h]
   (let [w-limit (/ w 6)
         h-limit (/ h 6)
@@ -353,7 +353,7 @@
     [x y]))
 
 (defn create-fireworks-sparkles [count [x y]]
-  (repeatedly count #(-create-sparkle :fireworks x y)))
+  (repeatedly count #(-create-fireworks-sparkle x y)))
 
 (defn schedule-fireworks [sparkles w h]
   (doseq [i (range 1 8)]
@@ -393,26 +393,26 @@
         [w h] [(width) (height)]
         x-normalize    (/ w 1302)
         x-offset       (* x-normalize 300)
-        left-sparkles  (repeatedly max-sparkles #(-create-sparkle :cannon h (- x-offset) (* x-normalize (rand-between 40 50))))
-        right-sparkles (repeatedly max-sparkles #(-create-sparkle :cannon h (+ w x-offset) (* -1 x-normalize (rand-between 40 50))))
+        left-sparkles  (repeatedly max-sparkles #(-create-cannon-sparkle h (- x-offset) (* x-normalize (rand-between 40 50))))
+        right-sparkles (repeatedly max-sparkles #(-create-cannon-sparkle h (+ w x-offset) (* -1 x-normalize (rand-between 40 50))))
         sparkles       (concat left-sparkles right-sparkles)]
     (animate-canvas canvas sparkles)))
 
 (defn simulate-bomb! []
   (let [canvas   (-create-canvas!)
         [w h] [(width) (height)]
-        sparkles (repeatedly (* max-sparkles 3) #(-create-sparkle :bomb (/ w 2) (/ h 2.75)))]
+        sparkles (repeatedly (* max-sparkles 3) #(-create-bomb-sparkle (/ w 2) (/ h 2.75)))]
     (animate-canvas canvas sparkles)))
 
 (defn simulate-fountain! []
   (let [canvas   (-create-canvas!)
         [w h] [(width) (height)]
-        sparkles (atom (repeatedly (/ max-sparkles 20) #(-create-sparkle :fountain (* (/ w 2) (rand-between 0.90 1.10)) h)))]
+        sparkles (atom (repeatedly (/ max-sparkles 20) #(-create-fountain-sparkle (* (/ w 2) (rand-between 0.90 1.10)) h)))]
     (animate-canvas! canvas sparkles)
     (doseq [i (range 0 100)]
       (wjs/timeout (* 20 i)
                    (fn []
-                     (let [new-sparkles (repeatedly (/ max-sparkles 20) #(-create-sparkle :fountain (* (/ w 2) (rand-between 0.90 1.10)) h))]
+                     (let [new-sparkles (repeatedly (/ max-sparkles 20) #(-create-fountain-sparkle (* (/ w 2) (rand-between 0.90 1.10)) h))]
                        (swap! sparkles concat new-sparkles)))))))
 
 (defn simulate-fireworks! []

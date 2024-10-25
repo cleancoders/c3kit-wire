@@ -36,7 +36,7 @@
       (should= (str (.-innerHeight js/window)) (.getAttribute canvas "height"))))
 
   (it "creates a cannon sparkle"
-    (let [sparkle (sut/-create-sparkle :cannon 400 1 2)]
+    (let [sparkle (sut/-create-cannon-sparkle 400 1 2)]
       (should= 1 (:last-time sparkle))
       (should= :cannon (:kind sparkle))
       (should= 1 (sut/x-pos (:transform sparkle)))
@@ -52,7 +52,7 @@
 
   (it "creates a bomb sparkle"
     (reset! rand-ratom 1)
-    (let [sparkle (sut/-create-sparkle :bomb 100 100)]
+    (let [sparkle (sut/-create-bomb-sparkle 100 100)]
       (should= 1 (:last-time sparkle))
       (should= 1 (:start-time sparkle))
       (should= :bomb (:kind sparkle))
@@ -74,7 +74,7 @@
 
   (it "creates a fountain sparkle"
     (reset! rand-ratom 1)
-    (let [sparkle (sut/-create-sparkle :fountain 50 100)]
+    (let [sparkle (sut/-create-fountain-sparkle 50 100)]
       (should= 1 (:last-time sparkle))
       (should= 1 (:start-time sparkle))
       (should= :fountain (:kind sparkle))
@@ -93,7 +93,7 @@
 
   (it "creates a fireworks sparkle"
     (reset! rand-ratom 1)
-    (let [sparkle (sut/-create-sparkle :fireworks 100 200)]
+    (let [sparkle (sut/-create-fireworks-sparkle 100 200)]
       (should= 1 (:last-time sparkle))
       (should= 1 (:start-time sparkle))
       (should= :fireworks (:kind sparkle))
@@ -156,7 +156,7 @@
                     sut/height (constantly 300)])
 
     (it "flying"
-      (let [sparkle         (sut/-create-sparkle :cannon (sut/height) 0 100)
+      (let [sparkle         (sut/-create-cannon-sparkle (sut/height) 0 100)
             updated-sparkle (sut/-update-sparkle sparkle)
             elapsed         (- (:last-time updated-sparkle) (:last-time sparkle))
             extended-time   (/ elapsed 50)
@@ -179,7 +179,7 @@
 
     (context "dropping"
       (it "with positive x velocity"
-        (let [sparkle         (assoc-in (sut/-create-sparkle :cannon (sut/height) (sut/width) 100) [:transform :drop?] true)
+        (let [sparkle         (assoc-in (sut/-create-cannon-sparkle (sut/height) (sut/width) 100) [:transform :drop?] true)
               updated-sparkle (sut/-update-sparkle sparkle)
               elapsed         (- (:last-time updated-sparkle) (:last-time sparkle))
               extended-time   (/ elapsed 50)
@@ -200,7 +200,7 @@
                    (sut/y-pos (:transform updated-sparkle)))))
 
       (it "with negative x velocity"
-        (let [sparkle         (assoc-in (sut/-create-sparkle :cannon (sut/height) (sut/width) -100) [:transform :drop?] true)
+        (let [sparkle         (assoc-in (sut/-create-cannon-sparkle (sut/height) (sut/width) -100) [:transform :drop?] true)
               updated-sparkle (sut/-update-sparkle sparkle)
               elapsed         (- (:last-time updated-sparkle) (:last-time sparkle))
               extended-time   (/ elapsed 50)
@@ -214,7 +214,7 @@
       (context "pre-explosion"
         (it "is invisible"
           (reset! rand-ratom 1)
-          (let [sparkle         (sut/-create-sparkle :bomb 200 200)
+          (let [sparkle         (sut/-create-bomb-sparkle 200 200)
                 updated-sparkle (sut/-update-sparkle sparkle)]
             (should= 2 (:last-time updated-sparkle))
             (should (:invisible? updated-sparkle))
@@ -222,7 +222,7 @@
 
         (it "is visible"
           (reset! rand-ratom 0)
-          (let [sparkle         (sut/-create-sparkle :bomb 200 200)
+          (let [sparkle         (sut/-create-bomb-sparkle 200 200)
                 updated-sparkle (sut/-update-sparkle sparkle)]
             (should= 2 (:last-time updated-sparkle))
             (should-not (:invisible? updated-sparkle))
@@ -231,7 +231,7 @@
       (context "post-explosion"
         (it "updates transform"
           (reset! rand-ratom 1)
-          (let [sparkle         (sut/-create-sparkle :bomb 200 200)
+          (let [sparkle         (sut/-create-bomb-sparkle 200 200)
                 _               (dotimes [_ 999] (sut/performance-now))
                 updated-sparkle (sut/-update-sparkle sparkle)
                 rounding-error  0.0001]
@@ -252,14 +252,14 @@
 
         (it "removes when landed"
           (reset! rand-ratom 1)
-          (let [sparkle         (sut/-create-sparkle :bomb 200 301)
+          (let [sparkle         (sut/-create-bomb-sparkle 200 301)
                 updated-sparkle (sut/-update-sparkle sparkle)]
             (should-be-nil updated-sparkle)))))
 
     (context "fireworks explosion"
       (it "updates transform"
         (reset! rand-ratom 1)
-        (let [sparkle         (sut/-create-sparkle :fireworks 200 200)
+        (let [sparkle         (sut/-create-fireworks-sparkle 200 200)
               _               (dotimes [_ 999] (sut/performance-now))
               updated-sparkle (sut/-update-sparkle sparkle)
               rounding-error  0.0001]
@@ -279,13 +279,13 @@
 
     (it "removes when landed"
       (reset! rand-ratom 1)
-      (let [sparkle         (sut/-create-sparkle :fireworks 200 301)
+      (let [sparkle         (sut/-create-fireworks-sparkle 200 301)
             updated-sparkle (sut/-update-sparkle sparkle)]
         (should-be-nil updated-sparkle)))
 
 
     (it "fountaining"
-      (let [sparkle         (sut/-create-sparkle :fountain 50 100)
+      (let [sparkle         (sut/-create-fountain-sparkle 50 100)
             updated-sparkle (sut/-update-sparkle sparkle)
             elapsed         (- (:last-time updated-sparkle) (:last-time sparkle))
             extended-time   (/ elapsed 50)
@@ -312,7 +312,7 @@
 
   (it "destroys a sparkles when it hits the floor"
     (should-be-nil (sut/-update-sparkle
-                    (assoc (sut/-create-sparkle :cannon 0 0 0)
+                    (assoc (sut/-create-cannon-sparkle 0 0 0)
                       :transform {:position {:y 9999}}))))
 
   (it "eliminates dead sparkles on floor"
@@ -348,7 +348,7 @@
                     sut/-pick-a-color (stub :pick-a-color {:return :red})]
         (sut/simulate-fountain!)
         ((last (stub/last-invocation-of :timeout)))
-        (let [sparkles (repeatedly (/ 200 20) #(sut/-create-sparkle :fountain (* (/ 100 2) 1.10) 200))]
+        (let [sparkles (repeatedly (/ 200 20) #(sut/-create-fountain-sparkle (* (/ 100 2) 1.10) 200))]
           (should= (concat sparkles sparkles)
                    (deref (last (stub/last-invocation-of :animate-canvas))))
           (should-have-invoked :width)
@@ -376,7 +376,7 @@
                     sut/-pick-a-color (stub :pick-a-color {:return :red})]
         (sut/simulate-fireworks!)
         ((last (stub/last-invocation-of :timeout)))
-        (let [sparkles (repeatedly (/ 200 2) #(sut/-create-sparkle :fireworks (- 100 (/ 100 6)) (- 200 (/ 200 6))))]
+        (let [sparkles (repeatedly (/ 200 2) #(sut/-create-fireworks-sparkle (- 100 (/ 100 6)) (- 200 (/ 200 6))))]
           (should= sparkles
                    (deref (last (stub/last-invocation-of :animate-canvas))))
           (should-have-invoked :width)
@@ -391,7 +391,7 @@
                     sut/-remove-from-dom (stub :remove-from-dom)])
 
     (it "animates when active"
-      (sut/-animate (sut/-create-canvas!) (repeatedly 5 #(sut/-create-sparkle :cannon 300 0 0)))
+      (sut/-animate (sut/-create-canvas!) (repeatedly 5 #(sut/-create-cannon-sparkle 300 0 0)))
       (should-have-invoked :request-animation-frame)
       (should-not-have-invoked :remove-from-dom))
 
@@ -410,7 +410,7 @@
                     sut/-pick-a-color (stub :pick-a-color {:return :red})])
 
     (it "animates when active"
-      (let [sparkles (atom (repeatedly 5 #(sut/-create-sparkle :cannon 300 0 0)))]
+      (let [sparkles (atom (repeatedly 5 #(sut/-create-cannon-sparkle 300 0 0)))]
         (sut/-animate! (sut/-create-canvas!) sparkles)
         (should= (sut/-update-sparkles @sparkles) @sparkles)
         (should-have-invoked :request-animation-frame)
