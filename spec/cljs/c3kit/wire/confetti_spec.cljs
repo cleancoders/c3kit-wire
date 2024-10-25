@@ -117,7 +117,7 @@
 
     (it "creates a drop sparkle with correct initial properties"
       (let [[w h] [(sut/width) (sut/height)]
-            sparkle (sut/-create-sparkle :drop w h)]
+            sparkle (sut/-create-drop-sparkle w h)]
         (should= :drop (:kind sparkle))
         (should= 2 (:last-time sparkle))
         (should= {:x w :y (- h)}
@@ -134,7 +134,7 @@
         (should= Math/PI (:tilt-angle sparkle))))
 
     (it "updates a drop sparkle correctly"
-      (let [sparkle         (sut/-create-sparkle :drop (sut/width) (sut/height))
+      (let [sparkle         (sut/-create-drop-sparkle (sut/width) (sut/height))
             updated-sparkle (sut/-update-sparkle sparkle)
             elapsed         (- (:last-time updated-sparkle) (:last-time sparkle))]
         (should= 2 (:last-time updated-sparkle))

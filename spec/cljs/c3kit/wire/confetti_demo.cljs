@@ -17,10 +17,11 @@
    [:div
     [:h1 "Confetti Demo"]]
    [:br]
-   [:button {:on-click #(confetti/simulate! :drop)} "Falling Confetti"]
-   [:button {:on-click #(confetti/simulate! :cannon)} "Cannon Confetti"]
-   [:button {:on-click #(confetti/simulate! :bomb)} "Bomb Confetti"]
-   [:button {:on-click #(confetti/simulate! :fountain)} "Fountain Confetti"]])
+   [:button {:on-click #(confetti/simulate-drop!)} "Drop Confetti"]
+   [:button {:on-click #(confetti/simulate-cannon!)} "Cannon Confetti"]
+   [:button {:on-click #(confetti/simulate-bomb!)} "Bomb Confetti"]
+   [:button {:on-click #(confetti/simulate-fountain!)} "Fountain Confetti"]
+   [:button {:on-click #(confetti/simulate-fireworks!)} "Fireworks Confetti"]])
 
 (defn ^:export init []
   (dom/render [content] (wjs/element-by-id "main"))

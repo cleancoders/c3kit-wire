@@ -277,7 +277,8 @@
 
 (defmulti -create-sparkle (fn [& [kind]] kind))
 
-(defmethod -create-sparkle :drop [_ w h]
+
+(defn -create-drop-sparkle [w h]
   (merge-sparkle {:last-time (performance-now)
                   :kind      :drop
                   :transform {:position     {:x (* w (-rand 1)) :y (* -1 h (-rand 0.2))}
@@ -384,7 +385,7 @@
 
 (defn simulate-drop! []
   (let [canvas   (-create-canvas!)
-        sparkles (repeatedly (* max-sparkles 1.5) #(-create-sparkle :drop (width) (height)))]
+        sparkles (repeatedly (* max-sparkles 1.5) #(-create-drop-sparkle (width) (height)))]
     (animate-canvas canvas sparkles)))
 
 (defn simulate-cannon! []
