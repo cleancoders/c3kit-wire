@@ -1,3 +1,6 @@
+### 2.1.6
+ * bump apron
+
 ### 2.1.4
  * Upgrades deps
  * Adds `->event`, `dispatch-event`, and `o-merge!` to `c3kit.wire.js`
