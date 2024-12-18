@@ -5,6 +5,11 @@
             [c3kit.apron.log :as log]
             [c3kit.wire.ajax :as ajax]
             [c3kit.wire.js :as wjs]
+            [c3kit.wire.mock.manual-worker :as worker]
+            [c3kit.wire.mock.memory-server :as mem-server]
+            [c3kit.wire.mock.memory-storage :as mem-store]
+            [c3kit.wire.mock.memory-websocket :as mem-ws]
+            [c3kit.wire.mock.server :as server]
             [c3kit.wire.websocket :as ws]
             [cljs.pprint :as pp]
             [cljsjs.react.dom.test-utils] ;; Brings in js/ReactTestUtils
@@ -508,3 +513,38 @@
 (defn last-ws-call-handler [] (when-let [args (stub/last-invocation-of :ws/call!)] (nth args 2)))
 (defn last-ws-call-options [] (when-let [args (stub/last-invocation-of :ws/call!)] (ccc/->options (drop 3 args))))
 (defn invoke-last-ws-call-handler [payload] (some-> (last-ws-call-handler) (ccc/invoke payload)))
+
+;region Mocks
+
+(defn with-websocket-impl [constructor]
+  (let [js-websocket js/WebSocket]
+    (list
+      (before (set! js/WebSocket constructor)
+              (reset! server/impl (mem-server/->MemServer)))
+      (after (set! js/WebSocket js-websocket)
+             (reset! server/impl nil)))))
+
+(defn with-memory-websockets []
+  (with-websocket-impl mem-ws/->MemSocket))
+
+(defn stub-performance-now [time]
+  (before (ccc/oset js/performance "now" (fn [] time))))
+
+(defn- memory-storage-storage [js-store]
+  (before
+    (let [store (mem-store/->MemStorage)]
+      (doseq [attr ["getItem" "setItem" "removeItem" "clear"]]
+        (ccc/oset js-store attr (ccc/oget store attr))))))
+
+(defn with-memory-local-storage []
+  (memory-storage-storage js/localStorage))
+
+(defn with-memory-session-storage []
+  (memory-storage-storage js/sessionStorage))
+
+(defn with-manual-worker []
+  (before (worker/clear!)
+          (set! js/setTimeout worker/set-timeout)
+          (set! js/setInterval worker/set-interval)))
+
+;endregion

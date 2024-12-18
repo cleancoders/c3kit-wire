@@ -1,20 +1,16 @@
 (ns c3kit.wire.websocket
-  (:require
-    [c3kit.wire.js :as cc]
-    [c3kit.apron.corec :as ccc]
-    [c3kit.apron.log :as log]
-    [c3kit.wire.api :as api]
-    [c3kit.wire.websocketc :as wsc]
-    [reagent.core :as reagent]
-    ))
+  (:require [c3kit.apron.corec :as ccc]
+            [c3kit.apron.log :as log]
+            [c3kit.wire.api :as api]
+            [c3kit.wire.js :as wjs]
+            [c3kit.wire.websocketc :as wsc]
+            [reagent.core :as reagent]))
 
 (def client nil)
 (def open? (reagent/atom false))
 (def reconnection? (atom false))
 (defonce pending-calls (atom []))
 (declare connect!)
-
-;(defn open? [] (and client (wsc/open? client)))
 
 (defn handle-remote-response [remote-call response]
   (log/debug "remote response: " response)
@@ -66,7 +62,7 @@
   (reset! open? false)
   (reset! reconnection? true)
   (log/warn "connection closed... reconnecting")
-  (cc/timeout 1000 (connect!)))
+  (wjs/timeout 1000 (connect!)))
 
 (defmethod push-handler :ws/error [_] (log/warn "websocket error"))
 
@@ -102,6 +98,6 @@
            ;[:p (pr-str @ws/channel-state)]
            [:p.margin-bottom "Your connection with the server has been broken. "
             "We are trying to reconnect.  If that doesn't seem to help, please try reloading this page."]
-           [:button.primary {:on-click cc/page-reload!} "Reload Page"]]])])))
+           [:button.primary {:on-click wjs/page-reload!} "Reload Page"]]])])))
 
 (defn connection-status [] (when-not @open? [disconnected-button]))

@@ -1,3 +1,7 @@
+### Next
+ * Upgrade deps
+ * Add In-Memory and Interceptor WebSocket Mocks
+
 ### 2.1.6
  * bump apron
 
