@@ -35,25 +35,25 @@
     (let [load  (sut/->event "load")
           close (sut/->event "close" "code" 1000 "reason" "none" "wasClean" true)]
       (should-be-a js/Event load)
-      (should= "load" (sut/o-get load "type"))
-      (should= "close" (sut/o-get close "type"))
-      (should= 1000 (sut/o-get close "code"))
-      (should= "none" (sut/o-get close "reason"))
-      (should= true (sut/o-get close "wasClean"))))
+      (should= "load" (ccc/oget load "type"))
+      (should= "close" (ccc/oget close "type"))
+      (should= 1000 (ccc/oget close "code"))
+      (should= "none" (ccc/oget close "reason"))
+      (should= true (ccc/oget close "wasClean"))))
 
   (it "dispatch-event"
     (let [event (atom nil)
           obj   (js-obj "dispatchEvent" #(reset! event %))]
       (sut/dispatch-event obj "close" "code" 1234 "reason" "foo")
       (should-be-a js/Event @event)
-      (should= "close" (sut/o-get @event "type"))
-      (should= 1234 (sut/o-get @event "code"))
-      (should= "foo" (sut/o-get @event "reason"))
+      (should= "close" (ccc/oget @event "type"))
+      (should= 1234 (ccc/oget @event "code"))
+      (should= "foo" (ccc/oget @event "reason"))
       (let [original-event @event]
         (sut/dispatch-event obj @event "code" 4000 "reason" "overridden")
         (should-be-same @event original-event)
-        (should= 4000 (sut/o-get @event "code"))
-        (should= "overridden" (sut/o-get @event "reason")))))
+        (should= 4000 (ccc/oget @event "code"))
+        (should= "overridden" (ccc/oget @event "reason")))))
 
   (it "o-merge!"
     (let [this     (js-obj)
@@ -125,7 +125,7 @@
     (it "create"
       (let [audio (sut/->audio "foo.mp3")]
         (should= js/HTMLAudioElement (type audio))
-        (should-end-with "foo.mp3" (sut/o-get audio "src"))))
+        (should-end-with "foo.mp3" (ccc/oget audio "src"))))
 
     (it "play"
       (let [audio (js-obj "play" (stub :play))]

@@ -4,6 +4,7 @@
                                         should-contain should-have-invoked should-not-be-nil should-not-contain should-not-have-invoked
                                         should-not= should= stub with-stubs]])
   (:require
+    [c3kit.apron.corec :as ccc]
     [c3kit.apron.log :as log]
     [c3kit.wire.dragndrop2 :as sut]
     [c3kit.wire.fake-hiccup :as fake-hiccup]
@@ -232,8 +233,8 @@
                 (should= 3 (count doc-listeners))
                 (should-contain "mousemove" doc-listeners)
                 (should= [-10 -10] (get-in @dnd [:active-drag :offset]))
-                (should= "10px" (wjs/o-get node-style "left"))
-                (should= "10px" (wjs/o-get node-style "top"))
+                (should= "10px" (ccc/oget node-style "left"))
+                (should= "10px" (ccc/oget node-style "top"))
                 (should= :drag-start (:last-call @state))
                 (should= "bone" (:source-key @state))
                 (should= "_dragndrop-drag-node_" (helper/id node))
@@ -296,8 +297,8 @@
                 (drag-handler (clj->js {:target @bone-node :clientX 10 :clientY 15}))
                 (let [node-style (wjs/node-style (get-in @dnd [:active-drag :drag-node]))]
                   (should= [-10 -10] (get-in @dnd [:active-drag :offset]))
-                  (should= "20px" (wjs/o-get node-style "left"))
-                  (should= "25px" (wjs/o-get node-style "top")))))
+                  (should= "20px" (ccc/oget node-style "left"))
+                  (should= "25px" (ccc/oget node-style "top")))))
 
             (it "droppable-mouse-enter"
               (let [mouseenter (:droppable-mouseenter @brusly)]

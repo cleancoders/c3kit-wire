@@ -68,8 +68,8 @@
         drag-style (wjs/node-style drag-node)
         [x y] (wjs/e-coordinates js-event)
         [offset-x offset-y] offset]
-    (wjs/o-set drag-style "left" (str (- x offset-x) "px"))
-    (wjs/o-set drag-style "top" (str (- y offset-y) "px"))))
+    (ccc/oset drag-style "left" (str (- x offset-x) "px"))
+    (ccc/oset drag-style "top" (str (- y offset-y) "px"))))
 
 (defn- handle-drag [dnd js-event]
   (let [{:keys [group member node]} (:active-drag @dnd)]
@@ -96,8 +96,8 @@
 
 (defn- append-dragger [doc drag-node drag-class drag-style]
   (wjs/node-id= drag-node "_dragndrop-drag-node_")
-  (wjs/o-set drag-style "position" "absolute")
-  (wjs/o-set drag-style "pointer-events" "none") ;; allow wheel events to scroll containers, but prevents mouse-over
+  (ccc/oset drag-style "position" "absolute")
+  (ccc/oset drag-style "pointer-events" "none") ;; allow wheel events to scroll containers, but prevents mouse-over
   (when drag-class (wjs/node-add-class drag-node drag-class))
   (wjs/node-append-child (wjs/doc-body doc) drag-node))
 

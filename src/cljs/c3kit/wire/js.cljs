@@ -165,9 +165,9 @@
 (defn e-client-y [e] (.-clientY e))
 (defn e-coordinates [e] [(.-clientX e) (.-clientY e)])
 (defn e-related-target [e] (.-relatedTarget e))
-(defn e-left-click? [e] (= 0 (o-get e "button")))
-(defn e-wheel-click? [e] (= 1 (o-get e "button")))
-(defn e-right-click? [e] (= 2 (o-get e "button")))
+(defn e-left-click? [e] (= 0 (ccc/oget e "button")))
+(defn e-wheel-click? [e] (= 1 (ccc/oget e "button")))
+(defn e-right-click? [e] (= 2 (ccc/oget e "button")))
 (defn e-target [e] (.-target e))
 (defn e-text [e] (-> e .-target .-value))
 (defn e-type [e] (.-type e))
@@ -195,8 +195,8 @@
 (defn node-clone [node deep?] (.cloneNode node deep?))
 (defn node-files [node] (.-files node))
 (defn node-height [node] (.-clientHeight node))
-(defn node-id [node] (o-get node "id"))
-(defn node-id= [node id] (o-set node "id" id))
+(defn node-id [node] (ccc/oget node "id"))
+(defn node-id= [node id] (ccc/oset node "id" id))
 (defn node-text [node] (.-innerText node))
 (defn node-parent [node] (.-parentNode node))
 (defn node-placeholder [node] (.-placeholder node))
@@ -351,9 +351,8 @@
     (timeout 100 #(.revokeObjectURL js/URL url))))
 
 (defn ->audio [src]
-  (let [audio (js-invoke js/document "createElement" "audio")]
-    (o-set audio "src" src)
-    audio))
+  (doto (js-invoke js/document "createElement" "audio")
+    (ccc/oset "src" src)))
 
 (defn play-audio [audio] (js-invoke audio "play"))
 (defn pause-audio [audio] (js-invoke audio "pause"))

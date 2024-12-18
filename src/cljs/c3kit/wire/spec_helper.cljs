@@ -131,7 +131,7 @@
 (defn simulate
   ([event-name thing event-data]
    (let [node     (resolve-node :simulate thing)
-         event-fn (wjs/o-get simulator event-name)]
+         event-fn (ccc/oget simulator event-name)]
      (when-not event-fn (throw (ex-info (str "simulate - event doesn't exist: " event-name) {:thing thing :event-name event-name :event-data event-data})))
      (event-fn node (clj->js event-data))))
   ([event-name root selector event-data]
