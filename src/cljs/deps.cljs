@@ -1,2 +1,2 @@
-{:libs ["c3kit/wire"]
- :externs      []}
+{:libs    ["c3kit/wire"]
+ :externs []}
