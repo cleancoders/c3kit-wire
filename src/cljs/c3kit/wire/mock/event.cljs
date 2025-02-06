@@ -23,7 +23,6 @@
 (defn- with-close-props [e code reason clean?]
   (doto e
     (ccc/oset "code" code)
-    (ccc/oset "code" code)
     (ccc/oset "reason" reason)
     (ccc/oset "wasClean" clean?)))
 

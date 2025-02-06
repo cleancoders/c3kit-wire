@@ -2,7 +2,6 @@
   (:refer-clojure :exclude [flush])
   (:require-macros [speclj.core :refer [after before redefs-around should-have-invoked should= stub with-stubs]])
   (:require [c3kit.apron.corec :as ccc]
-            [c3kit.apron.log :as log]
             [c3kit.wire.ajax :as ajax]
             [c3kit.wire.js :as wjs]
             [c3kit.wire.mock.manual-worker :as worker]
@@ -17,10 +16,7 @@
             [reagent.core :as reagent]
             [reagent.dom :as dom]
             [speclj.core]
-            [speclj.stub :as stub]
-            ))
-
-(log/warn!)
+            [speclj.stub :as stub]))
 
 (def pprint pp/pprint)
 
@@ -50,15 +46,15 @@
   ([root selector]
    (assert root (str "select: can't select inside nil nodes. " selector))
    (assert (string? selector) (str "select: selector must be a string!: " selector))
-   (.querySelector root selector)))
+   (wjs/query-selector root selector)))
 
 (defn select-all
   ([sel] (select-all js/document sel))
   ([root selector]
    (assert root (str "select-all: can't select inside nil nodes. " selector))
    (assert (string? selector) (str "select-all: selector must be a string!: " selector))
-   (let [results (.querySelectorAll root selector)
-         slice   #(.call js/Array.prototype.slice %)]
+   (let [results (wjs/query-selector-all root selector)
+         slice   #(js-invoke js/Array.prototype.slice "call" %)]
      (into [] (slice results)))))
 
 (defn select-map

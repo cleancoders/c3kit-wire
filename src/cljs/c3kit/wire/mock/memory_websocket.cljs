@@ -35,11 +35,12 @@
   (when-not (or (= 1000 code) (<= 3000 code 4999))
     (throw (ex-info "Code must be either 1000 or between 3000 and 4999" code))))
 
-(defn- send [sock data]
-  (case (sock/ready-state sock)
-    0 (throw (ex-info "MemSocket is still in CONNECTING state." data))
-    1 (server/receive sock data)
-    (log/error "MemSocket is already in CLOSING or CLOSED state.")))
+(defn- send [data]
+  (this-as sock
+    (case (sock/ready-state sock)
+      0 (throw (ex-info "MemSocket is still in CONNECTING state." data))
+      1 (server/receive sock data)
+      (log/error "MemSocket is already in CLOSING or CLOSED state."))))
 
 (defn- on-close [sock code reason]
   (wjs/dispatch-event sock (event/->CloseEvent sock code reason true)))
@@ -62,17 +63,6 @@
 (defn- add-slash? [url] (not (re-find #"^wss?://[^/]*/" url)))
 (defn- normalize-url [url] (cond-> url (add-slash? url) (str "/")))
 
-(defn- init [url protocols]
-  (assert-valid-url url)
-  (let [url (normalize-url url)]
-    (js-obj
-      "binaryType" "blob"
-      "bufferedAmount" 0
-      "extensions" ""
-      "protocol" (select-protocol protocols)
-      "readyState" 0
-      "url" url)))
-
 (defn- add-listener [event-queue event listener]
   (when (not-any? #{listener} (get @event-queue event))
     (swap! event-queue update event ccc/conjv listener)))
@@ -93,15 +83,28 @@
         handlers   (seq (get @event-queue event-type))]
     (run! #(attempt-handler event %) handlers)))
 
+(defn- create-memory-socket [url protocols]
+  (assert-valid-url url)
+  (let [event-queue (atom {})]
+    (js-obj
+      "binaryType" "blob"
+      "bufferedAmount" 0
+      "extensions" ""
+      "protocol" (select-protocol protocols)
+      "readyState" 0
+      "url" (normalize-url url)
+      "addEventListener" (fn [event listener] (add-listener event-queue event listener))
+      "removeEventListener" (fn [event listener] (remove-listener event-queue event listener))
+      "dispatchEvent" (fn [event] (dispatch-event event-queue event))
+      "send" send
+      "close" (fn
+                ([] (this-as this (close this)))
+                ([code] (this-as this (close this code)))
+                ([code reason] (this-as this (close this code reason)))))))
+
 (defn ->MemSocket
   ([url] (->MemSocket url (clj->js [])))
   ([url protocols]
-   (let [sock        (init url protocols)
-         event-queue (atom {})]
-     (ccc/oset sock "send" (partial send sock))
-     (ccc/oset sock "close" (partial close sock))
-     (ccc/oset sock "addEventListener" (partial add-listener event-queue))
-     (ccc/oset sock "removeEventListener" (partial remove-listener event-queue))
-     (ccc/oset sock "dispatchEvent" (partial dispatch-event event-queue))
-     (server/initiate sock)
-     sock)))
+   (assert-valid-url url)
+   (doto (create-memory-socket url protocols)
+     server/initiate)))

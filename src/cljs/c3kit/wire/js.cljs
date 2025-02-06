@@ -185,14 +185,14 @@
            (some->> e .-target .-files)
            [])
        (map file->clj)))
-(defn element-by-id [id] (.getElementById js/document id))
+(defn element-by-id [id] (js-invoke js/document "getElementById" id))
 (defn frame-window [iframe] (.-contentWindow iframe))
 (defn interval [millis f] (js/setInterval f millis))
-(defn node-add-class [node class] (.add (.-classList node) class))
-(defn node-append-child [node child] (.appendChild node child))
+(defn node-add-class [node class] (js-invoke (.-classList node) "add" class))
+(defn node-append-child [node child] (js-invoke node "appendChild" child))
 (defn node-children [node] (array-seq (.-childNodes node)))
 (defn node-classes [node] (.-className node))
-(defn node-clone [node deep?] (.cloneNode node deep?))
+(defn node-clone [node deep?] (js-invoke node "cloneNode" deep?))
 (defn node-files [node] (.-files node))
 (defn node-height [node] (.-clientHeight node))
 (defn node-id [node] (ccc/oget node "id"))
@@ -216,17 +216,23 @@
 (defn page-title= [title] (set! (.-title js/document) title))
 (defn post-message [window message target-domain] (.postMessage window (clj->js message) target-domain))
 (defn print-page [] (.print js/window))
-(defn query-selector [selector] (.querySelector js/document selector))
-(defn query-selector-all [selector] (.querySelectorAll js/document selector))
 (defn register-post-message-handler [handler] (.addEventListener js/window "message" handler))
 (defn register-storage-handler [handler] (.addEventListener js/window "storage" handler))
-(defn remove-local-storage [key] (.removeItem js/localStorage key))
+(defn remove-local-storage [key] (js-invoke js/localStorage "removeItem" key))
 (defn screen-size [] [(.-width js/screen) (.-height js/screen)])
-(defn set-local-storage [key value] (.setItem js/localStorage key value))
+(defn set-local-storage [key value] (js-invoke js/localStorage "setItem" key value))
 (defn timeout [millis f] (js/setTimeout f millis))
 (defn uri-encode [& stuff] (js/encodeURIComponent (apply str stuff)))
 (defn window-close! [] (.close js/window))
 (defn window-open [url window-name options-string] (.open js/window url window-name options-string))
+
+(defn query-selector
+  ([selector] (query-selector js/document selector))
+  ([root selector] (js-invoke root "querySelector" selector)))
+
+(defn query-selector-all
+  ([selector] (query-selector-all js/document selector))
+  ([root selector] (js-invoke root "querySelectorAll" selector)))
 
 ;; ^^^^^ Simple js function translations ^^^^^
 

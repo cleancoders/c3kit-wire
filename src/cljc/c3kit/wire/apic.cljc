@@ -11,14 +11,17 @@
    :uri     {:type :string}
    :version {:type :string}})
 
+(defn- conform-error-response [response]
+  (log/error "Failed to conform response.")
+  (doseq [message (schema/messages response)]
+    (log/error message))
+  {:status :error})
+
 (defn conform-response [response]
   (let [response (schema/conform response-schema response)]
-    (if (schema/error? response)
-      (do (log/error "Failed to conform response.")
-          (doseq [message (schema/messages response)]
-            (log/error message))
-          {:status :error})
-      response)))
+    (cond-> response
+            (schema/error? response)
+            conform-error-response)))
 
 (defn flash-success [response msg] (update response :flash corec/conjv (flashc/success msg)))
 (defn flash-warn [response msg] (update response :flash corec/conjv (flashc/warn msg)))
@@ -36,6 +39,11 @@
   ([payload] {:payload payload :status :ok})
   ([payload msg] (flash-success (ok payload) msg)))
 
+(defn redirect
+  "The resource has been moved"
+  ([uri] {:status :redirect :uri uri})
+  ([uri msg] (flash-warn (redirect uri) msg)))
+
 (defn fail
   "The request failed for anticipated reasons."
   ([] {:status :fail})
@@ -48,13 +56,11 @@
   ([payload] {:payload payload :status :error})
   ([payload msg] (flash-error (error payload) msg)))
 
-(defn redirect
-  ([uri] {:status :redirect :uri uri})
-  ([uri msg] (flash-warn (redirect uri) msg)))
-
 (defn status [response] (:status response))
+(defn payload [response] (:payload response))
+(defn uri [response] (:uri response))
+
 (defn error? [response] (= :error (:status response)))
-(defn ok? [response] (= :ok (:status response)))
 (defn fail? [response] (= :fail (:status response)))
 (defn redirect? [response] (= :redirect (:status response)))
-(defn payload [response] (:payload response))
+(defn ok? [response] (= :ok (:status response)))
