@@ -1,18 +1,18 @@
 (ns c3kit.wire.websocket-spec
-  (:require-macros [speclj.core :refer [describe it should= should-not= after before stub around should-not-have-invoked
-                                        should-have-invoked with-stubs context]])
-  (:require
-    [c3kit.apron.corec :as ccc]
-    [c3kit.wire.api :as api]
-    [c3kit.wire.websocket :as sut]
-    [c3kit.wire.websocketc :as wsc]
-    [speclj.core]
-    ))
+  (:require-macros [speclj.core :refer [after around context describe it redefs-around should-have-invoked should-not-have-invoked
+                                        should-not= should= stub with-stubs]])
+  (:require [c3kit.apron.corec :as ccc]
+            [c3kit.apron.log :as log]
+            [c3kit.wire.api :as api]
+            [c3kit.wire.websocket :as sut]
+            [c3kit.wire.websocketc :as wsc]
+            [speclj.core]))
 
 (describe "Websocket"
-
   (with-stubs)
-  (around [it] (with-redefs [sut/make-call! (stub :make-call!)] (it)))
+  (around [it] (log/capture-logs (it)))
+
+  (redefs-around [sut/make-call! (stub :make-call!)])
 
   (it "on-connect callback"
     (sut/call! :some/call {} ccc/noop)
@@ -54,4 +54,3 @@
 
     )
   )
-

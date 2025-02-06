@@ -1,8 +1,9 @@
 (ns c3kit.wire.api-spec
-  (:require-macros [speclj.core :refer [describe context it should-not-be-nil should-be-nil should= should-not
-                                        should-not= should-have-invoked after before with-stubs with around
-                                        should-contain should-not-contain stub should-not-have-invoked should-have-invoked]])
+  (:require-macros [speclj.core :refer [after around before context describe it should-be-nil
+                                        should-contain should-have-invoked should-have-invoked should-not should-not-be-nil should-not-contain should-not-have-invoked
+                                        should-not= should= stub with with-stubs]])
   (:require
+    [c3kit.apron.log :as log]
     [c3kit.wire.api :as sut]
     [c3kit.wire.flash :as flash]
     [c3kit.wire.flashc :as flashc]
@@ -14,14 +15,16 @@
 (def call :undefined)
 
 (describe "API"
-
   (with-stubs)
 
   (context "handling success responses"
 
     (with handler (stub :handler))
     (with call {:handler @handler :options {}})
-    (around [it] (with-redefs [sut/new-version! (stub :new-version!)] (it)))
+    (around [it]
+      (log/capture-logs
+        (with-redefs [sut/new-version! (stub :new-version!)]
+          (it))))
 
     (it "ok status invokes handler"
       (let [response {:status :ok :uri "/somewhere" :payload :payload}]

@@ -7,7 +7,7 @@
             [c3kit.wire.mock.ws-interceptor :as sut]
             [c3kit.wire.socket :as sock]
             [c3kit.wire.spec-helper :as spec-helper]
-            [speclj.core :refer-macros [after before context describe it should-be-a should-have-invoked should= stub with with-stubs]]))
+            [speclj.core :refer-macros [after around before context describe it should-be-a should-have-invoked should= stub with with-stubs]]))
 
 (declare sock)
 

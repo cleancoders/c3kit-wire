@@ -1,20 +1,20 @@
 (ns c3kit.wire.flash-spec
-  (:require-macros [speclj.core :refer [describe context it should-not-be-nil should-be-nil should= should-not
-                                        should-not= should-have-invoked after before with-stubs with around
-                                        should-contain should-not-contain should should-not-have-invoked stub]]
-                   [c3kit.wire.spec-helperc :refer [should-select should-not-select]])
-  (:require
-    [c3kit.wire.js :as cc]
-    [c3kit.wire.flash :as sut]
-    [c3kit.wire.flashc :as flashc]
-    [c3kit.wire.spec-helper :as helper]
-    ))
+  (:require-macros [c3kit.wire.spec-helperc :refer [should-not-select should-select]]
+                   [speclj.core :refer [after around before context describe it should should-be-nil
+                                        should-contain should-have-invoked should-not should-not-be-nil
+                                        should-not-contain should-not-have-invoked should-not= should= stub with with-stubs]])
+  (:require [c3kit.apron.log :as log]
+            [c3kit.wire.flash :as sut]
+            [c3kit.wire.flashc :as flashc]
+            [c3kit.wire.js :as wjs]
+            [c3kit.wire.spec-helper :as helper]))
 
 (describe "Flash"
-
   (helper/with-root-dom)
   (before (reset! sut/state {})
           (helper/render [sut/flash-root]))
+
+  (around [it] (log/capture-logs (it)))
 
   (it "adds success"
     (sut/add-success! "Huray!")
@@ -113,7 +113,7 @@
   (context "timeout"
 
     (with-stubs)
-    (around [it] (with-redefs [cc/timeout (stub :timeout)] (it)))
+    (around [it] (with-redefs [wjs/timeout (stub :timeout)] (it)))
 
     (it "is added when persist is false"
       (sut/add-success! "Hello")
