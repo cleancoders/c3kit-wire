@@ -1,6 +1,7 @@
-### Next
+### 2.1.7
  * Upgrade deps
  * Add In-Memory and Interceptor WebSocket Mocks
+ * Remove `log/warn!` side effect from cljs spec-helper
 
 ### 2.1.6
  * bump apron
