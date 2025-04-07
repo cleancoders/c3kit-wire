@@ -27,6 +27,7 @@
 (def BACKSPACE "Backspace")
 (def TAB "Tab")
 (def ENTER "Enter")
+(def NUMPADENTER "NumpadEnter")
 (def SHIFTLEFT "ShiftLeft")
 (def SHIFTRIGHT "ShiftRight")
 (def ESC "Escape")
@@ -55,6 +56,7 @@
 (defn BACKSPACE? [e] (e-code? BACKSPACE e))
 (defn TAB? [e] (e-code? TAB e))
 (defn ENTER? [e] (e-code? ENTER e))
+(defn NUMPADENTER? [e] (e-code? NUMPADENTER e))
 (defn SHIFT? [e] (or (e-code? SHIFTLEFT e) (e-code? SHIFTRIGHT e)))
 (defn ESC? [e] (e-code? ESC e))
 (defn SPACE? [e] (e-code? SPACE e))
@@ -65,6 +67,8 @@
 (defn DELETE? [e] (e-code? DELETE e))
 (defn NUMPAD+? [e] (e-code? NUMPAD+ e))
 (defn COMMA? [e] (e-code? COMMA e))
+
+(defn ENTER?* [e] (or (ENTER? e) (NUMPADENTER? e)))
 
 (defn key-modifier? [e modifier]
   (try ;; test keyboard events don't seem to support this.
