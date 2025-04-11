@@ -18,3 +18,6 @@
 ### 2.1.8
  * adds `NumpadEnter` to keyboard options
  * adds `ENTER?*` to check for either `ENTER` or `NumpadEnter`
+
+### 2.1.9
+ * adds try-catch around `wsc/connection-responder!` for offline cases
