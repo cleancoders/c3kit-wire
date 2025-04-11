@@ -1,12 +1,12 @@
 (ns c3kit.wire.websocketc
   #?(:clj (:import (java.util.concurrent Executors ScheduledExecutorService TimeUnit Future)))
   (:require
-    [c3kit.apron.log :as log]
-    #?(:clj [org.httpkit.server :as httpkit])
-    [c3kit.apron.corec :as ccc]
-    [c3kit.apron.utilc :as util]
-    [c3kit.apron.cursor :refer [cursor]]
-    [c3kit.apron.time :as time :refer [seconds ago]]))
+   [c3kit.apron.log :as log]
+   #?(:clj [org.httpkit.server :as httpkit])
+   [c3kit.apron.corec :as ccc]
+   [c3kit.apron.utilc :as util]
+   [c3kit.apron.cursor :refer [cursor]]
+   [c3kit.apron.time :as time :refer [seconds ago]]))
 
 (defn request
   ([id kind] {:request-id id :kind kind})
@@ -56,11 +56,13 @@
 
 (defn connection-responder! [conn-atom id]
   ;; swap-val! doesn't work in cljs.  Not a problem since cljs is single threaded, but we need to make difference calls.
-  #?(:clj  (let [[old _] (swap-vals! conn-atom update :responders dissoc id)]
-             (get-in old [:responders id]))
-     :cljs (let [old (get-in @conn-atom [:responders id])]
-             (swap! conn-atom update :responders dissoc id)
-             old)))
+  (try
+    #?(:clj  (let [[old _] (swap-vals! conn-atom update :responders dissoc id)]
+               (get-in old [:responders id]))
+       :cljs (let [old (get-in @conn-atom [:responders id])]
+               (swap! conn-atom update :responders dissoc id)
+               old))
+    (catch #?(:clj Exception :cljs :default) _ (log/warn "connection MISSING; maybe OFFLINE"))))
 
 (defn -cancel-timeout! [timeout] #?(:clj (.cancel timeout false) :cljs (js/clearTimeout timeout)))
 

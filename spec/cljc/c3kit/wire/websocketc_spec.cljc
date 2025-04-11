@@ -1,17 +1,17 @@
 (ns c3kit.wire.websocketc-spec
   #?(:clj (:import (java.util.concurrent ScheduledExecutorService Future)))
   (:require
-    [speclj.core #?(:clj :refer :cljs :refer-macros)
-     [context describe it should= should-contain should-not-contain should-throw should with-stubs stub with
-      before should-have-invoked should-not-have-invoked should-not-throw around should-not= should-be-a]]
-    #?(:clj [org.httpkit.server :as httpkit])
-    [c3kit.apron.corec :as ccc]
-    [c3kit.apron.log :as log #?(:clj :refer :cljs :refer-macros) [capture-logs]]
-    [c3kit.apron.time :as time :refer [seconds ago]]
-    [c3kit.wire.spec-helperc #?(:clj :refer :cljs :refer-macros) [stub-now]]
-    [c3kit.wire.websocketc :as sut]
-    [speclj.stub :as stub]
-    [c3kit.apron.utilc :as utilc]))
+   [speclj.core #?(:clj :refer :cljs :refer-macros)
+    [context describe it should= should-contain should-not-contain should-throw should with-stubs stub with
+     before should-have-invoked should-not-have-invoked should-not-throw around should-not= should-be-a]]
+   #?(:clj [org.httpkit.server :as httpkit])
+   [c3kit.apron.corec :as ccc]
+   [c3kit.apron.log :as log #?(:clj :refer :cljs :refer-macros) [capture-logs]]
+   [c3kit.apron.time :as time :refer [seconds ago]]
+   [c3kit.wire.spec-helperc #?(:clj :refer :cljs :refer-macros) [stub-now]]
+   [c3kit.wire.websocketc :as sut]
+   [speclj.stub :as stub]
+   [c3kit.apron.utilc :as utilc]))
 
 (def state :undefined-state)
 (def request :undefined-request)
@@ -44,7 +44,7 @@
                   #?(:clj sut/-schedule-with-delay) #?(:clj      (stub :-schedule-with-delay {:return :fake-delay-task}))
                   #?(:clj sut/-new-scheduler) #?(:clj            (stub :-new-scheduler {:return :fake-scheduler}))]
       (capture-logs
-        (it))))
+       (it))))
 
   (context "message anatomy"
 
@@ -118,9 +118,16 @@
       (it "removes pending responders from connection"
         (let [conn-atom (atom (sut/connection "ABC" :socket))
               _         (sut/connection-request! @state conn-atom :foo "param" :a-responder)
-              [responder-fn timeout] (sut/connection-responder! conn-atom 1)]
+              [responder-fn] (sut/connection-responder! conn-atom 1)]
           (should= :a-responder responder-fn)
           (should-not-contain 1 (:responders @conn-atom))))
+
+      (it "catches when not an atom"
+        (sut/connection-request! @state (atom {}) :foo "param" :a-responder)
+        (sut/connection-responder! {} 1)
+        (let [[log] (log/parse-captured-logs)]
+          (should= :warn (:level log))
+          (should= "connection MISSING; maybe OFFLINE" (:message log))))
       )
 
     )
@@ -174,8 +181,8 @@
     (it "request with message-handler missing"
       (swap! @state assoc :message-handler nil)
       (should-not-throw
-        #?(:clj  (sut/-data-received @state "conn-abc" "a-socket" (utilc/->edn (sut/request 123 :test "params")))
-           :cljs (sut/-data-received @state (clj->js {:data (utilc/->edn (sut/request 123 :test "params"))}))))
+       #?(:clj  (sut/-data-received @state "conn-abc" "a-socket" (utilc/->edn (sut/request 123 :test "params")))
+          :cljs (sut/-data-received @state (clj->js {:data (utilc/->edn (sut/request 123 :test "params"))}))))
       (should-not-have-invoked :message-handler))
 
     (it "request with missing connection"
@@ -227,8 +234,8 @@
       #?(:clj  (sut/call! @state "conn-abc" :test "params" (stub :test-responder))
          :cljs (sut/call! @state :test "params" (stub :test-responder)))
       (should-not-throw
-        #?(:clj  (sut/-data-received @state "conn-abc" "a-socket" (utilc/->edn (sut/response 999 "a payload")))
-           :cljs (sut/-data-received @state (clj->js {:data (utilc/->edn (sut/response 999 "a payload"))}))))
+       #?(:clj  (sut/-data-received @state "conn-abc" "a-socket" (utilc/->edn (sut/response 999 "a payload")))
+          :cljs (sut/-data-received @state (clj->js {:data (utilc/->edn (sut/response 999 "a payload"))}))))
       (should-not-have-invoked :test-responder))
 
     (it "non-edn data - no on-data handler"
