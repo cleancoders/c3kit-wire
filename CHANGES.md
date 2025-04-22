@@ -1,3 +1,6 @@
+### 2.2.0
+ * Apron and Scaffold 2.2.0
+
 ### 2.1.7
  * Upgrade deps
  * Add In-Memory and Interceptor WebSocket Mocks
