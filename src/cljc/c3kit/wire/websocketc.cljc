@@ -202,19 +202,12 @@
    :cljs
    (do
 
-     (defn -connection-uri
-       ([path connection-id csrf-token] (-connection-uri (.-location js/window) path connection-id csrf-token))
-       ([location path connection-id csrf-token]
-        (let [protocol (if (= "https:" (.-protocol location)) "wss:" "ws:")
-              host     (.-host location)]
-          (str protocol "//" host path "?connection-id=" connection-id "&ws-csrf-token=" csrf-token))))
-
      (defn -connection-cursor [state] (cursor state [:connection]))
      (defn- connections [state] [(-connection-cursor state)])
 
      (defn -socket-send! [socket data] (.send socket data) true)
 
-     (defn- send-to! [_ connection socket message] (-socket-send! socket (pack message)))
+     (defn- send-to! [_ _connection socket message] (-socket-send! socket (pack message)))
 
      (defn -data-received [client e]
        (let [data (.-data e)]
@@ -322,14 +315,12 @@
      "Open a websocket connection to the server.
 
      client     - client state atom
-     path       - URI path to the websocket handler.  The protocol and host are determined by the window location.
+     uri        - URI path to the websocket handler (wss://host/path?connection-id=abc&ws-csrf-token=xyz)
      csrf-token - required for security.  Default strategy is session/key from server."
-     [client path csrf-token]
+     [client uri csrf-token connection-id]
      (log/debug "websocket connect!")
-     (let [connection-id (str (ccc/new-uuid))
-           uri           (-connection-uri path connection-id csrf-token)
-           socket        (new js/WebSocket uri)]
-       (-add-connection! client path csrf-token connection-id socket)
+     (let [socket (new js/WebSocket uri)]
+       (-add-connection! client uri csrf-token connection-id socket)
        (.addEventListener socket "open" (partial -handle-open client))
        (.addEventListener socket "message" (partial -data-received client))
        (.addEventListener socket "close" (partial -handle-close client))

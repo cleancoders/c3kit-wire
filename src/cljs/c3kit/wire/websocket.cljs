@@ -4,6 +4,7 @@
             [c3kit.wire.api :as api]
             [c3kit.wire.js :as wjs]
             [c3kit.wire.websocketc :as wsc]
+            [clojure.string :as str]
             [reagent.core :as reagent]))
 
 (def client nil)
@@ -39,7 +40,7 @@
 
 (defmulti push-handler :kind)
 
-(defmethod push-handler :ws/ping [_])                       ; nothing to do really
+(defmethod push-handler :ws/ping [_]) ; nothing to do really
 
 (defmethod push-handler :default [message]
   (log/warn "Unhandled push event: " message))
@@ -62,7 +63,7 @@
   (reset! open? false)
   (reset! reconnection? true)
   (log/warn "connection closed... reconnecting")
-  (wjs/timeout 1000 (connect!)))
+  (wjs/timeout 1000 (connect! @api/config)))
 
 (defmethod push-handler :ws/error [_] (log/warn "websocket error"))
 
@@ -72,13 +73,29 @@
   ;(log/info "received message: " message)
   (push-handler message))
 
-(defn connect! [] (wsc/connect! client (:ws-uri-path @api/config) (:ws-csrf-token @api/config)))
+(defn- build-local-uri [path]
+  (let [location (wjs/page-location)
+        protocol (if (= "https:" (ccc/oget location "protocol")) "wss:" "ws:")
+        host     (ccc/oget location "host")]
+    (str protocol "//" host path)))
+
+(defn- build-connection-uri [{:keys [ws-uri ws-uri-path ws-csrf-token]} connection-id]
+  (let [uri (or ws-uri (build-local-uri ws-uri-path))]
+    (str uri
+         (if (str/includes? uri "?") "&" "?")
+         "connection-id=" connection-id
+         "&ws-csrf-token=" ws-csrf-token)))
+
+(defn connect! [config]
+  (let [connection-id (str (ccc/new-uuid))
+        uri           (build-connection-uri config connection-id)]
+    (wsc/connect! client uri (:ws-csrf-token config) connection-id)))
 
 (defn start! []
   (when-not client
     (if (:ws-csrf-token @api/config)
       (do (set! client (wsc/create message-handler :atom-fn reagent/atom))
-          (connect!))
+          (connect! @api/config))
       (log/error "CSRF Token missing.  Unable to start websocket."))))
 
 (defn stop! []

@@ -212,6 +212,7 @@
 (defn node-style [node] (.-style node))
 (defn node-value [node] (.-value node))
 (defn node-width [node] (.-clientWidth node))
+(defn page-location [] (ccc/oget js/window "location"))
 (defn page-href [] (-> js/window .-location .-href))
 (defn page-hash [] (-> js/window .-location .-hash))
 (defn page-pathname [] (-> js/window .-location .-pathname))
