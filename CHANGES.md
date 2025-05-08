@@ -36,6 +36,9 @@
 ### 2.3.1
  * Adds RESTful API client & server wrappers
 
+### 2.3.0
+ * Allow websocket client to specify URI, with query params if needed
+
 ### 2.2.0
  * Apron and Scaffold 2.2.0
 
