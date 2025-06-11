@@ -14,6 +14,12 @@
 (describe "Ajax"
 
   (context "wrap-add-api-version"
+    (it "is deprecated"
+      (log/capture-logs
+        (sut/wrap-add-api-version identity)
+        (should= "c3kit.wire.ajax/wrap-add-api-version is deprecated. Use c3kit.wire.api/wrap-add-api-version instead."
+                 (log/captured-logs-str))))
+
     (it "missing body"
       (should= {} (handle-add-api-version {})))
 

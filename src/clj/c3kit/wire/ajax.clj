@@ -90,6 +90,7 @@
         response))))
 
 (defn wrap-add-api-version [handler]
+  (log/warn "c3kit.wire.ajax/wrap-add-api-version is deprecated. Use c3kit.wire.api/wrap-add-api-version instead.")
   (fn [request]
     (let [{:keys [body] :as response} (handler request)]
       (if (map? body)

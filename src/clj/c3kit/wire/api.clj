@@ -37,3 +37,10 @@
 
 (defn maybe-entity-errors [entity]
   (some->> entity schema/message-seq (str/join " , ") (apic/fail nil)))
+
+(defn wrap-add-api-version [handler]
+  (fn [request]
+    (let [{:keys [body] :as response} (handler request)]
+      (if (map? body)
+        (assoc-in response [:body :version] (version))
+        response))))
