@@ -100,6 +100,6 @@
 (defn wrap-ajax [handler]
   (-> handler
       wrap-catch-api-errors
-      wrap-add-api-version
+      api/wrap-add-api-version
       wrap-api-transit-response
       wrap-transit-params))
