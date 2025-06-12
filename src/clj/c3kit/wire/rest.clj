@@ -41,7 +41,7 @@
 
 (defn default-rest-ex-handler [_request ex]
   (log/error ex)
-  (restc/internal-error {:message "Our apologies. An error occurred and we have been notified."}))
+  (restc/internal-error {:message api/default-error-message}))
 
 (defn wrap-catch-rest-errors [handler]
   (fn [request]

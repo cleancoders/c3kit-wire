@@ -5,6 +5,8 @@
             [clojure.java.io :as io]
             [clojure.string :as str]))
 
+(def default-error-message "Our apologies. An error occurred and we have been notified.")
+
 (def default-config {
                      :ajax-on-ex  'c3kit.wire.ajax/default-ajax-ex-handler ;; (fn [request e])
                      :version     "undefined"

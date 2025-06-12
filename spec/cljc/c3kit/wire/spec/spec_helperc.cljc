@@ -3,6 +3,8 @@
             [c3kit.apron.utilc :as utilc]
             [speclj.core #?(:clj :refer :cljs :refer-macros) [stub should-have-invoked context should-be-nil it should=]]))
 
+(def default-error-message "Our apologies. An error occurred and we have been notified.")
+
 #?(:clj (defmacro test-rest-no-params [f status-code]
           `(context "no params"
 

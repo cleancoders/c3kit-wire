@@ -2,6 +2,7 @@
   (:require [c3kit.apron.log :as log]
             [c3kit.apron.utilc :as utilc]
             [c3kit.wire.api :as api]
+            [c3kit.wire.spec.spec-helperc :as spec-helperc]
             [clojure.java.io :as io]
             [speclj.core :refer :all]
             [org.httpkit.client :as client]
@@ -61,7 +62,7 @@
         (api/configure! :rest-on-ex nil)
         (log/capture-logs
           (let [wrapped (sut/wrap-catch-rest-errors (fn [_] (throw (Exception. "test"))))]
-            (should= (restc/internal-error {:message "Our apologies. An error occurred and we have been notified."})
+            (should= (restc/internal-error {:message spec-helperc/default-error-message})
                      (wrapped {:method :test}))
             (should= "java.lang.Exception: test" (log/captured-logs-str)))))
 

@@ -51,7 +51,7 @@
 (defn default-ajax-ex-handler [request ex]
   (log/error ex)
   ;(errors/send-error-email request e)
-  (error nil "Our apologies. An error occurred and we have been notified."))
+  (error nil api/default-error-message))
 
 (defn wrap-catch-api-errors [handler]
   (fn [request]
