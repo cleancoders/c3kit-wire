@@ -8,19 +8,24 @@
             [c3kit.wire.restc :as restc]
             [c3kit.wire.rest :as sut]))
 
-(defmacro test-http-method [f stub callback]
+(defn maybe-conj [coll x]
+  (if x
+    (conj coll x)
+    coll))
+
+(defmacro test-http-method [f stub & [callback]]
   `(list
      (it "sends to url with opts"
-       (~f "https://wire.com" {} ~callback)
+       (apply ~f (maybe-conj ["https://wire.com" {}] ~callback))
        (should-have-invoked ~stub {:times 1})
        (should-have-invoked ~stub {:with ["https://wire.com" {} ~callback]})
-       (~f "https://google.com" {:query-params {:a 5}} ~callback)
+       (apply ~f (maybe-conj ["https://google.com" {:query-params {:a 5}}] ~callback))
        (should-have-invoked ~stub {:times 2})
        (should-have-invoked ~stub {:with ["https://google.com" {:query-params {:a 5}} ~callback]}))
 
      (it "converts body to json and adds content-type"
        (let [body# {:some-data [{:yes :no} 45]}]
-         (~f "https://example.com" {:body body#} ~callback)
+         (apply ~f (maybe-conj ["https://example.com" {:body body#}] ~callback))
          (should-have-invoked ~stub {:with ["https://example.com"
                                             {:body (utilc/->json body#)
                                              :headers {"Content-Type" "application/json"}}
@@ -28,7 +33,9 @@
 
      (it "doesn't override content-type of opts"
        (let [body# {:more-data 25}]
-         (~f "http://test.net" {:body body# :headers {"Content-Type" "custom-type"}} ~callback)
+         (apply ~f (maybe-conj ["http://test.net"
+                                {:body body# :headers {"Content-Type" "custom-type"}}]
+                               ~callback))
          (should-have-invoked ~stub {:with ["http://test.net"
                                             {:body (utilc/->json body#)
                                              :headers {"Content-Type" "custom-type"}}
@@ -36,10 +43,10 @@
 
 (defmacro test-http-method-sync [f stub]
   `(list
-     (test-http-method ~f ~stub ccc/noop)
+     (test-http-method ~f ~stub)
 
      (it "returns response"
-       (should= :http-response-data (~f "https://wire.com" {} ccc/noop)))))
+       (should= :http-response-data (~f "https://wire.com" {})))))
 
 (defmacro test-http-method-async [f stub]
   `(list

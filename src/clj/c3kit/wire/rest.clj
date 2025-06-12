@@ -21,23 +21,23 @@
       (maybe-update-body utilc/->json)
       maybe-update-content-type))
 
-(defn get-async! [url opts callback]
+(defn get-async! [url opts & [callback]]
   (client/get url (maybe-update-opts opts) callback))
 
-(defn get! [url opts callback]
-  @(get-async! url opts callback))
+(defn get! [url opts]
+  @(get-async! url opts))
 
-(defn post-async! [url opts callback]
+(defn post-async! [url opts & [callback]]
   (client/post url (maybe-update-opts opts) callback))
 
-(defn post! [url opts callback]
-  @(post-async! url opts callback))
+(defn post! [url opts]
+  @(post-async! url opts))
 
-(defn put-async! [url opts callback]
+(defn put-async! [url opts & [callback]]
   (client/put url (maybe-update-opts opts) callback))
 
-(defn put! [url opts callback]
-  @(put-async! url opts callback))
+(defn put! [url opts]
+  @(put-async! url opts))
 
 (defn default-rest-ex-handler [_request ex]
   (log/error ex)
