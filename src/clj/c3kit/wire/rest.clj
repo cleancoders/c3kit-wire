@@ -43,7 +43,7 @@
   (log/error ex)
   (restc/internal-error {:message "Our apologies. An error occurred and we have been notified."}))
 
-(defn wrap-catch-api-errors [handler]
+(defn wrap-catch-rest-errors [handler]
   (fn [request]
     (try
       (handler request)
@@ -71,7 +71,7 @@
 
 (defn wrap-rest [handler & [opts]]
   (-> handler
-      wrap-catch-api-errors
+      wrap-catch-rest-errors
       api/wrap-add-api-version
       wrap-api-json-response
       (wrap-api-json-request opts)))

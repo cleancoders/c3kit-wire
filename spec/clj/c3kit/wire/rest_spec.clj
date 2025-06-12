@@ -56,11 +56,11 @@
 
   (context "wrappers"
 
-    (context "wrap-catch-api-errors"
+    (context "wrap-catch-rest-errors"
       (it "default handler"
         (api/configure! :rest-on-ex nil)
         (log/capture-logs
-          (let [wrapped (sut/wrap-catch-api-errors (fn [_] (throw (Exception. "test"))))]
+          (let [wrapped (sut/wrap-catch-rest-errors (fn [_] (throw (Exception. "test"))))]
             (should= (restc/internal-error {:message "Our apologies. An error occurred and we have been notified."})
                      (wrapped {:method :test}))
             (should= "java.lang.Exception: test" (log/captured-logs-str)))))
@@ -68,7 +68,7 @@
       (it "custom handler fn"
         (api/configure! :rest-on-ex (stub :custom-ex-handler {:return :custom-handler-response}))
         (let [e (Exception. "test")
-              wrapped (sut/wrap-catch-api-errors (fn [_] (throw e)))]
+              wrapped (sut/wrap-catch-rest-errors (fn [_] (throw e)))]
           (should= :custom-handler-response (wrapped {:method :test}))
           (should-have-invoked :custom-ex-handler {:with [{:method :test} e]}))))
 
