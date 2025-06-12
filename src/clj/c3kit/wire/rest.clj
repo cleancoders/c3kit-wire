@@ -52,11 +52,16 @@
           (ex-handler request e)
           (default-rest-ex-handler request e))))))
 
+(defn- <-json-slurp [v]
+  (utilc/<-json (slurp v)))
+(defn- <-json-kw-slurp [v]
+  (utilc/<-json-kw (slurp v)))
+
 (defn wrap-api-json-request [handler & [opts]]
   (fn [request]
     (handler (maybe-update-body request (if (:key-words? opts)
-                                          utilc/<-json-kw
-                                          utilc/<-json)))))
+                                          <-json-kw-slurp
+                                          <-json-slurp)))))
 
 (defn wrap-api-json-response [handler]
   (fn [request]

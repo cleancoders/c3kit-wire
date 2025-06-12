@@ -3,6 +3,7 @@
             [c3kit.apron.log :as log]
             [c3kit.apron.utilc :as utilc]
             [c3kit.wire.api :as api]
+            [clojure.java.io :as io]
             [speclj.core :refer :all]
             [org.httpkit.client :as client]
             [c3kit.wire.restc :as restc]
@@ -117,7 +118,7 @@
 
       (it "request with body converts from json"
         (let [body (utilc/->json {:my-data 123})
-              response (handle-json-request {:body body})]
+              response (handle-json-request {:body (io/input-stream (.getBytes body))})]
           (should= {:body (utilc/<-json body)} (:request response))))
 
       (context "with keywords"
@@ -127,7 +128,7 @@
 
         (it "request with body converts from json with keywords"
           (let [body (utilc/->json {:my-data 123})
-                response (handle-json-kw-request {:body body})]
+                response (handle-json-kw-request {:body (io/input-stream (.getBytes body))})]
             (should= {:body (utilc/<-json-kw body)} (:request response))))))
 
     (context "wrap-api-json-response"
@@ -184,11 +185,11 @@
       (it "converts request from json"
         (let [body (utilc/->json {:my-data 123})
               handle-json-request (sut/wrap-rest #(request-handler % nil))
-              response (handle-json-request {:body body})]
+              response (handle-json-request {:body (io/input-stream (.getBytes body))})]
           (should= {:body (utilc/<-json body)} (:request response))))
 
       (it "converts request from json with keywords"
         (let [body (utilc/->json {:my-data 123})
               handle-json-request (sut/wrap-rest #(request-handler % nil) {:key-words? true})
-              response (handle-json-request {:body body})]
+              response (handle-json-request {:body (io/input-stream (.getBytes body))})]
           (should= {:body (utilc/<-json-kw body)} (:request response)))))))
