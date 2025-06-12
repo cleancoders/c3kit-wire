@@ -80,6 +80,9 @@
   (context "Internal Server Error"
     (test-rest sut/internal-error 500))
 
+  (it "handles not-found error"
+    (should= (sut/not-found "abc.com") (sut/not-found-handler {:uri "abc.com"})))
+
   (it "gets status of response"
     (should= 200 (sut/status (sut/response 200)))
     (should= 404 (sut/status (sut/response 404))))

@@ -66,6 +66,9 @@
   ([body] (response 500 body))
   ([body headers] (response 500 body headers)))
 
+(defn not-found-handler [request]
+  (not-found (:uri request)))
+
 (defn status [response] (:status response))
 (defn success? [response]
   (let [status (status response)]
