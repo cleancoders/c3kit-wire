@@ -59,7 +59,7 @@
 
 (defn wrap-api-json-request [handler & [opts]]
   (fn [request]
-    (handler (maybe-update-body request (if (:key-words? opts)
+    (handler (maybe-update-body request (if (:keywords? opts)
                                           <-json-kw-slurp
                                           <-json-slurp)))))
 

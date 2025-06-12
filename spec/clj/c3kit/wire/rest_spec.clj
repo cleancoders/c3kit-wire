@@ -60,7 +60,7 @@
   (merge response {:request request}))
 
 (def handle-json-request (sut/wrap-api-json-request #(request-handler % nil)))
-(def handle-json-kw-request (sut/wrap-api-json-request #(request-handler % nil) {:key-words? true}))
+(def handle-json-kw-request (sut/wrap-api-json-request #(request-handler % nil) {:keywords? true}))
 (defn handle-json-response [body]
   (sut/wrap-api-json-response #(request-handler % body)))
 
@@ -190,6 +190,6 @@
 
       (it "converts request from json with keywords"
         (let [body (utilc/->json {:my-data 123})
-              handle-json-request (sut/wrap-rest #(request-handler % nil) {:key-words? true})
+              handle-json-request (sut/wrap-rest #(request-handler % nil) {:keywords? true})
               response (handle-json-request {:body (io/input-stream (.getBytes body))})]
           (should= {:body (utilc/<-json-kw body)} (:request response)))))))
