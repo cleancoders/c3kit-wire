@@ -14,37 +14,45 @@
 
 (def handle-json-request (sut/wrap-api-json-request #(request-handler % nil)))
 (def handle-json-kw-request (sut/wrap-api-json-request #(request-handler % nil) {:keywords? true}))
-(defn handle-json-response [body]
-  (sut/wrap-api-json-response #(request-handler % body)))
+(defn handle-json-response [response]
+  (sut/wrap-api-json-response #(request-handler % response)))
 
+(def http-stub-response :http-response-data)
+
+(defn httpkit-response [_url _opts callback]
+  (delay
+    (if callback
+      (do (callback http-stub-response)
+          nil)
+      http-stub-response)))
 
 (context "Rest"
   (with-stubs)
 
-  (redefs-around [client/get (stub :client/get {:return (delay :http-response-data)})
-                  client/post (stub :client/post {:return (delay :http-response-data)})
-                  client/put (stub :client/put {:return (delay :http-response-data)})])
+  (redefs-around [client/get (stub :client/get {:invoke httpkit-response})
+                  client/post (stub :client/post {:invoke httpkit-response})
+                  client/put (stub :client/put {:invoke httpkit-response})])
 
   (context "get"
     (context "synchronously"
-      (test-http-method-sync sut/get! :client/get :http-response-data))
+      (test-http-method-sync sut/get! :client/get http-stub-response))
 
     (context "asynchronously"
-      (test-http-method-async sut/get-async! :client/get :http-response-data)))
+      (test-http-method-async sut/get-async! :client/get http-stub-response)))
 
   (context "post"
     (context "synchronously"
-      (test-http-method-sync sut/post! :client/post :http-response-data))
+      (test-http-method-sync sut/post! :client/post http-stub-response))
 
     (context "asynchronously"
-      (test-http-method-async sut/post-async! :client/post :http-response-data)))
+      (test-http-method-async sut/post-async! :client/post http-stub-response)))
 
   (context "put"
     (context "synchronously"
-      (test-http-method-sync sut/put! :client/put :http-response-data))
+      (test-http-method-sync sut/put! :client/put http-stub-response))
 
     (context "asynchronously"
-      (test-http-method-async sut/put-async! :client/put :http-response-data)))
+      (test-http-method-async sut/put-async! :client/put http-stub-response)))
 
   (context "wrappers"
 
