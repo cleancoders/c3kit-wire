@@ -1,60 +1,13 @@
 (ns c3kit.wire.rest-spec
-  (:require [c3kit.apron.corec :as ccc]
-            [c3kit.apron.log :as log]
+  (:require [c3kit.apron.log :as log]
             [c3kit.apron.utilc :as utilc]
             [c3kit.wire.api :as api]
             [clojure.java.io :as io]
             [speclj.core :refer :all]
             [org.httpkit.client :as client]
             [c3kit.wire.restc :as restc]
+            [c3kit.wire.spec.spec-helperc :refer [test-http-method-sync test-http-method-async]]
             [c3kit.wire.rest :as sut]))
-
-(defn maybe-conj [coll x]
-  (if x
-    (conj coll x)
-    coll))
-
-(defmacro test-http-method [f stub & [callback]]
-  `(list
-     (it "sends to url with opts"
-       (apply ~f (maybe-conj ["https://wire.com" {}] ~callback))
-       (should-have-invoked ~stub {:times 1})
-       (should-have-invoked ~stub {:with ["https://wire.com" {} ~callback]})
-       (apply ~f (maybe-conj ["https://google.com" {:query-params {:a 5}}] ~callback))
-       (should-have-invoked ~stub {:times 2})
-       (should-have-invoked ~stub {:with ["https://google.com" {:query-params {:a 5}} ~callback]}))
-
-     (it "converts body to json and adds content-type"
-       (let [body# {:some-data [{:yes :no} 45]}]
-         (apply ~f (maybe-conj ["https://example.com" {:body body#}] ~callback))
-         (should-have-invoked ~stub {:with ["https://example.com"
-                                            {:body (utilc/->json body#)
-                                             :headers {"Content-Type" "application/json"}}
-                                            ~callback]})))
-
-     (it "doesn't override content-type of opts"
-       (let [body# {:more-data 25}]
-         (apply ~f (maybe-conj ["http://test.net"
-                                {:body body# :headers {"Content-Type" "custom-type"}}]
-                               ~callback))
-         (should-have-invoked ~stub {:with ["http://test.net"
-                                            {:body (utilc/->json body#)
-                                             :headers {"Content-Type" "custom-type"}}
-                                            ~callback]})))))
-
-(defmacro test-http-method-sync [f stub]
-  `(list
-     (test-http-method ~f ~stub)
-
-     (it "returns response"
-       (should= :http-response-data (~f "https://wire.com" {})))))
-
-(defmacro test-http-method-async [f stub]
-  `(list
-     (test-http-method ~f ~stub ccc/noop)
-
-     (it "returns promise"
-       (should= :http-response-data @(~f "https://wire.com" {} ccc/noop)))))
 
 (defn request-handler [request response]
   (merge response {:request request}))
@@ -74,24 +27,24 @@
 
   (context "get"
     (context "synchronously"
-      (test-http-method-sync sut/get! :client/get))
+      (test-http-method-sync sut/get! :client/get :http-response-data))
 
     (context "asynchronously"
-      (test-http-method-async sut/get-async! :client/get)))
+      (test-http-method-async sut/get-async! :client/get :http-response-data)))
 
   (context "post"
     (context "synchronously"
-      (test-http-method-sync sut/post! :client/post))
+      (test-http-method-sync sut/post! :client/post :http-response-data))
 
     (context "asynchronously"
-      (test-http-method-async sut/post-async! :client/post)))
+      (test-http-method-async sut/post-async! :client/post :http-response-data)))
 
   (context "put"
     (context "synchronously"
-      (test-http-method-sync sut/put! :client/put))
+      (test-http-method-sync sut/put! :client/put :http-response-data))
 
     (context "asynchronously"
-      (test-http-method-async sut/put-async! :client/put)))
+      (test-http-method-async sut/put-async! :client/put :http-response-data)))
 
   (context "wrappers"
 
