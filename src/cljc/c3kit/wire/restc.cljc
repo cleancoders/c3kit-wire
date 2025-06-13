@@ -81,3 +81,17 @@
 (defn <-json-kw-body [response] (utilc/<-json-kw (:body response)))
 
 (defn headers [response] (:headers response))
+
+(defn -maybe-update-body [{:keys [body] :as request} f]
+  (cond-> request
+          body (update :body f)))
+
+(defn -maybe-update-content-type [{:keys [headers body] :as request}]
+  (cond-> request
+          (and body (not (get headers "Content-Type")))
+          (assoc-in [:headers "Content-Type"] "application/json")))
+
+(defn -maybe-update-req [req]
+  (-> req
+      (-maybe-update-body utilc/->json)
+      -maybe-update-content-type))

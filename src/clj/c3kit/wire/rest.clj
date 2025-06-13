@@ -4,37 +4,22 @@
             [c3kit.apron.utilc :as utilc]
             [c3kit.wire.api :as api]
             [c3kit.wire.restc :as restc]
-            [org.httpkit.client :as client]
-            [ring.util.response :as response]))
-
-(defn- maybe-update-body [{:keys [body] :as request} f]
-  (cond-> request
-          body (update :body f)))
-
-(defn- maybe-update-content-type [{:keys [headers body] :as request}]
-  (cond-> request
-          (and body (not (get headers "Content-Type")))
-          (response/content-type "application/json")))
-
-(defn- maybe-update-opts [opts]
-  (-> opts
-      (maybe-update-body utilc/->json)
-      maybe-update-content-type))
+            [org.httpkit.client :as client]))
 
 (defn get-async! [url opts & [callback]]
-  (client/get url (maybe-update-opts opts) callback))
+  (client/get url (restc/-maybe-update-req opts) callback))
 
 (defn get! [url opts]
   @(get-async! url opts))
 
 (defn post-async! [url opts & [callback]]
-  (client/post url (maybe-update-opts opts) callback))
+  (client/post url (restc/-maybe-update-req opts) callback))
 
 (defn post! [url opts]
   @(post-async! url opts))
 
 (defn put-async! [url opts & [callback]]
-  (client/put url (maybe-update-opts opts) callback))
+  (client/put url (restc/-maybe-update-req opts) callback))
 
 (defn put! [url opts]
   @(put-async! url opts))
@@ -59,15 +44,14 @@
 
 (defn wrap-api-json-request [handler & [opts]]
   (fn [request]
-    (handler (maybe-update-body request (if (:keywords? opts)
+    (handler (restc/-maybe-update-body request (if (:keywords? opts)
                                           <-json-kw-slurp
                                           <-json-slurp)))))
 
 (defn wrap-api-json-response [handler]
   (fn [request]
     (-> (handler request)
-        (maybe-update-body utilc/->json)
-        maybe-update-content-type)))
+        restc/-maybe-update-req)))
 
 (defn wrap-rest [handler & [opts]]
   (-> handler
