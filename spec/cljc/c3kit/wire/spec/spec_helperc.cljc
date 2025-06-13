@@ -55,39 +55,45 @@
     (conj coll x)
     coll))
 
+(defn no-conj [coll _x]
+  coll)
+
 #?(:clj
-  (defmacro test-http-method [f stub-name & [callback]]
-    `(list
-       (it "sends to url with opts"
-         (apply ~f (maybe-conj ["https://wire.com" {}] ~callback))
-         (should-have-invoked ~stub-name {:times 1})
-         (should-have-invoked ~stub-name {:with ["https://wire.com" {} ~callback]})
-         (apply ~f (maybe-conj ["https://google.com" {:query-params {:a 5}}] ~callback))
-         (should-have-invoked ~stub-name {:times 2})
-         (should-have-invoked ~stub-name {:with ["https://google.com" {:query-params {:a 5}} ~callback]}))
+  (defmacro test-http-method [f stub-name & [include-callback? callback]]
+    `(let [conj-fn# (if ~include-callback? conj no-conj)]
+       (list
+         (it "sends to url with opts"
+           (apply ~f (maybe-conj ["https://wire.com" {}] ~callback))
+           (should-have-invoked ~stub-name {:times 1})
+           (should-have-invoked ~stub-name {:with (conj-fn# ["https://wire.com" {}] ~callback)})
+           (apply ~f (maybe-conj ["https://google.com" {:query-params {:a 5}}] ~callback))
+           (should-have-invoked ~stub-name {:times 2})
+           (should-have-invoked ~stub-name {:with (conj-fn# ["https://google.com" {:query-params {:a 5}}] ~callback)}))
 
-       (it "converts body to json and adds content-type"
-         (let [body# {:some-data [{:yes :no} 45]}]
-           (apply ~f (maybe-conj ["https://example.com" {:body body#}] ~callback))
-           (should-have-invoked ~stub-name {:with ["https://example.com"
-                                                   {:body (utilc/->json body#)
-                                                    :headers {"Content-Type" "application/json"}}
-                                                   ~callback]})))
+         (it "converts body to json and adds content-type"
+           (let [body# {:some-data [{:yes :no} 45]}]
+             (apply ~f (maybe-conj ["https://example.com" {:body body#}] ~callback))
+             (should-have-invoked ~stub-name {:with (conj-fn#
+                                                      ["https://example.com"
+                                                       {:body (utilc/->json body#)
+                                                        :headers {"Content-Type" "application/json"}}]
+                                                      ~callback)})))
 
-       (it "doesn't override content-type of opts"
-         (let [body# {:more-data 25}]
-           (apply ~f (maybe-conj ["http://test.net"
-                                  {:body body# :headers {"Content-Type" "custom-type"}}]
-                                 ~callback))
-           (should-have-invoked ~stub-name {:with ["http://test.net"
-                                                   {:body (utilc/->json body#)
-                                                    :headers {"Content-Type" "custom-type"}}
-                                                   ~callback]}))))))
+         (it "doesn't override content-type of opts"
+           (let [body# {:more-data 25}]
+             (apply ~f (maybe-conj ["http://test.net"
+                                    {:body body# :headers {"Content-Type" "custom-type"}}]
+                                   ~callback))
+             (should-have-invoked ~stub-name {:with (conj-fn#
+                                                      ["http://test.net"
+                                                       {:body (utilc/->json body#)
+                                                        :headers {"Content-Type" "custom-type"}}]
+                                                      ~callback)})))))))
 
 #?(:clj
   (defmacro test-http-method-sync [f stub-name stub-response]
     `(list
-       (test-http-method ~f ~stub-name)
+       (test-http-method ~f ~stub-name true)
 
        (it "returns response"
          (should= ~stub-response (~f "https://wire.com" {}))))))
@@ -95,7 +101,7 @@
 #?(:clj
   (defmacro test-http-method-async [f stub-name stub-response]
     `(list
-       (test-http-method ~f ~stub-name ccc/noop)
+       (test-http-method ~f ~stub-name true ccc/noop)
 
        (it "returns promise if no callback"
          (should= ~stub-response @(~f "https://wire.com" {})))
@@ -104,3 +110,11 @@
          (with-redefs [ccc/noop (stub :callback)]
            (should-be-nil @(~f "https://wire.com" {} ccc/noop))
            (should-have-invoked :callback {:with [~stub-response]}))))))
+
+#?(:clj
+   (defmacro test-cljs-http-method [f stub-name]
+     `(list
+        (test-http-method ~f ~stub-name false)
+
+        (it "returns nil"
+          (should-be-nil (~f "http://test.com" {:query-params {:a 5}} ccc/noop))))))
