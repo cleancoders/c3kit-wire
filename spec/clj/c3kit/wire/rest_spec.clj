@@ -18,6 +18,9 @@
 (defn handle-json-response [response]
   (sut/wrap-api-json-response #(request-handler % response)))
 
+(defn handle-wrap-rest [body & [opts]]
+  (sut/wrap-rest #(request-handler % body) opts))
+
 (def http-stub-response :http-response-data)
 
 (defn httpkit-response [_url _opts callback]
@@ -133,25 +136,23 @@
 
       (it "converts response to json"
         (let [body {:my-data 123}
-              handle-json-response (fn [body] (sut/wrap-rest #(request-handler % body)))
-              response-handler (handle-json-response {:body body})]
+              response-handler (handle-wrap-rest {:body body})]
           (should= (utilc/->json (assoc body :version "123")) (:body (response-handler {})))))
 
       (it "adds api version"
         (let [response {:body {:hello :world}}
-              handle-add-api-version (sut/wrap-rest #(request-handler % response))
-              versioned-response (handle-add-api-version nil)]
+              handle-add-api-version (handle-wrap-rest response)]
           (should= (utilc/->json {:hello :world :version "123"})
-                   (:body versioned-response))))
+                   (:body (handle-add-api-version nil)))))
 
       (it "converts request from json"
         (let [body (utilc/->json {:my-data 123})
-              handle-json-request (sut/wrap-rest #(request-handler % nil))
+              handle-json-request (handle-wrap-rest nil)
               response (handle-json-request {:body (io/input-stream (.getBytes body))})]
           (should= {:body (utilc/<-json body)} (:request response))))
 
       (it "converts request from json with keywords"
         (let [body (utilc/->json {:my-data 123})
-              handle-json-request (sut/wrap-rest #(request-handler % nil) {:keywords? true})
+              handle-json-request (handle-wrap-rest nil {:keywords? true})
               response (handle-json-request {:body (io/input-stream (.getBytes body))})]
           (should= {:body (utilc/<-json-kw body)} (:request response)))))))
