@@ -51,7 +51,7 @@
 (defn default-ajax-ex-handler [request ex]
   (log/error ex)
   ;(errors/send-error-email request e)
-  (error nil "Our apologies. An error occurred and we have been notified."))
+  (error nil api/default-error-message))
 
 (defn wrap-catch-api-errors [handler]
   (fn [request]
@@ -90,6 +90,7 @@
         response))))
 
 (defn wrap-add-api-version [handler]
+  (log/warn "c3kit.wire.ajax/wrap-add-api-version is deprecated. Use c3kit.wire.api/wrap-add-api-version instead.")
   (fn [request]
     (let [{:keys [body] :as response} (handler request)]
       (if (map? body)
@@ -99,6 +100,6 @@
 (defn wrap-ajax [handler]
   (-> handler
       wrap-catch-api-errors
-      wrap-add-api-version
+      api/wrap-add-api-version
       wrap-api-transit-response
       wrap-transit-params))
