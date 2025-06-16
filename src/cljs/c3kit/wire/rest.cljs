@@ -10,14 +10,18 @@
     (callback (async/<! channel)))
   nil)
 
-(defn get! [url req callback]
-  (let [channel (client/get url (restc/-maybe-update-req req))]
+(defn request! [method url request]
+  ;; [GMJ] had to extract this to make specs pass with advanced optimization for some reason...
+  (method url (restc/-maybe-update-req request)))
+
+(defn get! [url request callback]
+  (let [channel (request! client/get url request)]
     (async-callback! channel callback)))
 
-(defn post! [url req callback]
-  (let [channel (client/post url (restc/-maybe-update-req req))]
+(defn post! [url request callback]
+  (let [channel (request! client/post url request)]
     (async-callback! channel callback)))
 
-(defn put! [url req callback]
-  (let [channel (client/put url (restc/-maybe-update-req req))]
+(defn put! [url request callback]
+  (let [channel (request! client/put url request)]
     (async-callback! channel callback)))

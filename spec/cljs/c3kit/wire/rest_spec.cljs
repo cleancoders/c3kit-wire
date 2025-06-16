@@ -1,6 +1,5 @@
 (ns c3kit.wire.rest-spec
-  (:require [c3kit.apron.corec :as ccc]
-            [speclj.core :refer-macros [tags focus-describe should-not-be-nil should-have-invoked stub redefs-around with-stubs should-not should context describe should-be-nil should-be it should= should-contain should-not-be]]
+  (:require [speclj.core :refer-macros [tags focus-describe should-not-be-nil should-have-invoked stub redefs-around with-stubs should-not should context describe should-be-nil should-be it should= should-contain should-not-be]]
             [c3kit.wire.spec.spec-helperc :refer-macros [test-cljs-http-method]]
             [cljs.core.async :refer-macros [go]]
             [cljs.core.async :as async]
@@ -17,11 +16,11 @@
                   client/post (stub :client/post {:invoke cljs-http-response})
                   client/put (stub :client/put {:invoke cljs-http-response})])
 
-  (context "get"
+  (context "get!"
     (test-cljs-http-method sut/get! :client/get))
 
-  (context "post"
+  (context "post!"
     (test-cljs-http-method sut/post! :client/post))
 
-  (context "put"
+  (context "put!"
     (test-cljs-http-method sut/put! :client/put)))
