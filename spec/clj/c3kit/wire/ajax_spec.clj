@@ -1,6 +1,7 @@
 (ns c3kit.wire.ajax-spec
   (:require [c3kit.apron.log :as log]
             [c3kit.apron.utilc :as utilc]
+            [c3kit.wire.spec.spec-helperc :as spec-helperc]
             [c3kit.wire.ajax :as sut]
             [c3kit.wire.api :as api]
             [c3kit.wire.flashc :as flashc]
@@ -14,6 +15,12 @@
 (describe "Ajax"
 
   (context "wrap-add-api-version"
+    (it "is deprecated"
+      (log/capture-logs
+        (sut/wrap-add-api-version identity)
+        (should= "c3kit.wire.ajax/wrap-add-api-version is deprecated. Use c3kit.wire.api/wrap-add-api-version instead."
+                 (log/captured-logs-str))))
+
     (it "missing body"
       (should= {} (handle-add-api-version {})))
 
@@ -129,7 +136,7 @@
               response (wrapped {:method :test})]
           (should= 200 (:status response))
           (should= :error (sut/status response))
-          (should= "Our apologies. An error occurred and we have been notified." (-> response :body :flash first :text))
+          (should= spec-helperc/default-error-message (-> response :body :flash first :text))
           (should= :error (-> response :body :flash first :level))))
       (should= "java.lang.Exception: test" (log/captured-logs-str)))
 
