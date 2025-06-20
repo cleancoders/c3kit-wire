@@ -1,9 +1,11 @@
 (ns c3kit.wire.restc
-  (:require [c3kit.apron.utilc :as utilc]))
+  (:require [c3kit.apron.corec :as ccc]
+            [c3kit.apron.utilc :as utilc]
+            [clojure.string :as str]))
 
 (defn response
   ([status]
-   {:status status
+   {:status  status
     :headers {}})
   ([status body]
    (assoc (response status) :body body))
@@ -86,6 +88,18 @@
   (cond-> request
           body (update :body f)))
 
+(defn- ->cookies-str [cookies]
+  (->> cookies
+       (map #(list (name (first %)) (:value (second %))))
+       (map #(str (first %) "=" (second %)))
+       (str/join ";")))
+
+; TODO - append cookies if present already
+(defn- maybe-attach-cookies [{:keys [cookies] :as request}]
+  (cond-> request
+          (seq cookies) (-> (assoc-in [:headers "Cookie"] (->cookies-str cookies))
+                            (dissoc :cookies))))
+
 (defn -maybe-update-content-type [{:keys [headers body] :as request}]
   (cond-> request
           (and body (not (get headers "Content-Type")))
@@ -94,4 +108,5 @@
 (defn -maybe-update-req [req]
   (-> req
       (-maybe-update-body utilc/->json)
+      maybe-attach-cookies
       -maybe-update-content-type))
