@@ -88,7 +88,7 @@
   (cond-> request
           body (update :body f)))
 
-(defn- ->cookies-str [cookies]
+(defn ->cookies-str [cookies]
   (->> cookies
        (map #(list (name (first %)) (:value (second %))))
        (map #(str (first %) "=" (second %)))
