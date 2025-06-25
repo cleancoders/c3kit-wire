@@ -86,6 +86,13 @@
               response (handle-json-request {:body (io/input-stream (.getBytes body))})]
           (should= {:body (utilc/<-json body)} (:request response))))
 
+      (it "logs errors if invalid json"
+        (log/capture-logs
+          (let [body "{bleh"
+                response (handle-json-request {:body (io/input-stream (.getBytes body))})]
+            (should= (restc/bad-request) response)
+            (should= "Couldn't parse as JSON: {bleh" (log/captured-logs-str)))))
+
       (context "with keywords"
         (it "empty request changes nothing"
           (let [response (handle-json-kw-request {})]
@@ -94,7 +101,14 @@
         (it "request with body converts from json with keywords"
           (let [body (utilc/->json {:my-data 123})
                 response (handle-json-kw-request {:body (io/input-stream (.getBytes body))})]
-            (should= {:body (utilc/<-json-kw body)} (:request response))))))
+            (should= {:body (utilc/<-json-kw body)} (:request response))))
+
+        (it "logs errors if invalid json"
+          (log/capture-logs
+            (let [body "{bleh"
+                  response (handle-json-kw-request {:body (io/input-stream (.getBytes body))})]
+              (should= (restc/bad-request) response)
+              (should= "Couldn't parse as JSON: {bleh" (log/captured-logs-str)))))))
 
     (context "wrap-api-json-response"
       (it "empty request changes nothing"
@@ -150,6 +164,14 @@
               handle-json-request (handle-wrap-rest nil)
               response (handle-json-request {:body (io/input-stream (.getBytes body))})]
           (should= {:body (utilc/<-json body)} (:request response))))
+
+      (it "logs errors if invalid json"
+        (log/capture-logs
+          (let [body "{bleh"
+                handle-json-request (handle-wrap-rest nil)
+                response (handle-json-request {:body (io/input-stream (.getBytes body))})]
+            (should= (restc/bad-request) response)
+            (should= "Couldn't parse as JSON: {bleh" (log/captured-logs-str)))))
 
       (it "converts request from json with keywords"
         (let [body (utilc/->json {:my-data 123})
