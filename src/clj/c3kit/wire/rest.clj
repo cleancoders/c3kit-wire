@@ -46,16 +46,27 @@
           (ex-handler request e)
           (default-rest-ex-handler request e))))))
 
+(defn- <-json-slurp-try [json-fn v]
+  (let [data (slurp v)]
+    (try
+      (json-fn data)
+      (catch Exception e
+        (log/error "Couldn't parse as JSON:" data)
+        (throw e)))))
+
 (defn- <-json-slurp [v]
-  (utilc/<-json (slurp v)))
+  (<-json-slurp-try utilc/<-json v))
 (defn- <-json-kw-slurp [v]
-  (utilc/<-json-kw (slurp v)))
+  (<-json-slurp-try utilc/<-json-kw v))
 
 (defn wrap-api-json-request [handler & [opts]]
   (fn [request]
-    (handler (restc/-maybe-update-body request (if (:keywords? opts)
-                                                 <-json-kw-slurp
-                                                 <-json-slurp)))))
+    (try
+      (let [json-fn (if (:keywords? opts) <-json-kw-slurp <-json-slurp)
+            request (restc/-maybe-update-body request json-fn)]
+        (handler request))
+      (catch Exception _e
+        (restc/bad-request)))))
 
 (defn wrap-api-json-response [handler]
   (fn [request]
