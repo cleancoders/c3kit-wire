@@ -49,6 +49,9 @@
             (let [response (sut/no-content {:my-header 123})]
               (should= {:my-header 123} (:headers response))))))))
 
+  (context "Not Modified"
+    (test-rest-no-params sut/not-modified 304))
+
   (context "Bad Request"
     (test-rest sut/bad-request 400))
 
@@ -76,6 +79,9 @@
 
   (context "Not Found"
     (test-rest sut/not-found 404))
+
+  (context "Conflict"
+    (test-rest sut/conflict 409))
 
   (context "Internal Server Error"
     (test-rest sut/internal-error 500))

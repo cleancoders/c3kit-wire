@@ -36,6 +36,10 @@
   ([] (response 204))
   ([headers] (response 204 nil headers)))
 
+(defn not-modified
+  ([] (response 304))
+  ([headers] (response 304 nil headers)))
+
 (defn bad-request
   ([] (response 400))
   ([body] (response 400 body))
@@ -62,6 +66,11 @@
   ([] (response 404))
   ([body] (response 404 body))
   ([body headers] (response 404 body headers)))
+
+(defn conflict
+  ([] (response 409))
+  ([body] (response 409 body))
+  ([body headers] (response 409 body headers)))
 
 (defn internal-error
   ([] (response 500))
