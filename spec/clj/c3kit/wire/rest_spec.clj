@@ -33,9 +33,10 @@
 (context "Rest"
   (with-stubs)
 
-  (redefs-around [client/get (stub :client/get {:invoke httpkit-response})
-                  client/post (stub :client/post {:invoke httpkit-response})
-                  client/put (stub :client/put {:invoke httpkit-response})])
+  (redefs-around [client/get    (stub :client/get {:invoke httpkit-response})
+                  client/post   (stub :client/post {:invoke httpkit-response})
+                  client/put    (stub :client/put {:invoke httpkit-response})
+                  client/delete (stub :client/delete {:invoke httpkit-response})])
 
   (context "get"
     (context "synchronously"
@@ -58,6 +59,13 @@
     (context "asynchronously"
       (test-http-method-async sut/put-async! :client/put http-stub-response)))
 
+  (context "delete"
+    (context "synchronously"
+      (test-http-method-sync sut/delete! :client/delete http-stub-response))
+
+    (context "asynchronously"
+      (test-http-method-async sut/delete-async! :client/delete http-stub-response)))
+
   (context "wrappers"
 
     (context "wrap-catch-rest-errors"
@@ -66,12 +74,12 @@
         (log/capture-logs
           (let [wrapped (sut/wrap-catch-rest-errors (fn [_] (throw (Exception. "test"))))]
             (should= (restc/internal-error {:message spec-helperc/default-error-message})
-                     (wrapped {:method :test}))
+              (wrapped {:method :test}))
             (should= "java.lang.Exception: test" (log/captured-logs-str)))))
 
       (it "custom handler fn"
         (api/configure! :rest-on-ex (stub :custom-ex-handler {:return :custom-handler-response}))
-        (let [e (Exception. "test")
+        (let [e       (Exception. "test")
               wrapped (sut/wrap-catch-rest-errors (fn [_] (throw e)))]
           (should= :custom-handler-response (wrapped {:method :test}))
           (should-have-invoked :custom-ex-handler {:with [{:method :test} e]}))))
@@ -82,13 +90,13 @@
           (should= {} (:request response))))
 
       (it "request with body converts from json"
-        (let [body (utilc/->json {:my-data 123})
+        (let [body     (utilc/->json {:my-data 123})
               response (handle-json-request {:body (io/input-stream (.getBytes body))})]
           (should= {:body (utilc/<-json body)} (:request response))))
 
       (it "logs errors if invalid json"
         (log/capture-logs
-          (let [body "{bleh"
+          (let [body     "{bleh"
                 response (handle-json-request {:body (io/input-stream (.getBytes body))})]
             (should= (restc/bad-request) response)
             (should= "Couldn't parse as JSON: {bleh" (log/captured-logs-str)))))
@@ -99,13 +107,13 @@
             (should= {} (:request response))))
 
         (it "request with body converts from json with keywords"
-          (let [body (utilc/->json {:my-data 123})
+          (let [body     (utilc/->json {:my-data 123})
                 response (handle-json-kw-request {:body (io/input-stream (.getBytes body))})]
             (should= {:body (utilc/<-json-kw body)} (:request response))))
 
         (it "logs errors if invalid json"
           (log/capture-logs
-            (let [body "{bleh"
+            (let [body     "{bleh"
                   response (handle-json-kw-request {:body (io/input-stream (.getBytes body))})]
               (should= (restc/bad-request) response)
               (should= "Couldn't parse as JSON: {bleh" (log/captured-logs-str)))))))
@@ -117,25 +125,25 @@
 
       (it "headers but no body changes nothing"
         (let [response-handler (handle-json-response {:headers {"Hi" "bye"}})
-              response (response-handler {})]
+              response         (response-handler {})]
           (should-be-nil (:body response))
           (should= {"Hi" "bye"} (:headers response))))
 
       (context "request with body"
         (it "converts body to json"
-          (let [body {:my-data 123}
+          (let [body             {:my-data 123}
                 response-handler (handle-json-response {:body body})]
             (should= (utilc/->json body) (:body (response-handler {})))))
 
         (it "sets Content-Type to application/json"
-          (let [body {:my-data 123}
+          (let [body             {:my-data 123}
                 response-handler (handle-json-response {:body body})]
             (should= {"Content-Type" "application/json"} (:headers (response-handler {})))))
 
         (it "doesn't override Content-Type"
-          (let [body {:my-data 123}
-                response-handler (handle-json-response {:body body
-                                                          :headers {"Content-Type" "custom-type"}})]
+          (let [body             {:my-data 123}
+                response-handler (handle-json-response {:body    body
+                                                        :headers {"Content-Type" "custom-type"}})]
             (should= {"Content-Type" "custom-type"} (:headers (response-handler {})))))))
 
     (context "wrap-rest"
@@ -143,38 +151,38 @@
               (api/configure! :version "123"))
 
       (it "catches api-errors"
-        (let [e (Exception. "test")
+        (let [e       (Exception. "test")
               wrapped (sut/wrap-rest (fn [_] (throw e)))]
           (should= :custom-handler-response (wrapped {:method :test}))
           (should-have-invoked :custom-ex-handler {:with [{:method :test} e]})))
 
       (it "converts response to json"
-        (let [body {:my-data 123}
+        (let [body             {:my-data 123}
               response-handler (handle-wrap-rest {:body body})]
           (should= (utilc/->json (assoc body :version "123")) (:body (response-handler {})))))
 
       (it "adds api version"
-        (let [response {:body {:hello :world}}
+        (let [response               {:body {:hello :world}}
               handle-add-api-version (handle-wrap-rest response)]
           (should= (utilc/->json {:hello :world :version "123"})
-                   (:body (handle-add-api-version nil)))))
+            (:body (handle-add-api-version nil)))))
 
       (it "converts request from json"
-        (let [body (utilc/->json {:my-data 123})
+        (let [body                (utilc/->json {:my-data 123})
               handle-json-request (handle-wrap-rest nil)
-              response (handle-json-request {:body (io/input-stream (.getBytes body))})]
+              response            (handle-json-request {:body (io/input-stream (.getBytes body))})]
           (should= {:body (utilc/<-json body)} (:request response))))
 
       (it "logs errors if invalid json"
         (log/capture-logs
-          (let [body "{bleh"
+          (let [body                "{bleh"
                 handle-json-request (handle-wrap-rest nil)
-                response (handle-json-request {:body (io/input-stream (.getBytes body))})]
+                response            (handle-json-request {:body (io/input-stream (.getBytes body))})]
             (should= (restc/bad-request) response)
             (should= "Couldn't parse as JSON: {bleh" (log/captured-logs-str)))))
 
       (it "converts request from json with keywords"
-        (let [body (utilc/->json {:my-data 123})
+        (let [body                (utilc/->json {:my-data 123})
               handle-json-request (handle-wrap-rest nil {:keywords? true})
-              response (handle-json-request {:body (io/input-stream (.getBytes body))})]
+              response            (handle-json-request {:body (io/input-stream (.getBytes body))})]
           (should= {:body (utilc/<-json-kw body)} (:request response)))))))

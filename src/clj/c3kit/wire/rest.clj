@@ -33,6 +33,15 @@
 (defn put! [url opts]
   @(put-async! url opts))
 
+(defn delete-async!
+  "If callback is not specified, returns a deref-able promise.
+   If callback is specified, returns nil."
+  [url opts & [callback]]
+  (client/delete url (restc/-maybe-update-req opts) callback))
+
+(defn delete! [url opts]
+  @(delete-async! url opts))
+
 (defn default-rest-ex-handler [_request ex]
   (log/error ex)
   (restc/internal-error {:message api/default-error-message}))
