@@ -26,3 +26,4 @@
     (react/useEffect (fn [] (when @ref (on-button-mount options @ref)) js/undefined))
     (conj body {:ref #(reset! ref %)})))
 
+; TODO [ARR] - we need a better way to add the ref here that accounts for option passed in in the body
