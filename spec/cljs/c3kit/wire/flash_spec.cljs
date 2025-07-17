@@ -47,7 +47,7 @@
     (should= "m1" (sut/first-msg))
     (should= "m3" (sut/last-msg))
 
-    (helper/render [sut/flash-root])
+    (helper/flush)
     (let [results (helper/select-all ".flash-message")]
       (should= 3 (count results))
       (doseq [div results]

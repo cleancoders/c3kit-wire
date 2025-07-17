@@ -1,6 +1,6 @@
 (ns c3kit.wire.google-spec
   (:require-macros [c3kit.wire.spec-helperc :refer [should-select]]
-                   [speclj.core :refer [after-all around before context describe it redefs-around should-be-nil should-have-invoked should-not-have-invoked should= stub with with-stubs]])
+                   [speclj.core :refer [after-all around focus-it before context describe it redefs-around should-be-nil should-have-invoked should-not-have-invoked should= stub with with-stubs]])
   (:require [c3kit.apron.corec :as ccc]
             [c3kit.apron.log :as log]
             [c3kit.wire.google :as sut]
@@ -9,8 +9,7 @@
             [c3kit.wire.spec-helper :as helper]))
 
 (defn render-oauth-button []
-  (helper/render [sut/oauth-button {:oauth :options}
-                  [:button#-oauth-button]]))
+  (helper/render [:f> sut/oauth-button {:oauth :options} [:button#-oauth-button]]))
 
 (declare google-id)
 
@@ -34,6 +33,7 @@
 
   (it "renders body"
     (render-oauth-button)
+    (helper/flush)
     (should-select "#-oauth-button"))
 
   (it "mounts button when doc is ready"

@@ -1,7 +1,7 @@
 (ns c3kit.wire.spec-helper-spec
   (:require-macros
     [speclj.core :refer [after around before before-all context describe it
-                         redefs-around should should-be-nil should-contain should-have-invoked should-not should-not-be-nil should-not-contain should-not-throw
+                         redefs-around should focus-context should-be-nil should-contain should-have-invoked should-not should-not-be-nil should-not-contain should-not-throw
                          should-not= should= stub with with-stubs]])
   (:require [c3kit.apron.corec :as ccc]
             [c3kit.wire.ajax :as ajax]

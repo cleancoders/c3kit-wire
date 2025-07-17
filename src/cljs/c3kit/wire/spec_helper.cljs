@@ -11,10 +11,12 @@
             [c3kit.wire.mock.server :as server]
             [c3kit.wire.websocket :as ws]
             [cljs.pprint :as pp]
-            [cljsjs.react.dom.test-utils] ;; Brings in js/ReactTestUtils
+            [cljsjs.react.dom.test-utils]                   ;; Brings in js/ReactTestUtils
             [clojure.string :as str]
             [reagent.core :as reagent]
             [reagent.dom :as dom]
+            [reagent.dom.client :as domc]
+            ["react-dom" :refer [flushSync]]
             [speclj.core]
             [speclj.stub :as stub]))
 
@@ -24,7 +26,7 @@
 
 (defn- unmount-render-roots []
   (doseq [root @render-roots]
-    (dom/unmount-component-at-node root))
+    (domc/unmount root))
   (reset! render-roots []))
 
 (defn reset-dom! [content]
@@ -36,8 +38,8 @@
   ([] (with-clean-dom []))
   ([content]
    (list
-     (before (reset-dom! content))
-     (after (reset-dom! content)))))
+    (before (reset-dom! content))
+    (after (reset-dom! content)))))
 
 (defn with-root-dom [] (with-clean-dom "<div id='root'/>"))
 
@@ -69,17 +71,16 @@
   "Use me to render components for testing.  Using reagent/render directly may work, but is not as good."
   ([component] (render component (select "#root")))
   ([component root]
-   (swap! render-roots conj root)
+   (let [react-root (domc/create-root root)]
+     (swap! render-roots conj react-root)
+     (try
+       ; React 18 batches state changes and renders concurrently by default, which isn't good for tests.
+       ; flushSync forces it to be synchronous
+       (flushSync #(domc/render react-root (reagent/as-element component)))
+       (catch :default e (throw (ex-info "Render Error" {:message e})))))))
 
-   ;; TODO - MDM: This should be removed.
-   (set! (.-Slider js/window) (clj->js {:default (fn [] nil)}))
-   (set! js/jwplayer (fn [elem_id] (clj->js {:setup  ccc/noop
-                                             :remove ccc/noop})))
-   (try
-     (dom/render component root)
-     (catch :default e (throw (ex-info "Render Error" {:message e}))))))
-
-(defn flush [] (reagent/flush))
+(defn flush [] 
+  (flushSync #(reagent/flush)))
 
 (def simulator (.-Simulate js/ReactTestUtils))
 
@@ -486,7 +487,7 @@
 
 (defn stub-ajax []
   (redefs-around [ajax/post! (stub :ajax/post!)
-                  ajax/get!  (stub :ajax/get!)]))
+                  ajax/get! (stub :ajax/get!)]))
 
 (defn last-ajax-post-url [] (when-let [args (stub/last-invocation-of :ajax/post!)] (first args)))
 (defn last-ajax-get-url [] (when-let [args (stub/last-invocation-of :ajax/get!)] (first args)))
@@ -515,10 +516,10 @@
 (defn with-websocket-impl [constructor]
   (let [js-websocket js/WebSocket]
     (list
-      (before (set! js/WebSocket constructor)
-              (reset! server/impl (mem-server/->MemServer)))
-      (after (set! js/WebSocket js-websocket)
-             (reset! server/impl nil)))))
+     (before (set! js/WebSocket constructor)
+             (reset! server/impl (mem-server/->MemServer)))
+     (after (set! js/WebSocket js-websocket)
+            (reset! server/impl nil)))))
 
 (defn with-memory-websockets []
   (with-websocket-impl mem-ws/->MemSocket))
@@ -528,9 +529,9 @@
 
 (defn- memory-storage-storage [js-store]
   (before
-    (let [store (mem-store/->MemStorage)]
-      (doseq [attr ["getItem" "setItem" "removeItem" "clear"]]
-        (ccc/oset js-store attr (ccc/oget store attr))))))
+   (let [store (mem-store/->MemStorage)]
+     (doseq [attr ["getItem" "setItem" "removeItem" "clear"]]
+       (ccc/oset js-store attr (ccc/oget store attr))))))
 
 (defn with-memory-local-storage []
   (memory-storage-storage js/localStorage))

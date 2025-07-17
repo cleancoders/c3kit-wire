@@ -2,8 +2,8 @@
   (:require [c3kit.apron.corec :as ccc]
             [c3kit.apron.log :as log]
             [c3kit.wire.js :as wjs]
-            [reagent.core :as reagent]
-            [reagent.dom :as reagent-dom]))
+            [reagent.core :as r]
+            ["react" :as react]))
 
 ;; https://developers.google.com/identity/gsi/web/reference/html-reference#element_with_class_g_id_signin
 
@@ -12,17 +12,17 @@
     (js-invoke google-id "renderButton" node (clj->js options))
     (log/warn "window.google.accounts.id doesn't exist")))
 
-(defn- on-button-mount [options this]
-  (let [node (reagent-dom/dom-node this)]
+(defn- on-button-mount [options ref]
+  (let [node ref]
     (if (wjs/doc-ready?)
       (mount-oauth-button node options)
       (wjs/add-listener js/window "load" #(mount-oauth-button node options)))))
 
-;; TODO [BAC]: reagent.dom/dom-node is deprecated
-;;  We need a new strategy for handling component mount
 (defn oauth-button
-  "Renders the Google OAuth Button."
-  [options _body]
-  (reagent/create-class
-    {:component-did-mount (partial on-button-mount options)
-     :reagent-render      (fn [_options body] body)}))
+  "Renders the Google OAuth Button. Function component. Must be rendered with :f> or with Reagent compiler set to
+  {:function-components true}"
+  [options body]
+  (r/with-let [ref (atom nil)]
+    (react/useEffect (fn [] (when @ref (on-button-mount options @ref)) js/undefined))
+    (conj body {:ref #(reset! ref %)})))
+

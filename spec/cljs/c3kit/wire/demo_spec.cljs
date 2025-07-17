@@ -1,6 +1,6 @@
 (ns c3kit.wire.demo-spec
   (:require-macros [c3kit.wire.spec-helperc :refer [should-select]]
-                   [speclj.core :refer [before context describe it should-be-nil should-not-contain should-not= should=]])
+                   [speclj.core :refer [before focus-it context describe it should-be-nil should-not-contain should-not= should=]])
   (:require [c3kit.wire.dnd-demo :as sut]
             [c3kit.wire.spec-helper :as wire]
             [c3kit.wire.spec-helper :as helper]
