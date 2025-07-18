@@ -18,8 +18,8 @@
 (defn handle-json-response [response]
   (sut/wrap-api-json-response #(request-handler % response)))
 
-(defn handle-wrap-rest [body & [opts]]
-  (sut/wrap-rest #(request-handler % body) opts))
+(defn handle-wrap-rest [response & [opts]]
+  (sut/wrap-rest #(request-handler % response) opts))
 
 (def http-stub-response :http-response-data)
 
@@ -167,10 +167,16 @@
           (should= (utilc/->json {:hello :world :version "123"})
             (:body (handle-add-api-version nil)))))
 
-      (it "converts request from json"
+      (it "converts request from json input-stream"
         (let [body                (utilc/->json {:my-data 123})
               handle-json-request (handle-wrap-rest nil)
               response            (handle-json-request {:body (io/input-stream (.getBytes body))})]
+          (should= {:body (utilc/<-json body)} (:request response))))
+
+      (it "converts request from json string"
+        (let [body                (utilc/->json {:my-data 123})
+              handle-json-request (handle-wrap-rest nil)
+              response            (handle-json-request {:body body})]
           (should= {:body (utilc/<-json body)} (:request response))))
 
       (it "logs errors if invalid json"
