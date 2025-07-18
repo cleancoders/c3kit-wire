@@ -179,6 +179,12 @@
               response            (handle-json-request {:body body})]
           (should= {:body (utilc/<-json body)} (:request response))))
 
+      (it "doesn't convert request from clojure map"
+        (let [body                {:my-data 123}
+              handle-json-request (handle-wrap-rest nil)
+              response            (handle-json-request {:body body})]
+          (should= {:body body} (:request response))))
+
       (it "logs errors if invalid json"
         (log/capture-logs
           (let [body                "{bleh"

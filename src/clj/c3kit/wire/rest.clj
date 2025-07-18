@@ -56,12 +56,14 @@
           (default-rest-ex-handler request e))))))
 
 (defn- <-json-try [json-fn v]
-  (let [data (if (string? v) v (slurp v))]
+  (if-let [data (cond (string? v) v
+                      (not (map? v)) (slurp v))]
     (try
       (json-fn data)
       (catch Exception e
         (log/error "Couldn't parse as JSON:" data)
-        (throw e)))))
+        (throw e)))
+    v))
 
 (defn- <-json [v]
   (<-json-try utilc/<-json v))
