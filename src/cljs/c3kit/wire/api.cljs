@@ -9,6 +9,7 @@
 (def config (atom {
                    :version                       "undefined"
                    :redirect-fn                   cc/redirect!
+                   :rest-prep-fn                  nil ;; (fn [rest-call] modified-rest-call)
                    :ajax-prep-fn                  nil ;; (fn [ajax-call] modified-ajax-call)
                    :ajax-on-unsuccessful-response nil ;; (fn [response ajax-call] ...)
                    :ws-csrf-token                 nil

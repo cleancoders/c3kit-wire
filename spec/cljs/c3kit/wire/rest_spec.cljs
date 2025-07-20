@@ -1,9 +1,10 @@
 (ns c3kit.wire.rest-spec
-  (:require [speclj.core :refer-macros [tags focus-describe should-not-be-nil should-have-invoked stub redefs-around with-stubs should-not should context describe should-be-nil should-be it should= should-contain should-not-be]]
+  (:require [speclj.core :refer-macros [before tags focus-describe should-not-be-nil should-have-invoked stub redefs-around with-stubs should-not should context describe should-be-nil should-be it should= should-contain should-not-be]]
             [c3kit.wire.spec.spec-helperc :refer-macros [test-cljs-http-method]]
             [cljs.core.async :refer-macros [go]]
             [cljs.core.async :as async]
             [cljs-http.client :as client]
+            [c3kit.wire.api :as api]
             [c3kit.wire.rest :as sut]))
 
 (defn cljs-http-response [& _]
@@ -11,6 +12,7 @@
 
 (describe "Rest"
   (with-stubs)
+  (before (api/configure! {:rest-prep-fn nil}))
 
   (redefs-around [client/get (stub :client/get {:invoke cljs-http-response})
                   client/post (stub :client/post {:invoke cljs-http-response})
