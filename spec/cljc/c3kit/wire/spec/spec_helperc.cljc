@@ -1,6 +1,7 @@
 (ns c3kit.wire.spec.spec-helperc
   (:require [c3kit.apron.corec :as ccc]
             [c3kit.apron.utilc :as utilc]
+            [c3kit.wire.api :as api]
             [speclj.core #?(:clj :refer :cljs :refer-macros) [stub should-have-invoked context should-be-nil it should=]]))
 
 (def default-error-message "Our apologies. An error occurred and we have been notified.")
@@ -139,4 +140,15 @@
         (test-http-method ~f ~stub-name false)
 
         (it "returns nil"
-          (should-be-nil (~f "http://test.com" {:query-params {:a 5}} ccc/noop))))))
+          (should-be-nil (~f "http://test.com" {:query-params {:a 5}} ccc/noop)))
+
+        (it "wraps request in prep-fn"
+          (api/configure! {:rest-prep-fn (fn [request#] (assoc-in request# [:body :my-field] :my-value))})
+
+          (let [body# {:some-data 26}]
+            (apply ~f ["http://test.net"
+                       {:body body#}])
+            (should-have-invoked ~stub-name {:with ["http://test.net"
+                                                    {:body (utilc/->json
+                                                             (assoc body# :my-field :my-value))
+                                                     :headers {"Content-Type" "application/json"}}]}))))))
