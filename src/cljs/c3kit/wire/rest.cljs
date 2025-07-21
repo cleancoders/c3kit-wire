@@ -30,3 +30,7 @@
 (defn put! [url request callback]
   (let [channel (request! client/put url request)]
     (async-callback! channel callback)))
+
+(defn delete! [url request callback]
+  (let [channel (request! client/delete url request)]
+    (async-callback! channel callback)))
