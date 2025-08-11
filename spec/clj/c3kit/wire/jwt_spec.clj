@@ -150,6 +150,16 @@
         (should= true (:secure cookie))
         (should= "/" (:path cookie))
         (should-not-contain :domain cookie)))
+
+    (it "sets secure to false"
+      (let [options       (assoc jwt-options :secure? false)
+            sign-response (partial sut/sign-response options)
+            response      (sign-response {} {:jwt/payload sid-payload})
+            cookie        (get-in response [:cookies "sid-cookie"])]
+        (should-be string? (:value cookie))
+        (should= false (:secure cookie))
+        (should= "/" (:path cookie))
+        (should-not-contain :domain cookie)))
     )
 
   (context "get-token"

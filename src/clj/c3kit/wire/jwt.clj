@@ -67,10 +67,10 @@
         (assoc :jwt/token token))
     (assoc-in request [:jwt/payload :client-id] (new-client-id))))
 
-(defn- assoc-payload [response payload {:keys [cookie-name secret lifespan domain]}]
+(defn- assoc-payload [response payload {:keys [cookie-name secret lifespan domain secure?]}]
   (let [token   (sign payload secret lifespan)
         payload (unsign! token secret)
-        cookie  (ccc/remove-nils {:value token :secure true :path "/" :domain domain})]
+        cookie  (ccc/remove-nils {:value token :secure (not (false? secure?)) :path "/" :domain domain})]
     (-> response
         (assoc :jwt/payload payload :jwt/token token)
         (assoc-in [:cookies cookie-name] cookie))))
