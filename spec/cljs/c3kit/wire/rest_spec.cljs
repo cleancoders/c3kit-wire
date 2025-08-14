@@ -12,9 +12,10 @@
 (describe "Rest"
   (with-stubs)
 
-  (redefs-around [client/get (stub :client/get {:invoke cljs-http-response})
-                  client/post (stub :client/post {:invoke cljs-http-response})
-                  client/put (stub :client/put {:invoke cljs-http-response})])
+  (redefs-around [client/get    (stub :client/get {:invoke cljs-http-response})
+                  client/post   (stub :client/post {:invoke cljs-http-response})
+                  client/put    (stub :client/put {:invoke cljs-http-response})
+                  client/delete (stub :client/delete {:invoke cljs-http-response})])
 
   (context "get!"
     (test-cljs-http-method sut/get! :client/get))
@@ -23,4 +24,7 @@
     (test-cljs-http-method sut/post! :client/post))
 
   (context "put!"
-    (test-cljs-http-method sut/put! :client/put)))
+    (test-cljs-http-method sut/put! :client/put))
+
+  (context "delete!"
+    (test-cljs-http-method sut/delete! :client/delete)))
