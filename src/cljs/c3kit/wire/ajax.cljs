@@ -33,8 +33,11 @@
         (= 403 (:status response)) (flash/add! api/forbidden-flash)
         :else (handle-unexpected-response response ajax-call)))
 
+(defn- success? [{:keys [status]}]
+  (<= 200 status 299))
+
 (defn triage-response [response ajax-call]
-  (cond (= 200 (:status response)) (api/handle-api-response (:body response) ajax-call)
+  (cond (success? response) (api/handle-api-response (:body response) ajax-call)
         :else (if-let [handler (:ajax-on-unsuccessful-response @api/config)]
                 (handler response ajax-call)
                 (handle-unsuccessful-response response ajax-call))))

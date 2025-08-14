@@ -40,6 +40,10 @@
       (sut/triage-response {:error-code :no-error :status 200} {})
       (should-have-invoked :handle-api-response))
 
+    (it "creation"
+      (sut/triage-response {:error-code :no-error :status 201} {})
+      (should-have-invoked :handle-api-response))
+
     (it "server-down"
       (sut/triage-response {:error-code :http-error :status 0} {})
       (should-have-invoked :handle-server-down))
