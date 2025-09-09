@@ -1,3 +1,24 @@
+### 2.5.3
+* Fixes client side DELETE for RESTful requests
+
+### 2.5.2
+* Fixes bug where AJAX client only recognized 200 response as successful
+
+### 2.5.1
+* Fixes cookies being sent securely over HTTP
+
+### 2.5.0
+* Adds DELETE functionality to REST client
+
+### 2.4.0
+* Added support for more HTTP responses in REST library
+
+### 2.3.3
+* Fixes cookies not being attached to requests properly for REST client
+
+### 2.3.1
+* Adds RESTful API client & server wrappers
+
 ### 2.2.0
  * Apron and Scaffold 2.2.0
 
