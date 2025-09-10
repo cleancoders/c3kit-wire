@@ -1,10 +1,10 @@
 (ns c3kit.wire.ajax-spec
   (:require [c3kit.apron.log :as log]
             [c3kit.apron.utilc :as utilc]
-            [c3kit.wire.spec.spec-helperc :as spec-helperc]
             [c3kit.wire.ajax :as sut]
             [c3kit.wire.api :as api]
             [c3kit.wire.flashc :as flashc]
+            [c3kit.wire.spec.spec-helperc :as spec-helperc]
             [clojure.java.io :as io]
             [speclj.core :refer :all]))
 
@@ -16,6 +16,7 @@
 
   (context "wrap-add-api-version"
     (it "is deprecated"
+      (log/set-level! :report)
       (log/capture-logs
         (sut/wrap-add-api-version identity)
         (should= "c3kit.wire.ajax/wrap-add-api-version is deprecated. Use c3kit.wire.api/wrap-add-api-version instead."
