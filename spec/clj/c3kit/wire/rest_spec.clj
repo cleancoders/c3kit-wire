@@ -2,13 +2,13 @@
   (:require [c3kit.apron.log :as log]
             [c3kit.apron.utilc :as utilc]
             [c3kit.wire.api :as api]
-            [c3kit.wire.spec.spec-helperc :as spec-helperc]
-            [clojure.java.io :as io]
-            [speclj.core :refer :all]
-            [org.httpkit.client :as client]
+            [c3kit.wire.rest :as sut]
             [c3kit.wire.restc :as restc]
-            [c3kit.wire.spec.spec-helperc :refer [test-http-method-sync test-http-method-async]]
-            [c3kit.wire.rest :as sut]))
+            [c3kit.wire.spec.spec-helperc :as spec-helperc]
+            [c3kit.wire.spec.spec-helperc :refer [test-http-method-async test-http-method-sync]]
+            [clojure.java.io :as io]
+            [org.httpkit.client :as client]
+            [speclj.core :refer :all]))
 
 (defn request-handler [request response]
   (merge response {:request request}))
@@ -69,12 +69,14 @@
   (context "wrappers"
 
     (context "wrap-catch-rest-errors"
+      (around [it] (log/with-level :report (it)))
+
       (it "default handler"
         (api/configure! :rest-on-ex nil)
         (log/capture-logs
           (let [wrapped (sut/wrap-catch-rest-errors (fn [_] (throw (Exception. "test"))))]
             (should= (restc/internal-error {:message spec-helperc/default-error-message})
-              (wrapped {:method :test}))
+                     (wrapped {:method :test}))
             (should= "java.lang.Exception: test" (log/captured-logs-str)))))
 
       (it "custom handler fn"
@@ -82,7 +84,8 @@
         (let [e       (Exception. "test")
               wrapped (sut/wrap-catch-rest-errors (fn [_] (throw e)))]
           (should= :custom-handler-response (wrapped {:method :test}))
-          (should-have-invoked :custom-ex-handler {:with [{:method :test} e]}))))
+          (should-have-invoked :custom-ex-handler {:with [{:method :test} e]})))
+      )
 
     (context "wrap-api-json-request"
       (it "empty request change nothing"
@@ -165,7 +168,7 @@
         (let [response               {:body {:hello :world}}
               handle-add-api-version (handle-wrap-rest response)]
           (should= (utilc/->json {:hello :world :version "123"})
-            (:body (handle-add-api-version nil)))))
+                   (:body (handle-add-api-version nil)))))
 
       (it "converts request from json"
         (let [body                (utilc/->json {:my-data 123})
