@@ -1,23 +1,27 @@
+### 2.6.0
+ * Adds `c3kit.wire.message-queue` namespace with in-memory and Redis implementations
+ * Upgrades dependencies
+
 ### 2.5.3
-* Fixes client side DELETE for RESTful requests
+ * Fixes client side DELETE for RESTful requests
 
 ### 2.5.2
-* Fixes bug where AJAX client only recognized 200 response as successful
+ * Fixes bug where AJAX client only recognized 200 response as successful
 
 ### 2.5.1
-* Fixes cookies being sent securely over HTTP
+ * Fixes cookies being sent securely over HTTP
 
 ### 2.5.0
-* Adds DELETE functionality to REST client
+ * Adds DELETE functionality to REST client
 
 ### 2.4.0
-* Added support for more HTTP responses in REST library
+ * Added support for more HTTP responses in REST library
 
 ### 2.3.3
-* Fixes cookies not being attached to requests properly for REST client
+ * Fixes cookies not being attached to requests properly for REST client
 
 ### 2.3.1
-* Adds RESTful API client & server wrappers
+ * Adds RESTful API client & server wrappers
 
 ### 2.2.0
  * Apron and Scaffold 2.2.0
