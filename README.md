@@ -32,6 +32,9 @@ Wire is a toolset for building rich-client web applications, clojure on the serv
     clj -M:test:cljs once
     clj -M:test:cljs            # auto runner
 
+    # Install Redis
+    brew install redis
+
 # Deployment
 
 In order to deploy to c3kit you must be a member of the Clojars group `com.cleancoders.c3kit`.
