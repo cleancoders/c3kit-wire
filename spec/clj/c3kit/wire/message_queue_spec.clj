@@ -98,7 +98,7 @@
 
   (context "real"
 
-    ;(tags :slow)
+    (tags :slow)
 
     (before (car-mq/set-min-log-level! :report))
 
