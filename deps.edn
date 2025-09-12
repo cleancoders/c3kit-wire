@@ -16,24 +16,25 @@
            ring/ring-anti-forgery      {:mvn/version "1.4.0"}
            }
  :aliases {
-           :test  {:extra-deps    {speclj/speclj                           {:mvn/version "3.11.0"}
-                                   org.clojure/clojurescript               {:mvn/version "1.12.42"}
-                                   com.cleancoders.c3kit/scaffold          {:mvn/version "2.2.0"}
-                                   com.google.api-client/google-api-client {:mvn/version "2.8.1"}
-                                   io.github.clojure/tools.build           {:mvn/version "0.10.10"}
-                                   clj-commons/pomegranate                 {:mvn/version "1.2.25"}}
-                   :override-deps {
-                                   ;com.cleancoders.c3kit/apron    {:local/root "../apron"}
-                                   ;com.cleancoders.c3kit/scaffold {:local/root "../scaffold"}
-                                   }
-                   :extra-paths   ["dev" "spec/clj" "spec/cljc" "spec/cljs"]}
-           :spec  {:main-opts ["-m" "speclj.main" "-c" "-t" "~slow"]}
-           :cljs  {:main-opts ["-m" "c3kit.scaffold.cljs"]}
-           :antq  {:deps      {com.github.liquidz/antq {:mvn/version "2.11.1276"}}
-                   :main-opts ["-m" "antq.core"]}
-           :build {:extra-deps  {io.github.clojure/tools.build {:mvn/version "0.10.10"}
-                                 clj-commons/pomegranate       {:mvn/version "1.2.25"}}
-                   :ns-default  build
-                   :extra-paths ["dev"]}
+           :test    {:extra-deps    {speclj/speclj                           {:mvn/version "3.11.0"}
+                                     org.clojure/clojurescript               {:mvn/version "1.12.42"}
+                                     com.cleancoders.c3kit/scaffold          {:mvn/version "2.2.0"}
+                                     com.google.api-client/google-api-client {:mvn/version "2.8.1"}
+                                     io.github.clojure/tools.build           {:mvn/version "0.10.10"}
+                                     clj-commons/pomegranate                 {:mvn/version "1.2.25"}}
+                     :override-deps {
+                                     ;com.cleancoders.c3kit/apron    {:local/root "../apron"}
+                                     ;com.cleancoders.c3kit/scaffold {:local/root "../scaffold"}
+                                     }
+                     :extra-paths   ["dev" "spec/clj" "spec/cljc" "spec/cljs"]}
+           :spec    {:main-opts ["-m" "speclj.main" "-c" "-t" "~slow"]}
+           :spec-ci {:main-opts ["-m" "speclj.main" "-c"]}
+           :cljs    {:main-opts ["-m" "c3kit.scaffold.cljs"]}
+           :antq    {:deps      {com.github.liquidz/antq {:mvn/version "2.11.1276"}}
+                     :main-opts ["-m" "antq.core"]}
+           :build   {:extra-deps  {io.github.clojure/tools.build {:mvn/version "0.10.10"}
+                                   clj-commons/pomegranate       {:mvn/version "1.2.25"}}
+                     :ns-default  build
+                     :extra-paths ["dev"]}
            }
  }
