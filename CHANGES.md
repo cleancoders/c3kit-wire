@@ -1,4 +1,4 @@
-### Next
+### 2.6.1
  * Upgrade dependencies
  * Replace Carmine backend of Redis with Lettuce
 
