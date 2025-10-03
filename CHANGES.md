@@ -1,3 +1,7 @@
+### Next
+ * Upgrade dependencies
+ * Replace Carmine backend of Redis with Lettuce
+
 ### 2.6.0
  * Adds `c3kit.wire.message-queue` namespace with in-memory and Redis implementations
  * Upgrades dependencies

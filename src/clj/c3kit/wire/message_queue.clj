@@ -41,14 +41,8 @@
   [qname handler]
   (-on-message @impl qname handler))
 
-(defn ->message
-  "Creates a message structure"
-  [qname message]
-  {:qname   qname
-   :message message})
-
-(defn- conform-message [{:keys [qname message]}]
-  (->message qname message))
+(defn- conform-message [m]
+  (select-keys m [:qname :message]))
 
 (defn messages
   "Adds a new message to the queue"
@@ -61,16 +55,9 @@
   MessageQueue
   (-stop [_this])
   (-enqueue [_this new-messages]
-    (doseq [{:keys [qname message]} new-messages
-            :let [payload {:qname      qname
-                           :message    message
-                           :mid        (str (random-uuid))
-                           :attempt    1
-                           :lock-ms    0
-                           :age-ms     0
-                           :queue-size 0}]]
+    (doseq [payload new-messages]
       (swap! messages conj payload)
-      (run! #(% payload) (get @handlers qname))))
+      (run! #(% payload) (get @handlers (:qname payload)))))
   (-on-message [_this qname handler]
     (swap! handlers update qname conj handler))
   (-clear [_this] (reset! messages []))
