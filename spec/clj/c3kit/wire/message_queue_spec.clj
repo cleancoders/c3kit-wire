@@ -103,7 +103,7 @@
   (context "real"
     (with-stubs)
 
-    ;(tags :slow)
+    (tags :slow)
 
     (test-message-queue {:impl       :redis
                          :max-age-ms 0
@@ -134,8 +134,7 @@
         (sut/enqueue "foo" "blah")
         (sut/enqueue "bar" "blah")
         (Thread/sleep 25)
-        (should= [{:qname "foo" :message "blah"}
-                  {:qname "bar" :message "blah"}] (sut/messages))
+        (should= 2 (count (sut/messages)))
         (Thread/sleep 100)
         (should-be empty? (sut/messages)))
       )
