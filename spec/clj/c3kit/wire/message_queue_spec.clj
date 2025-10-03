@@ -3,12 +3,6 @@
             [c3kit.wire.redis :as redis]
             [speclj.core :refer :all]))
 
-(defn ->message
-  "Creates a message structure"
-  [qname message]
-  {:qname   qname
-   :message message})
-
 (defn with-impl [spec]
   (list
     (before (sut/configure! spec)
@@ -26,17 +20,17 @@
 
        (it "one message"
          (sut/enqueue "foo" "bar")
-         (should= [(->message "foo" "bar")] (sut/messages)))
+         (should= [(sut/->message "foo" "bar")] (sut/messages)))
 
        (it "two messages"
          (sut/enqueue "foo" "bar")
          ; Add some delta for sorting by id
          (Thread/sleep 1)
          (sut/enqueue "baz" "buzz")
-         (should= [(->message "foo" "bar")] (sut/messages "foo"))
-         (should= [(->message "baz" "buzz")] (sut/messages "baz"))
-         (should= [(->message "foo" "bar")
-                   (->message "baz" "buzz")] (sut/messages)))
+         (should= [(sut/->message "foo" "bar")] (sut/messages "foo"))
+         (should= [(sut/->message "baz" "buzz")] (sut/messages "baz"))
+         (should= [(sut/->message "foo" "bar")
+                   (sut/->message "baz" "buzz")] (sut/messages)))
 
        (it "clears all messages and queues"
          (sut/enqueue "foo" "bar")
@@ -67,9 +61,9 @@
                                      (when (= "buzz" message#)
                                        (deliver flushed?# nil)))))
            (sut/enqueue
-             [(->message "foo" "baz")
-              (->message "bar" "foo")
-              (->message "foo" "buzz")])
+             [(sut/->message "foo" "baz")
+              (sut/->message "bar" "foo")
+              (sut/->message "foo" "buzz")])
            @flushed?#
            (should= "bazbuzz" @result#)))
 

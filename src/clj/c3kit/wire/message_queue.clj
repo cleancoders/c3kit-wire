@@ -41,6 +41,12 @@
   [qname handler]
   (-on-message @impl qname handler))
 
+(defn ->message
+  "Creates a message structure"
+  [qname message]
+  {:qname   qname
+   :message message})
+
 (defn- conform-message [m]
   (select-keys m [:qname :message]))
 
