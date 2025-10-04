@@ -1,3 +1,6 @@
+### 2.6.2
+ * Provides error handling for message queues
+
 ### 2.6.1
  * Upgrade dependencies
  * Replace Carmine backend of Redis with Lettuce
