@@ -1,5 +1,6 @@
 (ns c3kit.wire.message-queue
-  (:require [c3kit.apron.corec :as ccc]))
+  (:require [c3kit.apron.corec :as ccc]
+            [c3kit.apron.log :as log]))
 
 (defprotocol MessageQueue
   (-enqueue [this messages]
@@ -57,6 +58,13 @@
 
 ;region Memory
 
+(defn wrap-error-handler [f]
+  (fn [m]
+    (try
+      (f m)
+      (catch Exception e
+        (log/error e)))))
+
 (deftype InMemoryMessageQueue [messages handlers]
   MessageQueue
   (-stop [_this])
@@ -65,7 +73,7 @@
       (swap! messages conj payload)
       (run! #(% payload) (get @handlers (:qname payload)))))
   (-on-message [_this qname handler]
-    (swap! handlers update qname conj handler))
+    (swap! handlers update qname conj (wrap-error-handler handler)))
   (-clear [_this] (reset! messages []))
   (-queue-messages [_this qname] (ccc/find-by @messages :qname qname))
   (-all-messages [_this] @messages))

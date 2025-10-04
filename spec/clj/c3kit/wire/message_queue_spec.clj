@@ -1,5 +1,7 @@
 (ns c3kit.wire.message-queue-spec
-  (:require [c3kit.wire.message-queue :as sut]
+  (:require [c3kit.apron.corec :as ccc]
+            [c3kit.apron.log :as log]
+            [c3kit.wire.message-queue :as sut]
             [c3kit.wire.redis :as redis]
             [speclj.core :refer :all]))
 
@@ -87,6 +89,22 @@
            (should= "bazbuzz" @foo-result#)
            (should= "foo" @bar-result#)))
 
+       (it "two message handlers - one throws"
+         (let [result#   (atom "")
+               flushed?# (promise)
+               ex#       (ex-info "blah" {})]
+           (sut/on-message "foo" (fn [_m#] (throw ex#)))
+           (sut/on-message "foo" (fn [m#]
+                                   (let [message# (:message m#)]
+                                     (swap! result# str message#)
+                                     (when (= "buzz" message#)
+                                       (deliver flushed?# nil)))))
+           (sut/enqueue "foo" "baz")
+           (sut/enqueue "foo" "buzz")
+           @flushed?#
+           (should= "bazbuzz" @result#)
+           (should-contain (str ex#) (log/captured-logs-str))))
+
        (it "message structure"
          (let [message# (promise)]
            (sut/on-message "foo" #(deliver message# %))
@@ -96,7 +114,10 @@
 
        )))
 
+(defn interrupted? [^Thread t] (.isInterrupted t))
+
 (describe "Message Queue"
+  (around [it] (log/capture-logs (it)))
 
   (test-message-queue {:impl :memory})
 
@@ -130,6 +151,35 @@
                   :max-age-ms 100
                   :block-ms   50})
 
+      (it "throws on read"
+        (let [errors      (atom 0)
+              redis-xread redis/xread]
+          (letfn [(mock-xread [conn args offset]
+                    (when (zero? @errors)
+                      (swap! errors inc)
+                      (throw (ex-info "blah" {})))
+                    (redis-xread conn args offset))]
+            (with-redefs [redis/xread mock-xread]
+              (let [delivered (promise)]
+                (sut/on-message "foo" #(deliver delivered %))
+                (sut/enqueue "foo" "blah")
+                @delivered
+                (should-be realized? delivered))))))
+
+      (it "interrupts read thread on interrupt exceptions"
+        (let [errors  (atom 0)
+              thrown? (promise)]
+          (letfn [(mock-xread [_commands _args _offset]
+                    (when (zero? @errors)
+                      (swap! errors inc)
+                      (deliver thrown? nil)
+                      (throw (InterruptedException.))))]
+            (with-redefs [redis/xread mock-xread]
+              (sut/on-message "foo" ccc/noop)
+              (sut/enqueue "foo" "blah")
+              @thrown?
+              (should= 1 (ccc/count-where interrupted? @(.-threads @sut/impl)))))))
+
       (it "automatically removes messages older than max-age"
         (sut/enqueue "foo" "blah")
         (sut/enqueue "bar" "blah")
@@ -137,6 +187,39 @@
         (should= 2 (count (sut/messages)))
         (Thread/sleep 100)
         (should-be empty? (sut/messages)))
+
+      (it "throws on trim task"
+        (prn (log/captured-logs-str))
+        (let [errors        (atom 0)
+              error-thrown? (promise)
+              redis-xtrim   redis/xtrim
+              ex            (ex-info "blah" {})]
+          (letfn [(mock-xtrim [commands queue args]
+                    (when (zero? @errors)
+                      (swap! errors inc)
+                      (deliver error-thrown? nil)
+                      (throw ex))
+                    (redis-xtrim commands queue args))]
+            (with-redefs [redis/xtrim mock-xtrim]
+              (sut/enqueue "foo" "blah")
+              @error-thrown?
+              (should= [(sut/->message "foo" "blah")] (sut/messages))
+              (Thread/sleep 100)
+              (should= (str ex) (log/captured-logs-str))
+              (should-be empty? (sut/messages))))))
+
+      (it "interrupts trim thread on interrupt exception"
+        (let [errors  (atom 0)
+              thrown? (promise)]
+          (letfn [(mock-xtrim [_commands _queue _args]
+                    (when (zero? @errors)
+                      (swap! errors inc)
+                      (deliver thrown? nil)
+                      (throw (InterruptedException.))))]
+            (with-redefs [redis/xtrim mock-xtrim]
+              (sut/enqueue "foo" "blah")
+              @thrown?
+              (should= 1 (ccc/count-where interrupted? @(.-threads @sut/impl)))))))
       )
     )
   )
