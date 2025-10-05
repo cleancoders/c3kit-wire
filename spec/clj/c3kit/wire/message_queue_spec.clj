@@ -189,7 +189,6 @@
         (should-be empty? (sut/messages)))
 
       (it "throws on trim task"
-        (prn (log/captured-logs-str))
         (let [errors        (atom 0)
               error-thrown? (promise)
               redis-xtrim   redis/xtrim
@@ -219,6 +218,7 @@
             (with-redefs [redis/xtrim mock-xtrim]
               (sut/enqueue "foo" "blah")
               @thrown?
+              (Thread/sleep 10)
               (should= 1 (ccc/count-where interrupted? @(.-threads @sut/impl)))))))
       )
     )

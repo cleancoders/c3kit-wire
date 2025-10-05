@@ -1,6 +1,5 @@
 (ns c3kit.wire.redis
   (:require [c3kit.apron.corec :as ccc]
-            [c3kit.apron.log :as log]
             [c3kit.apron.time :as time]
             [c3kit.wire.message-queue :as mq])
   (:import (io.lettuce.core KeyScanArgs Range RedisClient RedisFuture ScanIterator StreamMessage XReadArgs$Builder XReadArgs$StreamOffset XTrimArgs)
@@ -44,12 +43,6 @@
    :message (get (.getBody message) "body")
    :qname   (.getStream message)})
 
-(defn- ->subscribe-handler [last-id subscribe-fn]
-  (fn [^StreamMessage message]
-    (let [message (StreamMessage->map message)]
-      (reset! last-id (:id message))
-      (subscribe-fn message))))
-
 (defmacro ^:private thread-spawn [& body]
   `(doto (Thread. (fn [] ~@body)) .start))
 
@@ -66,22 +59,22 @@
     (borrow-from [^StatefulRedisConnection conn (-pool this)]
       (xread (.sync conn) args offsets))))
 
-(defmacro ^:private with-error-handling [& body]
-  `(try
-     ~@body
-     (catch InterruptedException _#
-       (.interrupt (Thread/currentThread)))
-     (catch Exception e#
-       (log/error e#))))
+(defn- flush-message [handler last-id payload]
+  (reset! last-id (:id payload))
+  (mq/with-error-handling
+    (handler payload)))
+
+(defn- flush-messages [this qname handler last-id]
+  (mq/with-error-handling
+    (->> (read-from this qname @last-id)
+         (map StreamMessage->map)
+         (run! (partial flush-message handler last-id)))))
 
 (defn- ->handler-thread [this qname handler]
-  (let [last-id    (atom (-> (time/now) time/millis-since-epoch dec str))
-        handler-fn (mq/wrap-error-handler (->subscribe-handler last-id handler))]
+  (let [last-id (atom (-> (time/now) time/millis-since-epoch dec str))]
     (thread-spawn
       (while (running? this)
-        (with-error-handling
-          (->> (read-from this qname @last-id)
-               (run! handler-fn)))))))
+        (flush-messages this qname handler last-id)))))
 
 (defn- do-on-message [this qname handler]
   (->> (->handler-thread this qname handler)
@@ -140,7 +133,7 @@
 (defn- ->trim-task [is-running pool {:keys [max-age-ms block-ms]}]
   (thread-spawn
     (while @is-running
-      (with-error-handling
+      (mq/with-error-handling
         (trim-older-than pool max-age-ms)
         (when (and @is-running (pos? block-ms))
           (Thread/sleep ^Long block-ms))))))

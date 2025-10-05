@@ -1,3 +1,6 @@
+### 2.6.3
+ * Updates error handling approach to no longer override the handler function with another
+
 ### 2.6.2
  * Provides error handling for message queues
 

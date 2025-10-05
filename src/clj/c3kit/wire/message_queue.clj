@@ -58,12 +58,13 @@
 
 ;region Memory
 
-(defn wrap-error-handler [f]
-  (fn [m]
-    (try
-      (f m)
-      (catch Exception e
-        (log/error e)))))
+(defmacro with-error-handling [& body]
+  `(try
+     ~@body
+     (catch InterruptedException _#
+       (.interrupt (Thread/currentThread)))
+     (catch Exception e#
+       (log/error e#))))
 
 (deftype InMemoryMessageQueue [messages handlers]
   MessageQueue
@@ -71,9 +72,10 @@
   (-enqueue [_this new-messages]
     (doseq [payload new-messages]
       (swap! messages conj payload)
-      (run! #(% payload) (get @handlers (:qname payload)))))
+      (doseq [handler (get @handlers (:qname payload))]
+        (with-error-handling (handler payload)))))
   (-on-message [_this qname handler]
-    (swap! handlers update qname conj (wrap-error-handler handler)))
+    (swap! handlers update qname conj handler))
   (-clear [_this] (reset! messages []))
   (-queue-messages [_this qname] (ccc/find-by @messages :qname qname))
   (-all-messages [_this] @messages))
