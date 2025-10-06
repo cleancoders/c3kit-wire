@@ -54,4 +54,32 @@
     (wjs/o-dissoc-in! js/window ["google" "accounts" "id"])
     (render-oauth-button)
     (should= "window.google.accounts.id doesn't exist" (log/captured-logs-str)))
+
+  (it "with body options"
+    (let [clicked? (atom false)]
+      (helper/render
+        [sut/oauth-button {:oauth :options}
+         [:button#-oauth-button {:on-click #(reset! clicked? true)}]])
+      (should= (wire/select "#-oauth-button") (ccc/oget @google-id "node"))
+      (should= {"oauth" "options"} (js->clj (ccc/oget @google-id "options")))
+      (wire/click "#-oauth-button")
+      (should= true @clicked?)))
+
+  (it "with ref in body options"
+    (let [button-node (atom nil)]
+      (helper/render
+        [sut/oauth-button {:oauth :options}
+         [:button#-oauth-button {:ref #(reset! button-node %)}]])
+      (should= (wire/select "#-oauth-button") (ccc/oget @google-id "node"))
+      (should= {"oauth" "options"} (js->clj (ccc/oget @google-id "options")))
+      (should= (wire/select "#-oauth-button") @button-node)))
+
+  (it "with child elements and no body options"
+    (helper/render
+      [sut/oauth-button {:oauth :options}
+       [:button#-oauth-button
+        [:span#-child "blah"]]])
+    (should= (wire/select "#-oauth-button") (ccc/oget @google-id "node"))
+    (should= {"oauth" "options"} (js->clj (ccc/oget @google-id "options")))
+    (should-select "#-child"))
   )
