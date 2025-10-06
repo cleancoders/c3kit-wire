@@ -1,3 +1,6 @@
+### 2.6.4
+ * Removes usage of deprecated `reagent.dom/dom-node` in Google Reagent component
+
 ### 2.6.3
  * Updates error handling approach to no longer override the handler function with another
 
