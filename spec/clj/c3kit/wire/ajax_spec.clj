@@ -126,14 +126,14 @@
     (it "default"
       (api/configure! :ajax-on-ex nil)
       (with-redefs [c3kit.wire.ajax/default-ajax-ex-handler (stub :ex-handler)]
-        (let [wrapped (sut/wrap-catch-api-errors (fn [r] (throw (Exception. "test"))))]
+        (let [wrapped (sut/wrap-catch-ajax-errors (fn [r] (throw (Exception. "test"))))]
           (wrapped {:method :test})))
       (should-have-invoked :ex-handler))
 
     (it "default handler"
       (api/configure! :ajax-on-ex 'c3kit.wire.ajax/default-ajax-ex-handler)
       (log/capture-logs
-        (let [wrapped  (sut/wrap-catch-api-errors (fn [r] (throw (Exception. "test"))))
+        (let [wrapped  (sut/wrap-catch-ajax-errors (fn [r] (throw (Exception. "test"))))
               response (wrapped {:method :test})]
           (should= 200 (:status response))
           (should= :error (sut/status response))
@@ -143,7 +143,7 @@
 
     (it "customer handler fn"
       (api/configure! :ajax-on-ex (stub :custom-ex-handler))
-      (let [wrapped (sut/wrap-catch-api-errors (fn [r] (throw (Exception. "test"))))]
+      (let [wrapped (sut/wrap-catch-ajax-errors (fn [r] (throw (Exception. "test"))))]
         (wrapped {:method :test}))
       (should-have-invoked :custom-ex-handler))
     )

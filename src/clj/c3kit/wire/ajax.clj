@@ -53,7 +53,7 @@
   ;(errors/send-error-email request e)
   (error nil api/default-error-message))
 
-(defn wrap-catch-api-errors [handler]
+(defn wrap-catch-ajax-errors [handler]
   (fn [request]
     (try
       (handler request)
@@ -99,7 +99,7 @@
 
 (defn wrap-ajax [handler]
   (-> handler
-      wrap-catch-api-errors
+      wrap-catch-ajax-errors
       api/wrap-add-api-version
       wrap-api-transit-response
       wrap-transit-params))

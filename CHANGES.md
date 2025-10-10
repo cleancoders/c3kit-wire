@@ -5,6 +5,9 @@
  * Adds In-Memory implementation of Lock protocol
  * Adds Redis implementation of Lock protocol
 
+### 2.7.0
+ * Adds c3kit.wire.routes with lazy-routes, wrap-prefix, and redirect-routes.
+
 ### 2.6.4
  * Removes usage of deprecated `reagent.dom/dom-node` in Google Reagent component
 

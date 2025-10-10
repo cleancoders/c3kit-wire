@@ -2,6 +2,7 @@
   (:require [c3kit.apron.log :as log]
             [c3kit.wire.ajax :as ajax]
             [c3kit.wire.apic :as apic]
+            [c3kit.wire.routes :as routes]
             [c3kit.wire.flashc :as flashc]
             [c3kit.wire.lock :as lock]
             [c3kit.wire.websocket :as ws]
@@ -54,7 +55,8 @@
 (defmacro check-route [path method route-handler handler]
   (require `~(symbol (namespace handler)))
   `(let [stub-key# ~(keyword handler)]
-     (with-redefs [~handler (stub stub-key#)]
+     (with-redefs [~handler (stub stub-key#)
+                   routes/reload? (delay true)]
        (~route-handler {:uri ~path :request-method ~method})
        (should-have-invoked stub-key#)
        (reset! args (stub/first-invocation-of stub-key#)))))
