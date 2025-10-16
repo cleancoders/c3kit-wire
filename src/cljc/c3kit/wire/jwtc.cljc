@@ -1,39 +1,46 @@
 (ns c3kit.wire.jwtc
   (:require [c3kit.apron.corec :as ccc]
             [c3kit.apron.utilc :as utilc]
-            [clojure.string :as s]
+            [clojure.string :as str]
             #?(:clj [cheshire.core :as json])
-            #?(:clj [buddy.core.codecs :as codecs])
-            #?(:clj [buddy.core.codecs.base64 :as b64])))
+            #?(:clj [buddy.core.codecs :as codecs])))
+
+#?(:cljs
+   (defn- uri-encode [v]
+     (as-> v $
+           (ccc/first-char-code $)
+           (utilc/->hex $)
+           (ccc/pad-left! $ 2 0)
+           (str "%" $))))
 
 #?(:cljs
    (defn- ->uri-component [s]
      (->> s
-          (.atob js/window)
-          seq
-          (sequence
-            (comp
-              (map ccc/first-char-code)
-              (map utilc/->hex)
-              (map #(ccc/pad-left! % 2 0))
-              (map #(str "%" %))))
-          (s/join ""))))
+          (js-invoke js/window "atob")
+          (map uri-encode)
+          (apply str))))
+
+(def ^:private b64-replacements {\- "+" \_ "/"})
+
+(defn- token->b64-payload [token]
+  (some-> token
+          (str/split #"\.")
+          second
+          (str/escape b64-replacements)))
+
+(defn- decode-b64 [b64-payload]
+  #?(:cljs (-> b64-payload
+               ->uri-component
+               js/decodeURIComponent
+               utilc/<-json-kw)
+     :clj  (-> b64-payload
+               codecs/b64->str
+               (json/parse-string true))))
 
 (defn ->payload
   "Returns the decoded payload of a JWT token or nil."
   [token]
-  (when-let [payload (some-> token (s/split #"\.") second)]
+  (when-let [payload (token->b64-payload token)]
     (try
-      #?(:cljs
-         (-> payload
-             (s/replace #"-" "+")
-             (s/replace #"_" "/")
-             ->uri-component
-             js/decodeURIComponent
-             utilc/<-json
-             (update-keys keyword))
-         :clj
-         (-> (b64/decode payload)
-             codecs/bytes->str
-             (json/parse-string true)))
+      (decode-b64 payload)
       (catch #?(:clj Exception :cljs :default) _))))
