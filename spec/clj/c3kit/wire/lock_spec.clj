@@ -1,5 +1,7 @@
 (ns c3kit.wire.lock-spec
-  (:require [c3kit.wire.lock :as sut]
+  (:require [c3kit.wire.lock :as lock]
+            [c3kit.wire.lock :as sut]
+            [c3kit.wire.redis]
             [speclj.core :refer :all]))
 
 (defmacro test-lock [spec]
@@ -50,10 +52,30 @@
            (should= #{:start1 :start2} (set (take 2 @result#)))
            (should= #{:end1 :end2} (set (drop 2 @result#)))))
 
+       (it "clears all locks"
+         (let [lock#      (lock/create {:impl :redis})
+               executed?# (atom nil)]
+           (lock/-acquire lock# "foo")
+           (lock/-acquire lock# "bar")
+           (lock/-acquire lock# "baz")
+           (lock/-clear lock#)
+           (lock/with-lock "foo"
+             (lock/with-lock "bar"
+               (lock/with-lock "baz"
+                 (reset! executed?# true))))
+           (should= true @executed?#)))
+
        )))
 
 (describe "Lock"
 
   (test-lock {:impl :memory})
 
+  (context "real"
+
+    (tags :slow)
+
+    (test-lock {:impl :redis})
+
+    )
   )

@@ -3,46 +3,53 @@
 
 (defprotocol Lock
   (-shutdown [this] "Shuts down the lock")
-  (-clear [this] "Clears all locks")
+  (-clear [this] "Clears out all locks")
   (-acquire [this key] "Acquires a lock associated with the key")
-  (-release [this key] "Releases the lock associated with the key"))
+  (-release [this lock] "Releases a lock"))
 
-(defmulti create-lock :impl)
+(defmulti create :impl)
 
 (defonce impl (atom nil))
 
-(defn configure! [spec]
-  (reset! impl (create-lock spec)))
+(defn configure!
+  "Creates and assigns the Lock implementation"
+  [spec]
+  (reset! impl (create spec)))
 
-(defn clear! [] (-clear @impl))
-(defn shutdown! [] (-shutdown @impl))
+(defn clear!
+  "Clears all keys from the Lock"
+  [] (-clear @impl))
+
+(defn shutdown!
+  "Shuts down the Lock"
+  [] (-shutdown @impl))
 
 (defmacro with-lock [key & body]
-  `(let [key# ~key]
-     (-acquire @impl key#)
+  `(let [lock# (-acquire @impl ~key)]
      (try
        ~@body
        (finally
-         (-release @impl key#)))))
+         (-release @impl lock#)))))
 
 ;region Memory
 
-(defn- ^ReentrantLock ensure-lock [locks key]
-  (or (get @locks key)
-      (let [lock (ReentrantLock.)]
-        (swap! locks assoc key lock)
-        lock)))
+(defn- ensure-lock [locks key]
+  (if (contains? locks key)
+    locks
+    (assoc locks key (ReentrantLock.))))
+
+(defn- ensure-lock! [locks key]
+  (-> (swap! locks ensure-lock key)
+      (get key)))
 
 (deftype MemoryLock [locks]
   Lock
   (-shutdown [this] (-clear this))
   (-clear [_this] (reset! locks {}))
-  (-acquire [_this key]
-    (doto (ensure-lock locks key) .lock))
-  (-release [_this key]
-    (some-> ^ReentrantLock (get @locks key) .unlock)))
+  (-acquire [_this key] (doto (ensure-lock! locks key) .lock))
+  (-release [_this lock] (.unlock lock)))
 
-(defmethod create-lock :memory [_]
+(defmethod create :memory [_]
   (->MemoryLock (atom {})))
 
 ;endregion

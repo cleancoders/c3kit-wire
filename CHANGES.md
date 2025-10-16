@@ -1,3 +1,10 @@
+### 2.7.0
+ * Upgrades apron dependency
+ * Adds redisson to dependencies
+ * Adds lock namespace with locking functionality
+ * Adds In-Memory implementation of Lock protocol
+ * Adds Redis implementation of Lock protocol
+
 ### 2.6.4
  * Removes usage of deprecated `reagent.dom/dom-node` in Google Reagent component
 

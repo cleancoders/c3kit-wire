@@ -1,12 +1,30 @@
 (ns c3kit.wire.redis
   (:require [c3kit.apron.corec :as ccc]
             [c3kit.apron.time :as time]
+            [c3kit.wire.lock :as lock]
             [c3kit.wire.message-queue :as mq])
   (:import (io.lettuce.core KeyScanArgs Range RedisClient RedisFuture ScanIterator StreamMessage XReadArgs$Builder XReadArgs$StreamOffset XTrimArgs)
            (io.lettuce.core.api StatefulRedisConnection)
            (io.lettuce.core.support ConnectionPoolSupport)
            (java.lang AutoCloseable)
-           (org.apache.commons.pool2.impl GenericObjectPool GenericObjectPoolConfig)))
+           (org.apache.commons.pool2.impl GenericObjectPool GenericObjectPoolConfig)
+           (org.redisson Redisson)
+           (org.redisson.config Config)))
+
+(def default-config
+  {:host            "localhost"
+   :port            6379
+   :min-connections 1
+   :max-connections 3
+   :max-age-ms      (time/seconds 5)
+   :block-ms        (time/seconds 1)
+   })
+
+(defn- ->redis-uri [{:keys [host port tls?]}]
+  (let [protocol (str "redis" (when tls? "s"))]
+    (str protocol "://" host ":" port)))
+
+;region Message Queue
 
 (defn- future-get [^RedisFuture redis-future] (.get redis-future))
 (defmacro ^:private wait-for-all [bindings form]
@@ -146,10 +164,6 @@
 (defn- ->RedisClient [uri]
   (RedisClient/create ^String uri))
 
-(defn- ->redis-uri [{:keys [host port tls?]}]
-  (let [protocol (str "redis" (when tls? "s"))]
-    (str protocol "://" host ":" port)))
-
 (defn- ->RedisConnectionPool [{:keys [client min-connections max-connections]}]
   (ConnectionPoolSupport/createGenericObjectPool
     #(.connect client)
@@ -157,21 +171,13 @@
       (.setMinIdle min-connections)
       (.setMaxTotal max-connections))))
 
-(def default-config
-  {:host            "localhost"
-   :port            6379
-   :min-connections 1
-   :max-connections 3
-   :max-age-ms      (time/seconds 5)
-   :block-ms        (time/seconds 1)
-   })
-
 (defn ->RedisMessageQueue
   "Creates a MessageQueue utilizing Redis
 
    options:
      host            - The host of the Redis service
      port            - The port of the Redis service
+     tls?            - When true, uses a secure connection
      min-connections - The minimum number of connections to hold
      max-connections - The maximum number of connections to hold
      max-age-ms      - The amount of time a message may live for
@@ -187,3 +193,39 @@
     (RedisMessageQueue. is-running config threads client pool)))
 
 (defmethod mq/create :redis [spec] (->RedisMessageQueue spec))
+
+;endregion
+
+;region Lock
+
+(def ^:private lock-prefix "c3kit-wire-redis-lock-")
+(defn- ->keyname [key] (str lock-prefix key))
+
+(deftype RedisLock [^Redisson client]
+  lock/Lock
+  (-shutdown [_this] (.shutdown client))
+  (-clear [_this] (.deleteByPattern (.getKeys client) (->keyname "*")))
+  (-acquire [_this key] (doto (.getLock client (->keyname key)) .lock))
+  (-release [_this lock] (.unlock lock)))
+
+(defn- ->RedissonClient [uri]
+  (let [config (Config.)]
+    (-> config .useSingleServer (.setAddress uri))
+    (Redisson/create config)))
+
+(defn ->RedisLock
+  "Creates a Lock utilizing Redis
+
+   options:
+     host - The host of the Redis service
+     port - The port of the Redis service
+     tls? - When true, uses a secure connection"
+  [spec]
+  (-> (merge default-config spec)
+      ->redis-uri
+      ->RedissonClient
+      RedisLock.))
+
+(defmethod lock/create :redis [spec] (->RedisLock spec))
+
+;endregion
