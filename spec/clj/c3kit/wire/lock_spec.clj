@@ -12,6 +12,10 @@
        (after (sut/clear!)
               (sut/shutdown!))
 
+       (it "shuts down the lock"
+         (sut/shutdown!)
+         (should-be-nil @sut/impl))
+
        (it "executes body with lock acquired"
          (let [executed?# (atom false)]
            (sut/with-lock "test-key"
@@ -63,6 +67,12 @@
              (lock/with-lock "bar"
                (lock/with-lock "baz"
                  (reset! executed?# true))))
+           (should= true @executed?#)))
+
+       (it "locks nil"
+         (let [executed?# (atom nil)]
+           (lock/with-lock nil
+             (reset! executed?# true))
            (should= true @executed?#)))
 
        )))

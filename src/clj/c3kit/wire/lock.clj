@@ -18,11 +18,13 @@
 
 (defn clear!
   "Clears all keys from the Lock"
-  [] (-clear @impl))
+  [] (some-> @impl -clear))
 
 (defn shutdown!
   "Shuts down the Lock"
-  [] (-shutdown @impl))
+  []
+  (some-> @impl -shutdown)
+  (reset! impl nil))
 
 (defmacro with-lock [key & body]
   `(let [lock# (-acquire @impl ~key)]

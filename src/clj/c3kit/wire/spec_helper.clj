@@ -3,6 +3,7 @@
             [c3kit.wire.ajax :as ajax]
             [c3kit.wire.apic :as apic]
             [c3kit.wire.flashc :as flashc]
+            [c3kit.wire.lock :as lock]
             [c3kit.wire.websocket :as ws]
             [speclj.core :refer :all]
             [speclj.stub :as stub]))
@@ -68,3 +69,11 @@
      (let [action# (ws/resolve-handler ~id)]
        (should-not-be-nil action#)
        (should= '~sym (.toSymbol action#)))))
+
+(defn with-memory-lock []
+  (list
+    (before (lock/configure! {:impl :memory}))
+    (after (lock/shutdown!))))
+
+(defmacro should-have-locked [key]
+  `(should-contain ~key @(.-locks @lock/impl)))
