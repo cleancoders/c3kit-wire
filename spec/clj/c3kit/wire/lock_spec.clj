@@ -57,7 +57,7 @@
            (should= #{:end1 :end2} (set (drop 2 @result#)))))
 
        (it "clears all locks"
-         (let [lock#      (lock/create {:impl :redis})
+         (let [lock#      (lock/create spec#)
                executed?# (atom nil)]
            (lock/-acquire lock# "foo")
            (lock/-acquire lock# "bar")
