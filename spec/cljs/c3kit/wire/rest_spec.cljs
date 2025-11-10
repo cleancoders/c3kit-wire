@@ -1,6 +1,7 @@
 (ns c3kit.wire.rest-spec
   (:require [c3kit.wire.api :as api]
             [c3kit.wire.flash :as flash]
+            [reagent.core :as reagent]
             [speclj.core :refer-macros [around before tags focus-describe should-not-be-nil should-have-invoked stub redefs-around with-stubs should-not should context describe should-be-nil should-be it should= should-contain should-not-be with]]
             [c3kit.wire.spec.spec-helperc :refer-macros [test-cljs-http-method]]
             [cljs.core.async :refer-macros [go]]
@@ -144,6 +145,39 @@
 
 
           (should= 4 (sut/get! url request callback (sut/with-handlers 200 plus-3) :rest/unwrap-body? true)))
+        )
+
+      (context "wrap-form-errors"
+
+        (with handler (fn [body] (assoc body :bar :baz)))
+
+        (context "no errors"
+
+          (it "no ratom, invokes handler"
+            (let [handler (sut/wrap-form-errors @handler)]
+              (should= :baz (:bar (handler {} @response)))))
+
+          (it "ratom specified, invokes handler"
+            (let [ratom   (reagent/atom {})
+                  handler (sut/wrap-form-errors @handler)]
+              (should= :baz (:bar (handler {:rest/form-ratom ratom} @response)))
+              (should= {} @ratom)))
+          )
+
+        (context "with errors"
+
+          (it "no ratom, invokes handler"
+            (let [handler (sut/wrap-form-errors @handler)]
+              (should= :baz (:bar (handler {} (assoc @response :body {:errors {:foo "beyond all recognition"}}))))))
+
+          (it "ratom specified, associates errors"
+            (let [ratom    (reagent/atom {})
+                  handler  (sut/wrap-form-errors @handler)
+                  response (assoc @response :body {:errors {:foo "beyond all recognition"}})]
+              (should= :baz (:bar (handler {:rest/form-ratom ratom} response)))
+              (should= {:foo "beyond all recognition"} (:errors @ratom))
+              (should (:display-errors? @ratom))))
+          )
         )
       )
     )

@@ -1,3 +1,6 @@
+### 2.8.1
+ * Adds middleware support for REST client
+
 ### 2.8.0
  * Upgrades apron dependency
  * Adds redisson to dependencies

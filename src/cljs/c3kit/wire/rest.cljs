@@ -47,6 +47,14 @@
       (callback (payload opts response))
       (handler opts response))))
 
+(defn wrap-form-errors [handler]
+  (fn [opts response]
+    (let [ratom (:rest/form-ratom opts)
+          errors (:errors (:body response))]
+      (when (and ratom errors)
+        (swap! ratom assoc :errors errors :display-errors? true)))
+    (handler opts response)))
+
 (defn with-handlers [& opts]
   (let [spec (ccc/->options opts)]
     {:rest/handlers spec}))
