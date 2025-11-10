@@ -10,6 +10,14 @@
 (defn configure! [& options]
   (swap! api/config merge (ccc/->options options)))
 
+(defn success? [response] (<= 200 (:status response) 299))
+(defn error? [response] (<= 400 (:status response) 600))
+(defn bad-req? [response] (= 400 (:status response)))
+(defn unauthenticated? [response] (= 401 (:status response)))
+(defn unauthorized? [response] (= 403 (:status response)))
+(defn not-found? [response] (= 404 (:status response)))
+(defn server-error? [response] (<= 500 (:status response)))
+
 (def active-reqs (reagent/atom 0))
 (defn activity? [] (not= 0 @active-reqs))
 
@@ -21,9 +29,7 @@
   nil)
 
 (defn request! [method url request callback]
-  (let [channel  (method url (restc/-maybe-update-req request))
-        wrapper  (:rest/wrap-response-fn @api/config)
-        callback (cond-> callback wrapper (comp wrapper))]
+  (let [channel (method url (restc/-maybe-update-req request))]
     (-request! channel callback)))
 
 (defn get! [url request callback]
