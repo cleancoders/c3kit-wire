@@ -104,7 +104,7 @@
        (str/join ";")))
 
 ; TODO - append cookies if present already
-(defn- maybe-attach-cookies [{:keys [cookies] :as request}]
+(defn maybe-attach-cookies [{:keys [cookies] :as request}]
   (cond-> request
           (seq cookies) (-> (assoc-in [:headers "Cookie"] (->cookies-str cookies))
                             (dissoc :cookies))))

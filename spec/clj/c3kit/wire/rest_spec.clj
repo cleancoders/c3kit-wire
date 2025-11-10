@@ -136,7 +136,7 @@
         (it "converts body to json"
           (let [body             {:my-data 123}
                 response-handler (handle-json-response {:body body})]
-            (should= (utilc/->json body) (:body (response-handler {})))))
+            (should= (utilc/->json body) (:body (response-handler {:headers {"accept" "application/json"}})))))
 
         (it "sets Content-Type to application/json"
           (let [body             {:my-data 123}
@@ -161,14 +161,23 @@
 
       (it "converts response to json"
         (let [body             {:my-data 123}
-              response-handler (handle-wrap-rest {:body body})]
-          (should= (utilc/->json (assoc body :version "123")) (:body (response-handler {})))))
+              response-handler (handle-wrap-rest {:body body})
+              request          {:headers {"accept" "application/json"}}]
+          (should= (utilc/->json (assoc body :version "123")) (:body (response-handler request)))))
+
+      (it "converts response to transit"
+        (let [body             {:my-data 123}
+              response-handler (handle-wrap-rest {:body body})
+              request          {:headers {"accept" "application/transit+json"}}
+              response         (response-handler request)]
+          (should= (utilc/->transit (assoc body :version "123")) (:body response))
+          (should= "application/transit+json" (get-in response [:headers "Content-Type"]))))
 
       (it "adds api version"
         (let [response               {:body {:hello :world}}
               handle-add-api-version (handle-wrap-rest response)]
           (should= (utilc/->json {:hello :world :version "123"})
-                   (:body (handle-add-api-version nil)))))
+            (:body (handle-add-api-version {:headers {"accept" "application/json"}})))))
 
       (it "converts request from json"
         (let [body                (utilc/->json {:my-data 123})

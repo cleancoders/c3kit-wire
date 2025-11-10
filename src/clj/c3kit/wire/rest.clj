@@ -77,10 +77,28 @@
       (catch Exception _e
         (restc/bad-request)))))
 
+(def content-types
+  {"application/json"         utilc/->json
+   "application/transit+json" utilc/->transit})
+
+(defn- encode-response [mime response]
+  (let [encoder (get content-types mime)]
+    (if encoder
+      (-> (update response :body encoder)
+          (assoc-in [:headers "Content-Type"] "application/transit+json"))
+      response)))
+
+(defn- maybe-update-body [{:keys [body] :as resp} {:keys [headers] :as _req}]
+  (if body
+    (encode-response (get headers "accept") resp)
+    resp))
+
 (defn wrap-api-json-response [handler]
   (fn [request]
     (-> (handler request)
-        restc/-maybe-update-req)))
+        restc/maybe-attach-cookies
+        restc/-maybe-update-content-type
+        (maybe-update-body request))))
 
 (defn wrap-rest [handler & [opts]]
   (-> handler
