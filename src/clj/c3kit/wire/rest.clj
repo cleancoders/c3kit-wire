@@ -85,7 +85,7 @@
   (let [encoder (get content-types mime)]
     (if encoder
       (-> (update response :body encoder)
-          (assoc-in [:headers "Content-Type"] "application/transit+json"))
+          (assoc-in [:headers "Content-Type"] mime))
       response)))
 
 (defn- maybe-update-body [{:keys [body] :as resp} {:keys [headers] :as _req}]

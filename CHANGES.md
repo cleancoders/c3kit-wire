@@ -3,6 +3,9 @@
  * Upgrades dependencies
 
 ### 2.8.1
+ * Fixes wrong mime type being sent
+
+### 2.8.1
  * Adds middleware support for REST client
 
 ### 2.8.0

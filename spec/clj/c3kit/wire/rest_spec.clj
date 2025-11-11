@@ -76,7 +76,7 @@
         (log/capture-logs
           (let [wrapped (sut/wrap-catch-rest-errors (fn [_] (throw (Exception. "test"))))]
             (should= (restc/internal-error {:message spec-helperc/default-error-message})
-                     (wrapped {:method :test}))
+              (wrapped {:method :test}))
             (should= "java.lang.Exception: test" (log/captured-logs-str)))))
 
       (it "custom handler fn"
@@ -162,8 +162,10 @@
       (it "converts response to json"
         (let [body             {:my-data 123}
               response-handler (handle-wrap-rest {:body body})
-              request          {:headers {"accept" "application/json"}}]
-          (should= (utilc/->json (assoc body :version "123")) (:body (response-handler request)))))
+              request          {:headers {"accept" "application/json"}}
+              response         (response-handler request)]
+          (should= (utilc/->json (assoc body :version "123")) (:body response))
+          (should= "application/json" (get-in response [:headers "Content-Type"]))))
 
       (it "converts response to transit"
         (let [body             {:my-data 123}
