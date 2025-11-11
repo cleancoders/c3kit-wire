@@ -1,6 +1,5 @@
 (ns c3kit.wire.rest-spec
   (:require [c3kit.wire.api :as api]
-            [c3kit.wire.flash :as flash]
             [reagent.core :as reagent]
             [speclj.core :refer-macros [around before tags focus-describe should-not-be-nil should-have-invoked stub redefs-around with-stubs should-not should context describe should-be-nil should-be it should= should-contain should-not-be with]]
             [c3kit.wire.spec.spec-helperc :refer-macros [test-cljs-http-method]]
@@ -11,16 +10,13 @@
 
 (declare handler)
 (defn callback [resp] (inc (:body resp)))
-(defn midware-callback [opts resp] (callback resp))
-(def uri "foo.com")
+(defn midware-callback [_opts resp] (callback resp))
+(def url "foo.com")
 (def request {})
 (def response (atom nil))
 
 (defn plus-2 [n] (+ n 2))
 (defn plus-3 [n] (+ n 3))
-
-(defn should-contain-flash [msg]
-  (should-contain (dissoc msg :id) (map #(dissoc % :id) @flash/state)))
 
 (defn cljs-http-response [& _]
   (async/chan))

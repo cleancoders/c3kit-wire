@@ -15,7 +15,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v5
-      - uses: pustovitDmytro/redis-github-action@v1.0.1
+      - uses: pustovitDmytro/redis-github-action@v1.0.3
 
       - name: Set up JDK 21
         uses: actions/setup-java@v5
