@@ -119,6 +119,9 @@
 (describe "Message Queue"
   (around [it] (log/capture-logs (it)))
 
+  (it "shuts down when not configured"
+    (should-not-throw (sut/shutdown!)))
+
   (test-message-queue {:impl :memory})
 
   (context "real"

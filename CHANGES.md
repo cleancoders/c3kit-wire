@@ -1,3 +1,7 @@
+### 2.8.2
+ * No longer throws when shutting down unconfigured message queue
+ * Upgrades dependencies
+
 ### 2.8.1
  * Adds middleware support for REST client
 

@@ -30,7 +30,7 @@
 (defn shutdown!
   "Shuts down the configured message queue"
   []
-  (swap! impl #(do (-stop %) nil)))
+  (swap! impl #(do (some-> % -stop) nil)))
 
 (defn enqueue
   "Adds a new message to the queue"
