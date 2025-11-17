@@ -157,7 +157,7 @@
         (let [e       (Exception. "test")
               wrapped (sut/wrap-rest (fn [_] (throw e)))]
           (should= :custom-handler-response (wrapped {:method :test}))
-          (should-have-invoked :custom-ex-handler {:with [{:method :test} e]})))
+          (should-have-invoked :custom-ex-handler {:with [{:method :test :headers {"accept" "application/json"}} e]})))
 
       (it "converts response to json"
         (let [body             {:my-data 123}
@@ -185,7 +185,7 @@
         (let [body                (utilc/->json {:my-data 123})
               handle-json-request (handle-wrap-rest nil)
               response            (handle-json-request {:body (io/input-stream (.getBytes body))})]
-          (should= {:body (utilc/<-json body)} (:request response))))
+          (should= (utilc/<-json body) (:body (:request response)))))
 
       (it "logs errors if invalid json"
         (log/capture-logs
@@ -199,4 +199,16 @@
         (let [body                (utilc/->json {:my-data 123})
               handle-json-request (handle-wrap-rest nil {:keywords? true})
               response            (handle-json-request {:body (io/input-stream (.getBytes body))})]
-          (should= {:body (utilc/<-json-kw body)} (:request response)))))))
+          (should= (utilc/<-json-kw body) (:body (:request response)))))
+
+      (it "sets default accept header when none set"
+        (let [body                (utilc/->json {:my-data 123})
+              handle-json-request (handle-wrap-rest nil {:keywords? true})
+              response            (handle-json-request {:body (io/input-stream (.getBytes body))})]
+          (should= "application/json" (get-in response [:request :headers "accept"]))))
+
+      (it "sets default accept header when wildcard set"
+        (let [body                (utilc/->json {:my-data 123})
+              handle-json-request (handle-wrap-rest nil {:keywords? true})
+              response            (handle-json-request {:headers {"accept" "*/*"} :body (io/input-stream (.getBytes body))})]
+          (should= "application/json" (get-in response [:request :headers "accept"])))))))

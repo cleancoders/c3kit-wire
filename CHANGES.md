@@ -1,3 +1,6 @@
+### 2.8.5
+ * wraps accept header by default for REST ns
+
 ### 2.8.4
  * Reverts reagent dependency upgrade
    * This will also require an upgrade to react and react-dom

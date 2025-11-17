@@ -93,6 +93,18 @@
     (encode-response (get headers "accept") resp)
     resp))
 
+(defn- maybe-set-accept [request]
+  (let [accept (get-in request [:headers "accept"])]
+    (cond-> request
+            (nil? accept) (assoc-in [:headers "accept"] "application/json")
+            (= "*/*" accept) (assoc-in [:headers "accept"] "application/json"))))
+
+(defn wrap-accept-header [handler]
+  (fn [request]
+    (-> request
+        maybe-set-accept
+        handler)))
+
 (defn wrap-api-json-response [handler]
   (fn [request]
     (-> (handler request)
@@ -104,5 +116,6 @@
   (-> handler
       wrap-catch-rest-errors
       api/wrap-add-api-version
+      wrap-accept-header
       wrap-api-json-response
       (wrap-api-json-request opts)))
