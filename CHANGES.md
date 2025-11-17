@@ -1,5 +1,10 @@
+### 2.8.4
+ * Reverts reagent dependency upgrade
+   * This will also require an upgrade to react and react-dom
+ * Upgrades Apron
+
 ### 2.8.3
-* Fixes wrong mime type being sent
+ * Fixes wrong mime type being sent
 
 ### 2.8.2
  * No longer throws when shutting down unconfigured message queue
