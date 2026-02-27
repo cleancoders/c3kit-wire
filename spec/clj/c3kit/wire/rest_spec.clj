@@ -211,4 +211,18 @@
         (let [body                (utilc/->json {:my-data 123})
               handle-json-request (handle-wrap-rest nil {:keywords? true})
               response            (handle-json-request {:headers {"accept" "*/*"} :body (io/input-stream (.getBytes body))})]
-          (should= "application/json" (get-in response [:request :headers "accept"])))))))
+          (should= "application/json" (get-in response [:request :headers "accept"]))))
+
+      (it "converts response to json when no accept header set"
+        (let [body             {:my-data 123}
+              response-handler (handle-wrap-rest {:body body})
+              response         (response-handler {})]
+          (should= (utilc/->json (assoc body :version "123")) (:body response))
+          (should= "application/json" (get-in response [:headers "Content-Type"]))))
+
+      (it "converts response to json when wildcard accept header set"
+        (let [body             {:my-data 123}
+              response-handler (handle-wrap-rest {:body body})
+              response         (response-handler {:headers {"accept" "*/*"}})]
+          (should= (utilc/->json (assoc body :version "123")) (:body response))
+          (should= "application/json" (get-in response [:headers "Content-Type"])))))))

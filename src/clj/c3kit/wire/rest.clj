@@ -116,6 +116,6 @@
   (-> handler
       wrap-catch-rest-errors
       api/wrap-add-api-version
-      wrap-accept-header
       wrap-api-json-response
+      wrap-accept-header
       (wrap-api-json-request opts)))
