@@ -1,3 +1,6 @@
+### 2.8.6
+ * Fixes bug where default wrap accept header middleware was in the wrong order inside wrap-rest
+
 ### 2.8.5
  * wraps accept header by default for REST ns
 
