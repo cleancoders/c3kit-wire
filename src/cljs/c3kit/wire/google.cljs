@@ -40,9 +40,12 @@
                        (on-button-mount options node))))))
 
 (defn oauth-button
-  "Renders the Google OAuth Button. Function component. Must be rendered with :f> or with Reagent compiler set to
-  {:function-components true}"
+  "Renders the Google OAuth Button."
   [options body]
-  (reagent/with-let [ref (atom nil)]
-    (reagent/after-render (fn [] (when @ref (on-button-mount options @ref)) js/undefined))
-    (conj body {:ref #(reset! ref %)})))
+  (reagent/with-let [ref-node (atom nil)]
+    (reagent/after-render
+      (fn []
+        (when-let [node @ref-node]
+          (on-button-mount options node)
+          (reset! ref-node nil))))
+    (with-ref body #(reset! ref-node %))))
