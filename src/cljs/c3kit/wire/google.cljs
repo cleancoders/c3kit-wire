@@ -14,14 +14,14 @@
 (defn- on-button-mount [options node]
   (if (wjs/doc-ready?)
     (mount-oauth-button node options)
-    (wjs/add-listener js/window "load" #(mount-oauth-button node options))))
+    (wjs/add-listener js/window "load" #(mount-oauth-button node options) :once true)))
 
-(defn- with-ref [[tag maybe-options :as body] ref]
+(defn- with-ref [[tag maybe-options :as body] ref-fn]
   (let [has-options? (map? maybe-options)
-        ref-option   (:ref maybe-options)
-        ref-option   (cond-> #(reset! ref %)
-                             (and has-options? ref-option)
-                             (juxt ref-option))
+        user-ref     (:ref maybe-options)
+        ref-option   (if (and has-options? user-ref)
+                       (fn [node] (ref-fn node) (user-ref node))
+                       ref-fn)
         options      (cond->> {:ref ref-option}
                               has-options?
                               (merge maybe-options))
@@ -30,10 +30,19 @@
                        (rest body))]
     (vec (concat [tag options] body))))
 
-(reagent/defc oauth-button
+#_(defn oauth-button
   "Renders the Google OAuth Button."
-  [options _body]
-  (let [node (atom nil)]
-    (reagent/create-class
-      {:component-did-mount #(on-button-mount options @node)
-       :reagent-render      (fn [_options body] (with-ref body node))})))
+  [options body]
+  (reagent/with-let [mounted? (atom false)]
+    (with-ref body (fn [node]
+                     (when (and node (not @mounted?))
+                       (reset! mounted? true)
+                       (on-button-mount options node))))))
+
+(defn oauth-button
+  "Renders the Google OAuth Button. Function component. Must be rendered with :f> or with Reagent compiler set to
+  {:function-components true}"
+  [options body]
+  (reagent/with-let [ref (atom nil)]
+    (reagent/after-render (fn [] (when @ref (on-button-mount options @ref)) js/undefined))
+    (conj body {:ref #(reset! ref %)})))
