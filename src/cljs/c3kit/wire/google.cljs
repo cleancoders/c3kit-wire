@@ -30,7 +30,7 @@
                        (rest body))]
     (vec (concat [tag options] body))))
 
-(defn oauth-button
+(reagent/defc oauth-button
   "Renders the Google OAuth Button."
   [options _body]
   (let [node (atom nil)]

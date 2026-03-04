@@ -9,7 +9,7 @@
             [c3kit.wire.spec-helper :as helper]))
 
 (defn render-oauth-button []
-  (helper/render [:f> sut/oauth-button {:oauth :options} [:button#-oauth-button]]))
+  (helper/render [sut/oauth-button {:oauth :options} [:button#-oauth-button]]))
 
 (declare google-id)
 
