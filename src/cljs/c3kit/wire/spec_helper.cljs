@@ -1,5 +1,5 @@
 (ns c3kit.wire.spec-helper
-  (:refer-clojure :exclude [flush])
+  (:refer-clojure :exclude [flush reset! swap!])
   (:require-macros [speclj.core :refer [after before redefs-around should-have-invoked should= stub with-stubs]])
   (:require [c3kit.apron.corec :as ccc]
             [c3kit.wire.ajax :as ajax]
@@ -14,20 +14,22 @@
             [cljsjs.react.dom.test-utils]                   ;; Brings in js/ReactTestUtils
             [clojure.string :as str]
             [reagent.core :as reagent]
-            [reagent.dom :as dom]
             [reagent.dom.client :as domc]
-            ["react-dom" :refer [flushSync]]
+            [reagent.impl.batching :as batch]
             [speclj.core]
             [speclj.stub :as stub]))
 
 (def pprint pp/pprint)
 
-(def ^:private render-roots (atom []))
+; React 18 requires this flag for act() to work properly in tests.
+(set! js/IS_REACT_ACT_ENVIRONMENT true)
+
+(def ^:private render-roots (atom {}))
 
 (defn- unmount-render-roots []
-  (doseq [root @render-roots]
+  (doseq [[_ root] @render-roots]
     (domc/unmount root))
-  (reset! render-roots []))
+  (clojure.core/reset! render-roots {}))
 
 (defn reset-dom! [content]
   (let [body (.-body js/document)]
@@ -67,20 +69,53 @@
   ([selector] (count (select-all selector)))
   ([root selector] (count (select-all root selector))))
 
+(defn act
+  "Wraps React.act to flush effects and state updates synchronously in tests."
+  [f]
+  (.act js/React f))
+
 (defn render
   "Use me to render components for testing.  Using reagent/render directly may work, but is not as good."
   ([component] (render component (select "#root")))
-  ([component root]
-   (let [react-root (domc/create-root root)]
-     (swap! render-roots conj react-root)
+  ([component container]
+   (let [react-root (or (get @render-roots container)
+                        (let [root (domc/create-root container)]
+                          (clojure.core/swap! render-roots assoc container root)
+                          root))]
      (try
-       ; React 18 batches state changes and renders concurrently by default, which isn't good for tests.
-       ; flushSync forces it to be synchronous
-       (flushSync #(domc/render react-root (reagent/as-element component)))
+       (act (fn []
+              (.render react-root (reagent/as-element component))
+              (reagent/flush)))
+       (act (fn []
+              (reagent/flush)
+              (batch/flush-after-render)))
        (catch :default e (throw (ex-info "Render Error" {:message e})))))))
 
-(defn flush [] 
-  (flushSync #(reagent/flush)))
+(defn flush []
+  (act (fn [] (reagent/flush)))
+  (act (fn []
+         (reagent/flush)
+         (batch/flush-after-render))))
+
+(defn reset!
+  "reset! wrapped in act and flush for React 18 test compatibility."
+  [atom val]
+  (act (fn []
+         (clojure.core/reset! atom val)
+         (reagent/flush)))
+  (act (fn []
+         (reagent/flush)
+         (batch/flush-after-render))))
+
+(defn swap!
+  "swap! wrapped in act and flush for React 18 test compatibility."
+  [atom f & args]
+  (act (fn []
+         (apply clojure.core/swap! atom f args)
+         (reagent/flush)))
+  (act (fn []
+         (reagent/flush)
+         (batch/flush-after-render))))
 
 (def simulator (.-Simulate js/ReactTestUtils))
 
@@ -517,9 +552,9 @@
   (let [js-websocket js/WebSocket]
     (list
      (before (set! js/WebSocket constructor)
-             (reset! server/impl (mem-server/->MemServer)))
+             (clojure.core/reset! server/impl (mem-server/->MemServer)))
      (after (set! js/WebSocket js-websocket)
-            (reset! server/impl nil)))))
+            (clojure.core/reset! server/impl nil)))))
 
 (defn with-memory-websockets []
   (with-websocket-impl mem-ws/->MemSocket))

@@ -1,9 +1,10 @@
 (ns c3kit.wire.js-spec
-  (:require-macros [speclj.core :refer [before context describe it redefs-around should should-be-a should-be-same should-end-with should-have-invoked should-not should-not-have-invoked should= stub with-stubs]])
+  (:require-macros [speclj.core :refer [before context describe it redefs-around should should-be-a should-be-same should-end-with should-have-invoked should-not should-not-have-invoked should-not-throw should= stub with-stubs]])
   (:require [c3kit.apron.corec :as ccc]
             [c3kit.apron.time :as time]
             [c3kit.wire.js :as sut]
             [c3kit.wire.spec-helper :as wire]
+            [reagent.core :as reagent]
             [speclj.core]))
 
 (defn test-modifier [name modified? attr]
@@ -360,4 +361,54 @@
       (should (sut/DELETE? (->event "Delete")))
       (should (sut/NUMPAD+? (->event "NumpadAdd")))
       (should (sut/COMMA? (->event "Comma")))))
+
+  (context "use-effect"
+    (wire/with-root-dom)
+
+    (it "calls the effect fn"
+      (let [called (atom false)]
+        (wire/render [:f> (fn [] (sut/use-effect (fn [] (reset! called true))) [:div])])
+        (should @called)))
+
+    (it "accepts a clojure vector as dep-array"
+      (let [call-count (atom 0)
+            state      (reagent/atom 0)]
+        (wire/render [:f> (fn [] (sut/use-effect (fn [] (swap! call-count inc)) [@state]) [:div])])
+        (should= 1 @call-count)
+        (reset! state 1)
+        (wire/flush)
+        (should= 2 @call-count)))
+
+    (it "does not re-run effect when deps are unchanged"
+      (let [call-count (atom 0)
+            state      (reagent/atom 0)
+            other      (reagent/atom 0)]
+        (wire/render [:f> (fn [] (sut/use-effect (fn [] (swap! call-count inc)) [@state])
+                            [:div (str @other)])])
+        (should= 1 @call-count)
+        (reset! other 1)
+        (wire/flush)
+        (should= 1 @call-count)))
+
+    (it "safely handles effect fn that returns a non-function value"
+      (should-not-throw
+        (wire/render [:f> (fn [] (sut/use-effect (fn [] (+ 1 2))) [:div])])))
+
+    (it "uses provided cleanup fn"
+      (let [cleaned-up (atom false)]
+        (wire/render [:f> (fn [] (sut/use-effect (fn [] (reset! cleaned-up false)) (fn [] (reset! cleaned-up true)) nil) [:div])])
+        (should-not @cleaned-up)
+        (wire/render [:div])
+        (wire/flush)
+        (should @cleaned-up)))
+
+    (it "accepts cleanup fn with dep-array"
+      (let [cleanup-count (atom 0)
+            state         (reagent/atom 0)]
+        (wire/render [:f> (fn [] (sut/use-effect identity (fn [] (swap! cleanup-count inc)) [@state]) [:div])])
+        (should= 0 @cleanup-count)
+        (reset! state 1)
+        (wire/flush)
+        (should= 1 @cleanup-count)))
+    )
   )
