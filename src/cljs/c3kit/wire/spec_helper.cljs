@@ -514,19 +514,26 @@
 
 ;region Change Events
 
+(defn- set-native-value!
+  "Sets the value using the native setter to bypass React's internal value tracker,
+   ensuring React detects the change and fires onChange."
+  [node value]
+  (let [proto     (js/Object.getPrototypeOf node)
+        descriptor (js/Object.getOwnPropertyDescriptor proto "value")]
+    (when-let [setter (and descriptor (.-set descriptor))]
+      (.call setter node value))))
+
 (defn change
   ([thing]
    (let [node (resolve-node :change thing)]
-     (dispatch-event node (base-event "input" {}))
-     (dispatch-event node (base-event "change" {}))))
+     (dispatch-event node (base-event "input" {}))))
   ([thing value]
    (let [node (resolve-node :change thing)]
      (if (= "file" (.-type node))
        (do (set-native-files! node value)
            (dispatch-event node (base-event "change" {})))
-       (do (set! (.-value node) value)
-           (dispatch-event node (base-event "input" {}))
-           (dispatch-event node (base-event "change" {}))))))
+       (do (set-native-value! node value)
+           (dispatch-event node (base-event "input" {}))))))
   ([root selector value]
    (change (resolve-node :change root selector) value)))
 
@@ -537,9 +544,8 @@
 (defn check-box
   ([thing value]
    (let [node (resolve-node :check-box thing)]
-     (set! (.-checked node) value)
-     (dispatch-event node (base-event "input" {}))
-     (dispatch-event node (base-event "change" {}))))
+     (when (not= value (.-checked node))
+       (dispatch-event node (mouse-event "click" {})))))
   ([root selector value]
    (check-box (resolve-node :check-box root selector) value)))
 
