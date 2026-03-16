@@ -11,7 +11,6 @@
             [c3kit.wire.mock.server :as server]
             [c3kit.wire.websocket :as ws]
             [cljs.pprint :as pp]
-            [cljsjs.react.dom.test-utils]                   ;; Brings in js/ReactTestUtils
             [clojure.string :as str]
             [reagent.core :as reagent]
             [reagent.dom.client :as domc]
@@ -117,8 +116,6 @@
          (reagent/flush)
          (batch/flush-after-render))))
 
-(def simulator (.-Simulate js/ReactTestUtils))
-
 (defn- resolve-node
   ([action thing]
    (if (string? thing)
@@ -160,228 +157,376 @@
         }
        (reduce-kv assoc-key-event {})))
 
-(defn simulate
-  ([event-name thing event-data]
-   (let [node     (resolve-node :simulate thing)
-         event-fn (ccc/oget simulator event-name)]
-     (when-not event-fn (throw (ex-info (str "simulate - event doesn't exist: " event-name) {:thing thing :event-name event-name :event-data event-data})))
-     (event-fn node (clj->js event-data))))
-  ([event-name root selector event-data]
-   (simulate event-name (resolve-node root selector) event-data)))
+;region Private Event Helpers
 
-(defn simulate!
-  ([event-name thing event-data] (simulate event-name thing event-data) (flush))
-  ([event-name root selector event-data] (simulate event-name root selector event-data) (flush)))
+(defn- dispatch-event
+  "Dispatches a DOM event on the node, wrapped in act()."
+  [node event]
+  (act #(.dispatchEvent node event)))
+
+(defn- mouse-event [type opts]
+  (js/MouseEvent. type (clj->js (merge {:bubbles true :cancelable true} opts))))
+
+(defn- keyboard-event [type opts]
+  (js/KeyboardEvent. type (clj->js (merge {:bubbles true :cancelable true} opts))))
+
+(defn- focus-event [type opts]
+  (js/FocusEvent. type (clj->js (merge {:bubbles false :cancelable true} opts))))
+
+(defn- base-event [type opts]
+  (js/Event. type (clj->js (merge {:bubbles true :cancelable true} opts))))
+
+(defn- drag-event [type data-transfer opts]
+  (let [init (clj->js (merge {:bubbles true :cancelable true} opts))
+        event (if (exists? js/DragEvent)
+                (js/DragEvent. type init)
+                (js/Event. type init))]
+    (js/Object.defineProperty event "dataTransfer" #js {:value (clj->js data-transfer)})
+    event))
+
+(defn- touch-event [type opts]
+  (let [init (clj->js (merge {:bubbles true :cancelable true} opts))]
+    (if (exists? js/TouchEvent)
+      (js/TouchEvent. type init)
+      (js/Event. type init))))
+
+(defn- set-native-files! [node files]
+  (js/Object.defineProperty node "files" #js {:value (clj->js files) :configurable true}))
+
+(def ^:private key->charcode
+  {"Enter" 13 "Tab" 9 "Escape" 27 "Backspace" 8 "Delete" 46
+   "ArrowLeft" 37 "ArrowUp" 38 "ArrowRight" 39 "ArrowDown" 40})
+
+(defn- dispatch-key [event-type node key-code opts]
+  (let [press (get keypresses key-code (clj->js {:code key-code :key (str key-code)}))
+        key-str (.-key press)
+        char-code (or (key->charcode key-str)
+                      (when (= 1 (count key-str)) (.charCodeAt key-str 0))
+                      0)
+        base {:code (.-code press) :key key-str :charCode char-code :keyCode char-code}]
+    (dispatch-event node (keyboard-event event-type (merge base opts)))))
+
+;endregion
+
+;region Keyboard Events
 
 (defn key-down
   ([thing key-code]
-   ((.-keyDown simulator)
-    (resolve-node :key-down thing)
-    (get keypresses key-code (clj->js {:code key-code :key (str key-code)}))))
+   (dispatch-key "keydown" (resolve-node :key-down thing) key-code {}))
   ([root selector key-code]
-   (key-down (resolve-node :key-down root selector) key-code)))
+   (dispatch-key "keydown" (resolve-node :key-down root selector) key-code {}))
+  ([root selector key-code opts]
+   (dispatch-key "keydown" (resolve-node :key-down root selector) key-code opts)))
 
 (defn key-down!
   ([thing key-code] (key-down thing key-code) (flush))
-  ([root selector key-code] (key-down root selector key-code) (flush)))
+  ([root selector key-code] (key-down root selector key-code) (flush))
+  ([root selector key-code opts] (key-down root selector key-code opts) (flush)))
 
 (defn key-up
-  ([thing key]
-   ((.-keyUp simulator) (resolve-node :key-up thing) (get keypresses key)))
-  ([root selector key]
-   (key-up (resolve-node :key-up root selector) key)))
+  ([thing key-code]
+   (dispatch-key "keyup" (resolve-node :key-up thing) key-code {}))
+  ([root selector key-code]
+   (dispatch-key "keyup" (resolve-node :key-up root selector) key-code {}))
+  ([root selector key-code opts]
+   (dispatch-key "keyup" (resolve-node :key-up root selector) key-code opts)))
 
 (defn key-up!
-  ([thing key] (key-up thing key) (flush))
-  ([root selector key] (key-up root selector key) (flush)))
+  ([thing key-code] (key-up thing key-code) (flush))
+  ([root selector key-code] (key-up root selector key-code) (flush))
+  ([root selector key-code opts] (key-up root selector key-code opts) (flush)))
 
 (defn key-press
-  ([thing key]
-   ((.-keyPress simulator) (resolve-node :key-press thing) (get keypresses key)))
-  ([root selector key]
-   (key-press (resolve-node :key-press root selector) key)))
+  ([thing key-code]
+   (dispatch-key "keypress" (resolve-node :key-press thing) key-code {}))
+  ([root selector key-code]
+   (dispatch-key "keypress" (resolve-node :key-press root selector) key-code {}))
+  ([root selector key-code opts]
+   (dispatch-key "keypress" (resolve-node :key-press root selector) key-code opts)))
 
 (defn key-press!
-  ([thing key] (key-press thing key) (flush))
-  ([root selector key] (key-press root selector key) (flush)))
+  ([thing key-code] (key-press thing key-code) (flush))
+  ([root selector key-code] (key-press root selector key-code) (flush))
+  ([root selector key-code opts] (key-press root selector key-code opts) (flush)))
 
-(defn touch-end
-  ([thing]
-   ((.-touchend simulator) (resolve-node :touchend thing)))
-  ([root selector]
-   (touch-end (resolve-node :touchend root selector))))
+;endregion
 
-(defn touch-end!
-  ([thing] (touch-end thing) (flush))
-  ([root selector] (touch-end root selector) (flush)))
+;region Touch Events
 
 (defn touch-start
-  ([thing]
-   ((.-touchstart simulator) (resolve-node :touchstart thing)))
-  ([root selector]
-   (touch-start (resolve-node :touchstart root selector))))
+  ([thing] (touch-start thing {}))
+  ([thing opts]
+   (if (string? opts)
+     (dispatch-event (resolve-node :touch-start thing opts) (touch-event "touchstart" {}))
+     (dispatch-event (resolve-node :touch-start thing) (touch-event "touchstart" opts))))
+  ([root selector opts]
+   (dispatch-event (resolve-node :touch-start root selector) (touch-event "touchstart" opts))))
 
 (defn touch-start!
   ([thing] (touch-start thing) (flush))
-  ([root selector] (touch-start root selector) (flush)))
+  ([thing opts] (touch-start thing opts) (flush))
+  ([root selector opts] (touch-start root selector opts) (flush)))
+
+(defn touch-end
+  ([thing] (touch-end thing {}))
+  ([thing opts]
+   (if (string? opts)
+     (dispatch-event (resolve-node :touch-end thing opts) (touch-event "touchend" {}))
+     (dispatch-event (resolve-node :touch-end thing) (touch-event "touchend" opts))))
+  ([root selector opts]
+   (dispatch-event (resolve-node :touch-end root selector) (touch-event "touchend" opts))))
+
+(defn touch-end!
+  ([thing] (touch-end thing) (flush))
+  ([thing opts] (touch-end thing opts) (flush))
+  ([root selector opts] (touch-end root selector opts) (flush)))
+
+;endregion
+
+;region Mouse Events
 
 (defn click
-  ([thing]
-   ((.-click simulator) (resolve-node :click thing)))
-  ([root selector]
-   (click (resolve-node :click root selector))))
+  ([thing] (click thing {}))
+  ([thing opts]
+   (if (string? opts)
+     (dispatch-event (resolve-node :click thing opts) (mouse-event "click" {}))
+     (dispatch-event (resolve-node :click thing) (mouse-event "click" opts))))
+  ([root selector opts]
+   (dispatch-event (resolve-node :click root selector) (mouse-event "click" opts))))
 
 (defn click!
   ([thing] (click thing) (flush))
-  ([root selector] (click root selector) (flush)))
+  ([thing opts] (click thing opts) (flush))
+  ([root selector opts] (click root selector opts) (flush)))
 
 (defn mouse-enter
-  ([thing]
-   ((.-mouseEnter simulator) (resolve-node :mouse-enter thing)))
-  ([root selector]
-   (mouse-enter (resolve-node :mouse-enter root selector))))
+  ([thing] (mouse-enter thing {}))
+  ([thing opts]
+   (if (string? opts)
+     (let [node (resolve-node :mouse-enter thing opts)]
+       (dispatch-event node (mouse-event "mouseover" {}))
+       (dispatch-event node (mouse-event "mouseenter" {})))
+     (let [node (resolve-node :mouse-enter thing)]
+       (dispatch-event node (mouse-event "mouseover" opts))
+       (dispatch-event node (mouse-event "mouseenter" opts)))))
+  ([root selector opts]
+   (let [node (resolve-node :mouse-enter root selector)]
+     (dispatch-event node (mouse-event "mouseover" opts))
+     (dispatch-event node (mouse-event "mouseenter" opts)))))
 
 (defn mouse-enter!
   ([thing] (mouse-enter thing) (flush))
-  ([root selector] (mouse-enter root selector) (flush)))
+  ([thing opts] (mouse-enter thing opts) (flush))
+  ([root selector opts] (mouse-enter root selector opts) (flush)))
 
 (defn mouse-up
-  ([thing]
-   ((.-mouseUp simulator) (resolve-node :mouse-up thing)))
-  ([root selector]
-   (mouse-up (resolve-node :mouse-up root selector))))
+  ([thing] (mouse-up thing {}))
+  ([thing opts]
+   (if (string? opts)
+     (dispatch-event (resolve-node :mouse-up thing opts) (mouse-event "mouseup" {}))
+     (dispatch-event (resolve-node :mouse-up thing) (mouse-event "mouseup" opts))))
+  ([root selector opts]
+   (dispatch-event (resolve-node :mouse-up root selector) (mouse-event "mouseup" opts))))
 
 (defn mouse-up!
   ([thing] (mouse-up thing) (flush))
-  ([root selector] (mouse-up root selector) (flush)))
+  ([thing opts] (mouse-up thing opts) (flush))
+  ([root selector opts] (mouse-up root selector opts) (flush)))
 
 (defn mouse-move
-  ([thing]
-   ((.-mouseMove simulator) (resolve-node :mouse-move thing)))
-  ([root selector]
-   (mouse-move (resolve-node :mouse-move root selector))))
+  ([thing] (mouse-move thing {}))
+  ([thing opts]
+   (if (string? opts)
+     (dispatch-event (resolve-node :mouse-move thing opts) (mouse-event "mousemove" {}))
+     (dispatch-event (resolve-node :mouse-move thing) (mouse-event "mousemove" opts))))
+  ([root selector opts]
+   (dispatch-event (resolve-node :mouse-move root selector) (mouse-event "mousemove" opts))))
 
 (defn mouse-move!
   ([thing] (mouse-move thing) (flush))
-  ([root selector] (mouse-move root selector) (flush)))
+  ([thing opts] (mouse-move thing opts) (flush))
+  ([root selector opts] (mouse-move root selector opts) (flush)))
 
 (defn mouse-down
-  ([thing] (mouse-down thing 0))
-  ([thing button]
-   (let [node (resolve-node :mouse-down thing)]
-     ((.-mouseDown simulator) node (clj->js {:button button :buttons 1}))))
-  ([root button selector]
-   (mouse-down (resolve-node :mouse-down root selector) button)))
+  ([thing] (mouse-down thing {}))
+  ([thing opts]
+   (if (string? opts)
+     (dispatch-event (resolve-node :mouse-down thing opts) (mouse-event "mousedown" {:button 0 :buttons 1}))
+     (let [opts (if (number? opts) {:button opts} opts)]
+       (dispatch-event (resolve-node :mouse-down thing) (mouse-event "mousedown" (merge {:button 0 :buttons 1} opts))))))
+  ([root selector opts]
+   (let [opts (if (number? opts) {:button opts} opts)]
+     (dispatch-event (resolve-node :mouse-down root selector) (mouse-event "mousedown" (merge {:button 0 :buttons 1} opts))))))
 
 (defn mouse-down!
   ([thing] (mouse-down thing) (flush))
-  ([root selector] (mouse-down root selector) (flush)))
+  ([thing opts] (mouse-down thing opts) (flush))
+  ([root selector opts] (mouse-down root selector opts) (flush)))
 
 (defn mouse-leave
-  ([thing]
-   ((.-mouseLeave simulator) (resolve-node :mouse-leave thing)))
-  ([root selector]
-   (mouse-leave (resolve-node :mouse-leave root selector))))
+  ([thing] (mouse-leave thing {}))
+  ([thing opts]
+   (if (string? opts)
+     (let [node (resolve-node :mouse-leave thing opts)]
+       (dispatch-event node (mouse-event "mouseout" {}))
+       (dispatch-event node (mouse-event "mouseleave" {})))
+     (let [node (resolve-node :mouse-leave thing)]
+       (dispatch-event node (mouse-event "mouseout" opts))
+       (dispatch-event node (mouse-event "mouseleave" opts)))))
+  ([root selector opts]
+   (let [node (resolve-node :mouse-leave root selector)]
+     (dispatch-event node (mouse-event "mouseout" opts))
+     (dispatch-event node (mouse-event "mouseleave" opts)))))
 
 (defn mouse-leave!
   ([thing] (mouse-leave thing) (flush))
-  ([root selector] (mouse-leave root selector) (flush)))
+  ([thing opts] (mouse-leave thing opts) (flush))
+  ([root selector opts] (mouse-leave root selector opts) (flush)))
+
+;endregion
+
+;region Drag Events
 
 (defn drag
   ([thing data-transfer]
-   ((.-drag simulator) (resolve-node :drag thing) (clj->js {:dataTransfer data-transfer})))
+   (dispatch-event (resolve-node :drag thing) (drag-event "drag" data-transfer {})))
   ([root selector data-transfer]
-   (drag (resolve-node :drag root selector) data-transfer)))
+   (dispatch-event (resolve-node :drag root selector) (drag-event "drag" data-transfer {})))
+  ([root selector data-transfer opts]
+   (dispatch-event (resolve-node :drag root selector) (drag-event "drag" data-transfer opts))))
 
 (defn drag!
   ([thing data-transfer] (drag thing data-transfer) (flush))
-  ([root selector data-transfer] (drag root selector data-transfer) (flush)))
+  ([root selector data-transfer] (drag root selector data-transfer) (flush))
+  ([root selector data-transfer opts] (drag root selector data-transfer opts) (flush)))
 
 (defn drag-start
   ([thing data-transfer]
-   ((.-dragStart simulator) (resolve-node :drag-start thing) (clj->js {:dataTransfer data-transfer})))
+   (dispatch-event (resolve-node :drag-start thing) (drag-event "dragstart" data-transfer {})))
   ([root selector data-transfer]
-   (drag-start (resolve-node :drag-start root selector) data-transfer)))
+   (dispatch-event (resolve-node :drag-start root selector) (drag-event "dragstart" data-transfer {})))
+  ([root selector data-transfer opts]
+   (dispatch-event (resolve-node :drag-start root selector) (drag-event "dragstart" data-transfer opts))))
 
 (defn drag-start!
   ([thing data-transfer] (drag-start thing data-transfer) (flush))
-  ([root selector data-transfer] (drag-start root selector data-transfer) (flush)))
-
-(defn drag-enter
-  ([thing data-transfer]
-   ((.-dragEnter simulator) (resolve-node :drag-enter thing) (clj->js {:dataTransfer data-transfer})))
-  ([root selector data-transfer]
-   (drag-enter (resolve-node :drag-enter root selector) data-transfer)))
-
-(defn drag-enter!
-  ([thing data-transfer] (drag-enter thing data-transfer) (flush))
-  ([root selector data-transfer] (drag-enter root selector data-transfer) (flush)))
-
-(defn drag-leave
-  ([thing data-transfer]
-   ((.-dragLeave simulator) (resolve-node :drag-leave thing) (clj->js {:dataTransfer data-transfer})))
-  ([root selector data-transfer]
-   (drag-leave (resolve-node :drag-leave root selector) data-transfer)))
-
-(defn drag-leave!
-  ([thing data-transfer] (drag-leave thing data-transfer) (flush))
-  ([root selector data-transfer] (drag-leave root selector data-transfer) (flush)))
+  ([root selector data-transfer] (drag-start root selector data-transfer) (flush))
+  ([root selector data-transfer opts] (drag-start root selector data-transfer opts) (flush)))
 
 (defn drag-end
   ([thing data-transfer]
-   ((.-dragEnd simulator) (resolve-node :drag-end thing) (clj->js {:dataTransfer data-transfer})))
+   (dispatch-event (resolve-node :drag-end thing) (drag-event "dragend" data-transfer {})))
   ([root selector data-transfer]
-   (drag-end (resolve-node :drag-end root selector) data-transfer)))
+   (dispatch-event (resolve-node :drag-end root selector) (drag-event "dragend" data-transfer {})))
+  ([root selector data-transfer opts]
+   (dispatch-event (resolve-node :drag-end root selector) (drag-event "dragend" data-transfer opts))))
 
 (defn drag-end!
   ([thing data-transfer] (drag-end thing data-transfer) (flush))
-  ([root selector data-transfer] (drag-end root selector data-transfer) (flush)))
+  ([root selector data-transfer] (drag-end root selector data-transfer) (flush))
+  ([root selector data-transfer opts] (drag-end root selector data-transfer opts) (flush)))
+
+(defn drag-enter
+  ([thing data-transfer]
+   (dispatch-event (resolve-node :drag-enter thing) (drag-event "dragenter" data-transfer {})))
+  ([root selector data-transfer]
+   (dispatch-event (resolve-node :drag-enter root selector) (drag-event "dragenter" data-transfer {})))
+  ([root selector data-transfer opts]
+   (dispatch-event (resolve-node :drag-enter root selector) (drag-event "dragenter" data-transfer opts))))
+
+(defn drag-enter!
+  ([thing data-transfer] (drag-enter thing data-transfer) (flush))
+  ([root selector data-transfer] (drag-enter root selector data-transfer) (flush))
+  ([root selector data-transfer opts] (drag-enter root selector data-transfer opts) (flush)))
+
+(defn drag-leave
+  ([thing data-transfer]
+   (dispatch-event (resolve-node :drag-leave thing) (drag-event "dragleave" data-transfer {})))
+  ([root selector data-transfer]
+   (dispatch-event (resolve-node :drag-leave root selector) (drag-event "dragleave" data-transfer {})))
+  ([root selector data-transfer opts]
+   (dispatch-event (resolve-node :drag-leave root selector) (drag-event "dragleave" data-transfer opts))))
+
+(defn drag-leave!
+  ([thing data-transfer] (drag-leave thing data-transfer) (flush))
+  ([root selector data-transfer] (drag-leave root selector data-transfer) (flush))
+  ([root selector data-transfer opts] (drag-leave root selector data-transfer opts) (flush)))
 
 (defn drag-over
   ([thing data-transfer]
-   ((.-dragOver simulator) (resolve-node :drag-over thing) (clj->js {:dataTransfer data-transfer})))
+   (dispatch-event (resolve-node :drag-over thing) (drag-event "dragover" data-transfer {})))
   ([root selector data-transfer]
-   (drag-over (resolve-node :drag-over root selector) data-transfer)))
+   (dispatch-event (resolve-node :drag-over root selector) (drag-event "dragover" data-transfer {})))
+  ([root selector data-transfer opts]
+   (dispatch-event (resolve-node :drag-over root selector) (drag-event "dragover" data-transfer opts))))
 
 (defn drag-over!
   ([thing data-transfer] (drag-over thing data-transfer) (flush))
-  ([root selector data-transfer] (drag-over root selector data-transfer) (flush)))
+  ([root selector data-transfer] (drag-over root selector data-transfer) (flush))
+  ([root selector data-transfer opts] (drag-over root selector data-transfer opts) (flush)))
 
 (defn on-drop
   ([thing data-transfer]
-   ((.-drop simulator) (resolve-node :on-drop thing) (clj->js {:dataTransfer data-transfer})))
+   (dispatch-event (resolve-node :on-drop thing) (drag-event "drop" data-transfer {})))
   ([root selector data-transfer]
-   (on-drop (resolve-node :on-drop root selector) data-transfer)))
+   (dispatch-event (resolve-node :on-drop root selector) (drag-event "drop" data-transfer {})))
+  ([root selector data-transfer opts]
+   (dispatch-event (resolve-node :on-drop root selector) (drag-event "drop" data-transfer opts))))
 
 (defn on-drop!
   ([thing data-transfer] (on-drop thing data-transfer) (flush))
-  ([root selector data-transfer] (on-drop root selector data-transfer) (flush)))
+  ([root selector data-transfer] (on-drop root selector data-transfer) (flush))
+  ([root selector data-transfer opts] (on-drop root selector data-transfer opts) (flush)))
+
+;endregion
+
+;region Focus Events
 
 (defn focus
-  ([thing] ((.-focus simulator) (resolve-node :focus thing)))
-  ([root selector] (focus (resolve-node :focus root selector))))
+  ([thing] (dispatch-event (resolve-node :focus thing) (focus-event "focus" {})))
+  ([thing opts]
+   (if (string? opts)
+     (dispatch-event (resolve-node :focus thing opts) (focus-event "focus" {}))
+     (dispatch-event (resolve-node :focus thing) (focus-event "focus" opts))))
+  ([root selector opts]
+   (dispatch-event (resolve-node :focus root selector) (focus-event "focus" opts))))
 
 (defn focus!
   ([thing] (focus thing) (flush))
-  ([root selector] (focus root selector) (flush)))
+  ([thing opts] (focus thing opts) (flush))
+  ([root selector opts] (focus root selector opts) (flush)))
 
 (defn blur
-  ([thing] ((.-blur simulator) (resolve-node :blur thing)))
-  ([root selector] (blur (resolve-node :blur root selector))))
+  ([thing] (dispatch-event (resolve-node :blur thing) (focus-event "blur" {})))
+  ([thing opts]
+   (if (string? opts)
+     (dispatch-event (resolve-node :blur thing opts) (focus-event "blur" {}))
+     (dispatch-event (resolve-node :blur thing) (focus-event "blur" opts))))
+  ([root selector opts]
+   (dispatch-event (resolve-node :blur root selector) (focus-event "blur" opts))))
 
 (defn blur!
   ([thing] (blur thing) (flush))
-  ([root selector] (blur root selector) (flush)))
+  ([thing opts] (blur thing opts) (flush))
+  ([root selector opts] (blur root selector opts) (flush)))
+
+;endregion
+
+;region Change Events
 
 (defn change
   ([thing]
-   ((.-change simulator) (resolve-node :change thing) {:target thing}))
+   (let [node (resolve-node :change thing)]
+     (dispatch-event node (base-event "input" {}))
+     (dispatch-event node (base-event "change" {}))))
   ([thing value]
    (let [node (resolve-node :change thing)]
      (if (= "file" (.-type node))
-       ((.-change simulator) node (clj->js {:target {:files value}}))
+       (do (set-native-files! node value)
+           (dispatch-event node (base-event "change" {})))
        (do (set! (.-value node) value)
-           (change node)))))
+           (dispatch-event node (base-event "input" {}))
+           (dispatch-event node (base-event "change" {}))))))
   ([root selector value]
    (change (resolve-node :change root selector) value)))
 
@@ -393,13 +538,16 @@
   ([thing value]
    (let [node (resolve-node :check-box thing)]
      (set! (.-checked node) value)
-     (change node)))
+     (dispatch-event node (base-event "input" {}))
+     (dispatch-event node (base-event "change" {}))))
   ([root selector value]
    (check-box (resolve-node :check-box root selector) value)))
 
 (defn check-box!
   ([thing value] (check-box thing value) (flush))
   ([root selector value] (check-box root selector value) (flush)))
+
+;endregion
 
 (defn text!
   "Throws exception if the node doesn't exist."
