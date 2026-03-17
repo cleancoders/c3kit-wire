@@ -527,10 +527,11 @@
   "Sets the value using the native setter to bypass React's internal value tracker,
    ensuring React detects the change and fires onChange."
   [node value]
-  (let [proto     (js/Object.getPrototypeOf node)
+  (let [proto      (js/Object.getPrototypeOf node)
         descriptor (js/Object.getOwnPropertyDescriptor proto "value")]
-    (when-let [setter (and descriptor (.-set descriptor))]
-      (.call setter node value))))
+    (if-let [setter (and descriptor (.-set descriptor))]
+      (.call setter node value)
+      (set! (.-value node) value))))
 
 (defn- set-native-checked!
   "Sets the checked property using the native setter to bypass React's internal tracker."
