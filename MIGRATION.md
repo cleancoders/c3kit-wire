@@ -264,19 +264,16 @@ React 18's full component rendering may trigger navigation side effects that wer
 ERROR: Uncaught SecurityError: Failed to execute 'pushState' on 'History'
 ```
 
-**Fix:** Patch `goog.history.Html5History.prototype.setToken` in your test spec helper to catch and suppress the error:
+**Fix:** Call `wire/suppress-history-push-state!` once at the top level of your spec helper:
 
 ```clojure
-;; In your spec_helper.cljs (at top level, after requires)
-(js* "
-var _origSetToken = goog.history.Html5History.prototype.setToken;
-goog.history.Html5History.prototype.setToken = function(token, opt_title) {
-  try { _origSetToken.call(this, token, opt_title); } catch(e) {}
-};
-")
+(ns my-app.spec-helper
+  (:require [c3kit.wire.spec-helper :as wire]))
+
+(wire/suppress-history-push-state!)
 ```
 
-This suppresses the error without affecting test behavior — the navigation intent is recorded but the actual URL change is silently skipped. Tests that need to verify navigation should still stub `accountant/navigate!` explicitly.
+This patches `goog.history.Html5History.prototype.setToken` to catch and suppress the error. The navigation intent still runs but the actual URL change is silently skipped on `file://`. Tests that need to verify navigation should still stub `accountant/navigate!` explicitly.
 
 ## Event Opts Reference
 

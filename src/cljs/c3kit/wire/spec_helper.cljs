@@ -46,6 +46,19 @@
 
 (defn with-root-dom [] (with-clean-dom "<div id='root'/>"))
 
+(defn suppress-history-push-state!
+  "Suppresses pushState/replaceState SecurityErrors in test environments running
+   on file:// protocol. Call once at the top level of your spec_helper.
+   React 18 full renders may trigger navigation side effects via accountant/goog.history
+   that throw SecurityError when pushState is called on file:// URLs."
+  []
+  (let [proto     (.. js/goog -history -Html5History -prototype)
+        orig-fn   (.-setToken proto)]
+    (ccc/oset proto "setToken"
+              (fn [token opt-title]
+                (try (.call orig-fn (js-this) token opt-title)
+                     (catch :default _))))))
+
 (defn select
   ([selector] (select js/document selector))
   ([root selector]
