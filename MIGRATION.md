@@ -122,11 +122,18 @@ If your `before` block sets up state that components depend on, add a `wire/flus
 
 ### `act()` Warnings
 
-If you see `"An update to %s inside a test was not wrapped in act(...)"`, it means a state update happened outside of `act()`. Common sources:
+Wire now scopes `IS_REACT_ACT_ENVIRONMENT` to `act()` calls only — it's `false` by default and set to `true` inside each `act()` invocation. This means:
 
-1. **`before` blocks** that call `reset!` on Reagent atoms — use `wire/reset!` or add `wire/flush`
-2. **WebSocket handlers** that update state — stub them or wrap the invocation in `wire/act`
-3. **Async callbacks** — wrap the callback invocation in `(wire/act #(callback))`
+- **You should NOT see act warnings from `before`/`after` blocks.** State updates outside `act()` are expected in test setup and no longer produce warnings.
+- **You WILL see act warnings if `IS_REACT_ACT_ENVIRONMENT` is set to `true` globally.** If you previously set this flag yourself, remove it — wire handles it internally.
+- Wire's `render`, `flush`, `reset!`, `swap!`, and all event functions use `act()` internally, so all rendering-related state updates are properly wrapped.
+
+If you do need to wrap a custom state update in `act()` (e.g., simulating an async callback that triggers a re-render), use `wire/act` directly:
+
+```clojure
+(wire/act #(invoke-my-callback))
+(wire/flush)
+```
 
 ### `with-redefs` and `wire/render` Timing
 
@@ -248,6 +255,28 @@ React 18 may skip `component-did-update` when re-rendering with identical props.
 ;; Second render — must differ from first to trigger component-did-update
 (wire/render [my-component {:value "b"}])
 ```
+
+## `pushState` SecurityError on `file://` Protocol
+
+React 18's full component rendering may trigger navigation side effects that were invisible in React 16 (because components didn't fully render with incomplete data). If your project uses `accountant` (or any router that calls `history.pushState`), and tests run on `file://` protocol, you'll see:
+
+```
+ERROR: Uncaught SecurityError: Failed to execute 'pushState' on 'History'
+```
+
+**Fix:** Patch `goog.history.Html5History.prototype.setToken` in your test spec helper to catch and suppress the error:
+
+```clojure
+;; In your spec_helper.cljs (at top level, after requires)
+(js* "
+var _origSetToken = goog.history.Html5History.prototype.setToken;
+goog.history.Html5History.prototype.setToken = function(token, opt_title) {
+  try { _origSetToken.call(this, token, opt_title); } catch(e) {}
+};
+")
+```
+
+This suppresses the error without affecting test behavior — the navigation intent is recorded but the actual URL change is silently skipped. Tests that need to verify navigation should still stub `accountant/navigate!` explicitly.
 
 ## Event Opts Reference
 
