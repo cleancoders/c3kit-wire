@@ -20,8 +20,10 @@
 
 (def pprint pp/pprint)
 
-; React 18 requires this flag for act() to work properly in tests.
-(set! js/IS_REACT_ACT_ENVIRONMENT true)
+; React 18 act() warnings are disabled by default and enabled only inside act() calls.
+; This prevents noisy warnings from state updates in before/after blocks while still
+; ensuring act() works correctly for render, flush, and event dispatch.
+(set! js/IS_REACT_ACT_ENVIRONMENT false)
 
 (def ^:private render-roots (atom {}))
 
@@ -29,15 +31,6 @@
   (doseq [[_ root] @render-roots]
     (domc/unmount root))
   (clojure.core/reset! render-roots {}))
-
-(defn unmount
-  "Unmounts the React root for the given container (or #root by default).
-   Use this instead of reagent.dom/unmount-component-at-node for React 18."
-  ([] (unmount (select "#root")))
-  ([container]
-   (when-let [root (get @render-roots container)]
-     (act #(domc/unmount root))
-     (clojure.core/swap! render-roots dissoc container))))
 
 (defn reset-dom! [content]
   (let [body (.-body js/document)]
@@ -80,7 +73,20 @@
 (defn act
   "Wraps React.act to flush effects and state updates synchronously in tests."
   [f]
-  (.act js/React f))
+  (set! js/IS_REACT_ACT_ENVIRONMENT true)
+  (try
+    (.act js/React f)
+    (finally
+      (set! js/IS_REACT_ACT_ENVIRONMENT false))))
+
+(defn unmount
+  "Unmounts the React root for the given container (or #root by default).
+   Use this instead of reagent.dom/unmount-component-at-node for React 18."
+  ([] (unmount (select "#root")))
+  ([container]
+   (when-let [root (get @render-roots container)]
+     (act #(domc/unmount root))
+     (clojure.core/swap! render-roots dissoc container))))
 
 (defn render
   "Use me to render components for testing.  Using reagent/render directly may work, but is not as good."
