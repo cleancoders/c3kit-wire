@@ -63,11 +63,27 @@ The old 3-arity `[root button selector]` is removed. Use opts map instead:
 
 **Impact:** Tests that call `(wire/check-box! selector true)` on an already-checked checkbox will be a no-op. If your test relies on the onChange handler firing regardless of current state, you may need to adjust.
 
-### 5. `change` dispatches `input` event
+### 5. `change` is now element-type-aware
 
-For text inputs, `change` now dispatches a native `input` event (not `change`). React 18's `onChange` handler listens for the DOM `input` event on text inputs. The value is set via the native prototype setter to bypass React's internal value tracker.
+`change` detects the element type and dispatches the appropriate event:
 
-**Impact:** If you have non-React event listeners on `change` events specifically, they won't fire. Use the DOM `input` event instead.
+- **Text/textarea inputs**: sets value via native prototype setter, dispatches `input` event
+- **`<select>` elements**: sets value via native setter, dispatches `change` event
+- **Checkbox/radio inputs**: dispatches `click` event (only when value differs)
+- **File inputs**: unchanged (sets `files` via `Object.defineProperty`, dispatches `change`)
+
+**Impact:** If you have non-React event listeners on `change` events for text inputs, they won't fire — use the DOM `input` event instead. For `<select>` elements, the `change` event is dispatched as before.
+
+### 6. `wire/unmount` replaces `reagent.dom/unmount-component-at-node`
+
+React 18 uses `createRoot` / `root.unmount()` instead of `ReactDOM.unmountComponentAtNode`. The old API is a no-op in React 18. Wire now provides:
+
+```clojure
+(wire/unmount)            ;; unmounts the #root container
+(wire/unmount container)  ;; unmounts a specific container
+```
+
+**Impact:** Any test that calls `reagent.dom/unmount-component-at-node` must switch to `wire/unmount`.
 
 ## React 18 Test Migration Guide
 
@@ -112,16 +128,23 @@ If you see `"An update to %s inside a test was not wrapped in act(...)"`, it mea
 2. **WebSocket handlers** that update state — stub them or wrap the invocation in `wire/act`
 3. **Async callbacks** — wrap the callback invocation in `(wire/act #(callback))`
 
+### `with-redefs` and `wire/render` Timing
+
+React 18's `wire/render` uses double-`act()` to flush both Reagent and React batches. If you use `with-redefs` inside a test body and call `wire/render` within it, the second `act()` pass may trigger a re-render AFTER `with-redefs` has restored the original bindings.
+
+**Symptoms:** Test stubs `time/now` or other functions, renders a component, but the component sees the real (unstubbed) value.
+
+**Workaround:** Use `redefs-around` (which keeps the mock active for the entire test) instead of `with-redefs` inside the test body. Or restructure the test to assert within the `with-redefs` scope before the second act pass.
+
 ### Bucket re-memory and Reagent 2
 
-If your project uses `c3kit.bucket` with `:re-memory` (the default for CLJS), be aware that `db/find-by` queries may return empty results in some cases. This is a known issue with `r/cursor` behavior in Reagent 2 when called outside of a reactive context.
+If your project uses `c3kit.bucket` with `:re-memory` (the default for CLJS), update bucket to a version compatible with Reagent 2. The main issue was `r/cursor` over function-based selectors returning stale/empty results outside reactive context.
 
-**Symptoms:**
+**Symptoms (before bucket fix):**
 - `db/entity` works but `db/find-by` returns `()`
 - CLJC "Common" tests (pure data logic) fail on CLJS but pass on CLJ
-- Tests that passed individually may fail in suite runs
 
-**Workaround:** This requires a bucket update for Reagent 2 compatibility. Track this separately from wire migration.
+**Resolution:** Update to bucket version with Reagent 2 compatible re-memory.
 
 ## Checkbox/Select Migration Patterns
 
