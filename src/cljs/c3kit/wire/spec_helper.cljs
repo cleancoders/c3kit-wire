@@ -30,6 +30,15 @@
     (domc/unmount root))
   (clojure.core/reset! render-roots {}))
 
+(defn unmount
+  "Unmounts the React root for the given container (or #root by default).
+   Use this instead of reagent.dom/unmount-component-at-node for React 18."
+  ([] (unmount (select "#root")))
+  ([container]
+   (when-let [root (get @render-roots container)]
+     (act #(domc/unmount root))
+     (clojure.core/swap! render-roots dissoc container))))
+
 (defn reset-dom! [content]
   (let [body (.-body js/document)]
     (unmount-render-roots)
@@ -523,15 +532,44 @@
     (when-let [setter (and descriptor (.-set descriptor))]
       (.call setter node value))))
 
+(defn- set-native-checked!
+  "Sets the checked property using the native setter to bypass React's internal tracker."
+  [node value]
+  (let [proto      (js/Object.getPrototypeOf node)
+        descriptor (js/Object.getOwnPropertyDescriptor proto "checked")]
+    (if-let [setter (and descriptor (.-set descriptor))]
+      (.call setter node value)
+      (set! (.-checked node) value))))
+
+(defn- checkbox-or-radio? [node]
+  (let [type (.-type node)]
+    (or (= "checkbox" type) (= "radio" type))))
+
+(defn- select-element? [node]
+  (= "SELECT" (.-tagName node)))
+
 (defn change
   ([thing]
    (let [node (resolve-node :change thing)]
-     (dispatch-event node (base-event "input" {}))))
+     (if (checkbox-or-radio? node)
+       (dispatch-event node (mouse-event "click" {}))
+       (dispatch-event node (base-event "input" {})))))
   ([thing value]
    (let [node (resolve-node :change thing)]
-     (if (= "file" (.-type node))
+     (cond
+       (= "file" (.-type node))
        (do (set-native-files! node value)
            (dispatch-event node (base-event "change" {})))
+
+       (checkbox-or-radio? node)
+       (do (when (not= (boolean value) (.-checked node))
+             (dispatch-event node (mouse-event "click" {}))))
+
+       (select-element? node)
+       (do (set-native-value! node value)
+           (dispatch-event node (base-event "change" {})))
+
+       :else
        (do (set-native-value! node value)
            (dispatch-event node (base-event "input" {}))))))
   ([root selector value]
@@ -544,7 +582,7 @@
 (defn check-box
   ([thing value]
    (let [node (resolve-node :check-box thing)]
-     (when (not= value (.-checked node))
+     (when (not= (boolean value) (.-checked node))
        (dispatch-event node (mouse-event "click" {})))))
   ([root selector value]
    (check-box (resolve-node :check-box root selector) value)))
