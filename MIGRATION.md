@@ -214,20 +214,20 @@ Native `click` on a `<label>` element does NOT forward to the associated `<input
 (wire/click! "#-my-label input")
 ```
 
-## Blur Events and `focusout`
+## Blur and Focus Events
 
-React 18 delegates `onBlur` via the `focusout` event (which bubbles) rather than `blur` (which doesn't bubble). Wire's `wire/blur!` dispatches a `FocusEvent "blur"` with `bubbles: false`, which may not reach React's root listener.
+Wire's `blur!` and `focus!` now dispatch both the bubbling and non-bubbling variants to match real browser behavior and React 18's event delegation:
 
-If `wire/blur!` doesn't trigger your `onBlur` handler, dispatch `focusout` directly:
+- `blur!` dispatches `focusout` (bubbles) then `blur` (doesn't bubble)
+- `focus!` dispatches `focusin` (bubbles) then `focus` (doesn't bubble)
+
+React 18 delegates `onBlur` via `focusout` and `onFocus` via `focusin`. This means `wire/blur!` and `wire/focus!` work correctly out of the box — no special handling needed.
+
+For cases where you only need the bubbling event, `wire/focus-out!` is also available:
 
 ```clojure
-;; If wire/blur! doesn't trigger onBlur:
-(wire/act #(.dispatchEvent (wire/select "#my-input")
-            (js/FocusEvent. "focusout" #js {:bubbles true})))
-(wire/flush)
+(wire/focus-out! "#my-input")  ;; dispatches only focusout (bubbles)
 ```
-
-This is a known limitation. A future wire update may address this by dispatching `focusout` alongside `blur`.
 
 ## Form-2 Components and Modal Re-install
 
