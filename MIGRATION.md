@@ -134,7 +134,16 @@ React 18's `wire/render` uses double-`act()` to flush both Reagent and React bat
 
 **Symptoms:** Test stubs `time/now` or other functions, renders a component, but the component sees the real (unstubbed) value.
 
-**Workaround:** Use `redefs-around` (which keeps the mock active for the entire test) instead of `with-redefs` inside the test body. Or restructure the test to assert within the `with-redefs` scope before the second act pass.
+**Workaround:** Use `wire/unmount` then `wire/render` inside the `with-redefs` scope. The unmount forces React 18 to discard the existing component tree, and the fresh render picks up the stubbed bindings:
+
+```clojure
+(with-redefs [time/now #(time/parse "yyyy-MM-dd" "2021-02-01")]
+  (wire/unmount)
+  (wire/render [my-component])
+  (should-contain "2021" (wire/html "#-year")))
+```
+
+`wire/flush` alone won't work because non-reactive function calls (like `time/now`) don't trigger Reagent re-renders.
 
 ### Bucket re-memory and Reagent 2
 
@@ -168,6 +177,77 @@ If a "Select All" checkbox is controlled by React and your test calls `(wire/che
 1. Use `wire/click!` directly to always toggle
 2. Ensure the test starts from a known unchecked state
 3. Check the current state before deciding to click
+
+### Pattern: Controlled checkbox with stubbed handlers
+
+When a checkbox's `onChange` fires but the handler is stubbed (e.g., `ws/call!` is stubbed), the component state never updates. React re-renders the checkbox to its previous state. A second `wire/click!` sees the same state and toggles the same direction again.
+
+Fix: simulate the server response by updating the DB between clicks:
+
+```clojure
+(wire/click! "#-checkbox")
+(should-have-invoked-ws :todo/complete (:id @todo))
+;; Simulate the server response
+(db/tx @todo :complete? true)
+(wire/flush)
+;; Now the checkbox renders as checked, so clicking unchecks it
+(wire/click! "#-checkbox")
+(should-have-invoked-ws :todo/uncomplete (:id @todo))
+```
+
+### Pattern: Clicking labels vs inputs for checkboxes
+
+Native `click` on a `<label>` element does NOT forward to the associated `<input>` in test environments the way browsers do. Click the `<input>` element directly:
+
+```clojure
+;; May not work — label click doesn't forward in tests
+(wire/click! "#-my-label")
+
+;; Works — click the input directly
+(wire/click! "#-my-label input")
+```
+
+## Blur Events and `focusout`
+
+React 18 delegates `onBlur` via the `focusout` event (which bubbles) rather than `blur` (which doesn't bubble). Wire's `wire/blur!` dispatches a `FocusEvent "blur"` with `bubbles: false`, which may not reach React's root listener.
+
+If `wire/blur!` doesn't trigger your `onBlur` handler, dispatch `focusout` directly:
+
+```clojure
+;; If wire/blur! doesn't trigger onBlur:
+(wire/act #(.dispatchEvent (wire/select "#my-input")
+            (js/FocusEvent. "focusout" #js {:bubbles true})))
+(wire/flush)
+```
+
+This is a known limitation. A future wire update may address this by dispatching `focusout` alongside `blur`.
+
+## Form-2 Components and Modal Re-install
+
+Reagent form-2 components (outer `let` + inner `fn`) persist their local state (atoms created in the `let`) across React 18 re-renders. When a modal is closed and re-opened with `modal/install!`, React 18 may reuse the existing component instance rather than remounting, so the ratom retains values from the previous test.
+
+Fix: add `wire/flush` between `modal/close!` and `modal/install!` to ensure React fully unmounts the component before remounting:
+
+```clojure
+(modal/close!)
+(wire/flush)          ;; Force React to unmount the form-2 component
+(modal/install! :my-modal :key value)
+(wire/flush)          ;; Ensure the new instance renders
+```
+
+If the component reads from the DB, ensure the DB entity has the correct state before re-opening.
+
+## `component-did-update` Lifecycle in React 18
+
+React 18 may skip `component-did-update` when re-rendering with identical props. If a test renders the same component twice and expects the update lifecycle to fire, pass a different prop to force the update:
+
+```clojure
+;; First render
+(wire/render [my-component {:value "a"}])
+
+;; Second render — must differ from first to trigger component-did-update
+(wire/render [my-component {:value "b"}])
+```
 
 ## Event Opts Reference
 
