@@ -199,7 +199,8 @@
   (js/KeyboardEvent. type (clj->js (merge {:bubbles true :cancelable true} opts))))
 
 (defn- focus-event [type opts]
-  (js/FocusEvent. type (clj->js (merge {:bubbles false :cancelable true} opts))))
+  (let [bubbles (contains? #{"focusin" "focusout"} type)]
+    (js/FocusEvent. type (clj->js (merge {:bubbles bubbles :cancelable true} opts)))))
 
 (defn- base-event [type opts]
   (js/Event. type (clj->js (merge {:bubbles true :cancelable true} opts))))
@@ -511,13 +512,19 @@
 ;region Focus Events
 
 (defn focus
-  ([thing] (dispatch-event (resolve-node :focus thing) (focus-event "focus" {})))
+  ([thing] (focus thing {}))
   ([thing opts]
    (if (string? opts)
-     (dispatch-event (resolve-node :focus thing opts) (focus-event "focus" {}))
-     (dispatch-event (resolve-node :focus thing) (focus-event "focus" opts))))
+     (let [node (resolve-node :focus thing opts)]
+       (dispatch-event node (focus-event "focusin" {}))
+       (dispatch-event node (focus-event "focus" {})))
+     (let [node (resolve-node :focus thing)]
+       (dispatch-event node (focus-event "focusin" opts))
+       (dispatch-event node (focus-event "focus" opts)))))
   ([root selector opts]
-   (dispatch-event (resolve-node :focus root selector) (focus-event "focus" opts))))
+   (let [node (resolve-node :focus root selector)]
+     (dispatch-event node (focus-event "focusin" opts))
+     (dispatch-event node (focus-event "focus" opts)))))
 
 (defn focus!
   ([thing] (focus thing) (flush))
@@ -525,18 +532,40 @@
   ([root selector opts] (focus root selector opts) (flush)))
 
 (defn blur
-  ([thing] (dispatch-event (resolve-node :blur thing) (focus-event "blur" {})))
+  ([thing] (blur thing {}))
   ([thing opts]
    (if (string? opts)
-     (dispatch-event (resolve-node :blur thing opts) (focus-event "blur" {}))
-     (dispatch-event (resolve-node :blur thing) (focus-event "blur" opts))))
+     (let [node (resolve-node :blur thing opts)]
+       (dispatch-event node (focus-event "focusout" {}))
+       (dispatch-event node (focus-event "blur" {})))
+     (let [node (resolve-node :blur thing)]
+       (dispatch-event node (focus-event "focusout" opts))
+       (dispatch-event node (focus-event "blur" opts)))))
   ([root selector opts]
-   (dispatch-event (resolve-node :blur root selector) (focus-event "blur" opts))))
+   (let [node (resolve-node :blur root selector)]
+     (dispatch-event node (focus-event "focusout" opts))
+     (dispatch-event node (focus-event "blur" opts)))))
 
 (defn blur!
   ([thing] (blur thing) (flush))
   ([thing opts] (blur thing opts) (flush))
   ([root selector opts] (blur root selector opts) (flush)))
+
+(defn focus-out
+  "Dispatches a focusout event. React 18 delegates onBlur via focusout (which bubbles)
+   rather than blur (which doesn't). Use this when blur/blur! doesn't trigger onBlur."
+  ([thing] (focus-out thing {}))
+  ([thing opts]
+   (if (string? opts)
+     (dispatch-event (resolve-node :focus-out thing opts) (focus-event "focusout" {}))
+     (dispatch-event (resolve-node :focus-out thing) (focus-event "focusout" opts))))
+  ([root selector opts]
+   (dispatch-event (resolve-node :focus-out root selector) (focus-event "focusout" opts))))
+
+(defn focus-out!
+  ([thing] (focus-out thing) (flush))
+  ([thing opts] (focus-out thing opts) (flush))
+  ([root selector opts] (focus-out root selector opts) (flush)))
 
 ;endregion
 
