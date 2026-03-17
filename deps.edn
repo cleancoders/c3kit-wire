@@ -3,7 +3,7 @@
  :deps    {
            buddy/buddy-sign                 {:mvn/version "3.6.1-359"} ; Used by JWT
            cljs-http/cljs-http              {:mvn/version "0.1.49"}
-           cljsjs/react                     {:mvn/version "18.3.1-1"} ; A new major version of cljsjs is available, but reagent.dom/render is not yet compatible with it.
+           cljsjs/react                     {:mvn/version "18.3.1-1"}
            cljsjs/react-dom                 {:mvn/version "18.3.1-1"}
            com.cleancoders.c3kit/apron      {:mvn/version "2.5.0"}
            compojure/compojure              {:mvn/version "1.7.2" :exclusions [ring/ring-core ring/ring-codec]}
