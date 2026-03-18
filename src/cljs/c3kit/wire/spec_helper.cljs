@@ -25,12 +25,15 @@
 ; ensuring act() works correctly for render, flush, and event dispatch.
 (set! js/IS_REACT_ACT_ENVIRONMENT false)
 
+(def ^:private core-reset! clojure.core/reset!)
+(def ^:private core-swap! clojure.core/swap!)
+
 (def ^:private render-roots (atom {}))
 
 (defn- unmount-render-roots []
   (doseq [[_ root] @render-roots]
     (domc/unmount root))
-  (clojure.core/reset! render-roots {}))
+  (core-reset! render-roots {}))
 
 (defn reset-dom! [content]
   (let [body (.-body js/document)]
@@ -99,7 +102,7 @@
   ([container]
    (when-let [root (get @render-roots container)]
      (act #(domc/unmount root))
-     (clojure.core/swap! render-roots dissoc container))))
+     (core-swap-3! render-roots dissoc container))))
 
 (defn render
   "Use me to render components for testing.  Using reagent/render directly may work, but is not as good."
@@ -107,7 +110,7 @@
   ([component container]
    (let [react-root (or (get @render-roots container)
                         (let [root (domc/create-root container)]
-                          (clojure.core/swap! render-roots assoc container root)
+                          (core-swap-4! render-roots assoc container root)
                           root))]
      (try
        (act (fn []
@@ -124,11 +127,15 @@
          (reagent/flush)
          (batch/flush-after-render))))
 
+(def ^:private core-swap-2! (.-cljs$core$IFn$_invoke$arity$2 core-swap!))
+(def ^:private core-swap-3! (.-cljs$core$IFn$_invoke$arity$3 core-swap!))
+(def ^:private core-swap-4! (.-cljs$core$IFn$_invoke$arity$4 core-swap!))
+
 (defn reset!
   "reset! wrapped in act and flush for React 18 test compatibility."
   [atom val]
   (act (fn []
-         (clojure.core/reset! atom val)
+         (core-reset! atom val)
          (reagent/flush)))
   (act (fn []
          (reagent/flush)
@@ -138,7 +145,10 @@
   "swap! wrapped in act and flush for React 18 test compatibility."
   [atom f & args]
   (act (fn []
-         (apply clojure.core/swap! atom f args)
+         (case (count args)
+           0 (core-swap-2! atom f)
+           1 (core-swap-3! atom f (first args))
+           2 (core-swap-4! atom f (first args) (second args)))
          (reagent/flush)))
   (act (fn []
          (reagent/flush)
@@ -569,6 +579,24 @@
 
 ;endregion
 
+;region Scroll Events
+
+(defn scroll
+  ([thing] (scroll thing {}))
+  ([thing opts]
+   (if (string? opts)
+     (dispatch-event (resolve-node :scroll thing opts) (base-event "scroll" {:bubbles true}))
+     (dispatch-event (resolve-node :scroll thing) (base-event "scroll" (merge {:bubbles true} opts)))))
+  ([root selector opts]
+   (dispatch-event (resolve-node :scroll root selector) (base-event "scroll" (merge {:bubbles true} opts)))))
+
+(defn scroll!
+  ([thing] (scroll thing) (flush))
+  ([thing opts] (scroll thing opts) (flush))
+  ([root selector opts] (scroll root selector opts) (flush)))
+
+;endregion
+
 ;region Change Events
 
 (defn- set-native-value!
@@ -780,6 +808,19 @@
 (defn invoke-last-ajax-post-handler [payload] (some-> (last-ajax-post-handler) (ccc/invoke payload)))
 (defn invoke-last-ajax-get-handler [payload] (some-> (last-ajax-get-handler) (ccc/invoke payload)))
 
+(defn stub-reset-swap []
+  (list
+   (before
+    (set! cljs.core/reset_BANG_ (fn [a v] (reset! a v)))
+    (set! (.-cljs$core$IFn$_invoke$arity$2 cljs.core/swap_BANG_) (fn [a f] (swap! a f)))
+    (set! (.-cljs$core$IFn$_invoke$arity$3 cljs.core/swap_BANG_) (fn [a f x] (swap! a f x)))
+    (set! (.-cljs$core$IFn$_invoke$arity$4 cljs.core/swap_BANG_) (fn [a f x y] (swap! a f x y))))
+   (after
+    (set! cljs.core/reset_BANG_ core-reset!)
+    (set! (.-cljs$core$IFn$_invoke$arity$2 cljs.core/swap_BANG_) core-swap-2!)
+    (set! (.-cljs$core$IFn$_invoke$arity$3 cljs.core/swap_BANG_) core-swap-3!)
+    (set! (.-cljs$core$IFn$_invoke$arity$4 cljs.core/swap_BANG_) core-swap-4!))))
+
 (defn stub-ws [] (redefs-around [ws/call! (stub :ws/call!)]))
 (defn last-ws-call-id [] (when-let [args (stub/last-invocation-of :ws/call!)] (first args)))
 (defn last-ws-call-params [] (when-let [args (stub/last-invocation-of :ws/call!)] (second args)))
@@ -793,9 +834,9 @@
   (let [js-websocket js/WebSocket]
     (list
      (before (set! js/WebSocket constructor)
-             (clojure.core/reset! server/impl (mem-server/->MemServer)))
+             (core-reset! server/impl (mem-server/->MemServer)))
      (after (set! js/WebSocket js-websocket)
-            (clojure.core/reset! server/impl nil)))))
+            (core-reset! server/impl nil)))))
 
 (defn with-memory-websockets []
   (with-websocket-impl mem-ws/->MemSocket))

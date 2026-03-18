@@ -118,6 +118,13 @@
     (sut/invoke-last-ws-call-handler :params)
     (should-have-invoked :handler {:with [:params]}))
 
+  (context "scroll events"
+    (it "dispatches scroll event on element"
+      (sut/render [:div#-scrollable {:on-scroll (stub :on-scroll)}])
+      (sut/scroll! "#-scrollable")
+      (should-have-invoked :on-scroll))
+    )
+
   (context "act-wrapped atom operations"
 
     (it "reset! resets atom value within act"
@@ -143,5 +150,25 @@
         (should-contain "0" (sut/text))
         (sut/swap! a assoc :count 5)
         (should-contain "5" (sut/text))))
+    )
+
+  (context "stub-reset-swap"
+    (sut/stub-reset-swap)
+
+    (it "reset! flushes React state"
+      (let [a         (reagent/atom :old)
+            component (fn [] [:div (str @a)])]
+        (sut/render [component])
+        (should-contain "old" (sut/text))
+        (reset! a :new)
+        (should-contain "new" (sut/text))))
+
+    (it "swap! flushes React state"
+      (let [a         (reagent/atom 0)
+            component (fn [] [:div (str @a)])]
+        (sut/render [component])
+        (should-contain "0" (sut/text))
+        (swap! a inc)
+        (should-contain "1" (sut/text))))
     )
   )
