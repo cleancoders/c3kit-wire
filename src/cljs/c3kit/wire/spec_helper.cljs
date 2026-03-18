@@ -859,6 +859,8 @@
 (defn with-manual-worker []
   (before (worker/clear!)
           (set! js/setTimeout worker/set-timeout)
-          (set! js/setInterval worker/set-interval)))
+          (set! js/setInterval worker/set-interval)
+          (set! js/clearInterval worker/clear-interval)
+          (set! js/clearTimeout worker/clear-timeout)))
 
 ;endregion
