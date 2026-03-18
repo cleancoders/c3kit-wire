@@ -30,15 +30,6 @@
                        (rest body))]
     (vec (concat [tag options] body))))
 
-#_(defn oauth-button
-  "Renders the Google OAuth Button."
-  [options body]
-  (reagent/with-let [mounted? (atom false)]
-    (with-ref body (fn [node]
-                     (when (and node (not @mounted?))
-                       (reset! mounted? true)
-                       (on-button-mount options node))))))
-
 (defn oauth-button
   "Renders the Google OAuth Button."
   [options body]
