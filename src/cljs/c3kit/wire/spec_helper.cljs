@@ -12,9 +12,13 @@
             [c3kit.wire.websocket :as ws]
             [cljs.pprint :as pp]
             [clojure.string :as str]
+            [goog.object :as gobj]
+            ["react-dom" :as react-dom]
             [reagent.core :as reagent]
             [reagent.dom.client :as domc]
             [reagent.impl.batching :as batch]
+            [reagent.impl.component]
+            [reagent.ratom :as ratom]
             [speclj.core]
             [speclj.stub :as stub]))
 
@@ -25,19 +29,87 @@
 ; ensuring act() works correctly for render, flush, and event dispatch.
 (set! js/IS_REACT_ACT_ENVIRONMENT false)
 
+; Use Reagent's functional compiler so all components render as React functional components.
+; This ensures with-let finally blocks fire via useEffect cleanup on unmount,
+; preventing reaction accumulation across tests.
+(reagent/set-default-compiler! (reagent/create-compiler {:function-components true}))
+
+; Reagent's functional compiler defers with-let cleanup via Promise.resolve().then(...).
+; In synchronous test execution, these microtasks never run, causing listener/reaction leaks.
+; Override queue-cleanup to run synchronously so with-let finally blocks fire immediately.
+(set! reagent.impl.component/queue-cleanup
+      (fn [^clj component-state]
+        (set! (.-cleanup-cancelled component-state) false)
+        (set! (.-cleanup-queued component-state) false)
+        (batch/mark-rendered component-state)
+        (some-> (gobj/get component-state "cljsRatom") reagent.ratom/dispose!)))
+
 (def ^:private core-reset! clojure.core/reset!)
 (def ^:private core-swap! clojure.core/swap!)
 
 (def ^:private render-roots (atom {}))
 
+(defn act
+  "Wraps React.act to flush effects and state updates synchronously in tests."
+  [f]
+  (set! js/IS_REACT_ACT_ENVIRONMENT true)
+  (try
+    (.act js/React f)
+    (finally
+      (set! js/IS_REACT_ACT_ENVIRONMENT false))))
+
 (defn- unmount-render-roots []
   (doseq [[_ root] @render-roots]
-    (domc/unmount root))
+    (react-dom/flushSync #(domc/unmount root)))
+  (reagent/flush)
+  (batch/flush-after-render)
+  (act (fn []))
   (core-reset! render-roots {}))
+
+
+;region Document/Window listener tracking
+
+(def ^:private doc-listeners (atom []))
+(def ^:private win-listeners (atom []))
+(def ^:private orig-doc-add (.-addEventListener js/document))
+(def ^:private orig-doc-remove (.-removeEventListener js/document))
+(def ^:private orig-win-add (.-addEventListener js/window))
+(def ^:private orig-win-remove (.-removeEventListener js/window))
+
+(set! (.-addEventListener js/document)
+      (fn [type handler & args]
+        (clojure.core/swap! doc-listeners conj [type handler])
+        (.call orig-doc-add js/document type handler (first args))))
+
+(set! (.-removeEventListener js/document)
+      (fn [type handler & args]
+        (clojure.core/swap! doc-listeners (fn [ls] (filterv #(not= % [type handler]) ls)))
+        (.call orig-doc-remove js/document type handler (first args))))
+
+(set! (.-addEventListener js/window)
+      (fn [type handler & args]
+        (clojure.core/swap! win-listeners conj [type handler])
+        (.call orig-win-add js/window type handler (first args))))
+
+(set! (.-removeEventListener js/window)
+      (fn [type handler & args]
+        (clojure.core/swap! win-listeners (fn [ls] (filterv #(not= % [type handler]) ls)))
+        (.call orig-win-remove js/window type handler (first args))))
+
+(defn- remove-all-tracked-listeners! []
+  (doseq [[type handler] @doc-listeners]
+    (.call orig-doc-remove js/document type handler))
+  (core-reset! doc-listeners [])
+  (doseq [[type handler] @win-listeners]
+    (.call orig-win-remove js/window type handler))
+  (core-reset! win-listeners []))
+
+;endregion
 
 (defn reset-dom! [content]
   (let [body (.-body js/document)]
     (unmount-render-roots)
+    (remove-all-tracked-listeners!)
     (set! (.-innerHTML body) content)))
 
 (defn with-clean-dom
@@ -86,14 +158,13 @@
   ([selector] (count (select-all selector)))
   ([root selector] (count (select-all root selector))))
 
-(defn act
-  "Wraps React.act to flush effects and state updates synchronously in tests."
-  [f]
-  (set! js/IS_REACT_ACT_ENVIRONMENT true)
-  (try
-    (.act js/React f)
-    (finally
-      (set! js/IS_REACT_ACT_ENVIRONMENT false))))
+(defn- sync-flush
+  "Synchronously flushes Reagent renders (via flushSync), after-render callbacks,
+   and drains React effects with a single act(noop)."
+  []
+  (react-dom/flushSync reagent/flush)
+  (batch/flush-after-render)
+  (act (fn [])))
 
 (defn unmount
   "Unmounts the React root for the given container (or #root by default).
@@ -101,8 +172,11 @@
   ([] (unmount (select "#root")))
   ([container]
    (when-let [root (get @render-roots container)]
-     (act #(domc/unmount root))
-     (core-swap-3! render-roots dissoc container))))
+     (react-dom/flushSync #(domc/unmount root))
+     (reagent/flush)
+     (batch/flush-after-render)
+     (act (fn []))
+     (core-swap! render-roots dissoc container))))
 
 (defn render
   "Use me to render components for testing.  Using reagent/render directly may work, but is not as good."
@@ -110,49 +184,31 @@
   ([component container]
    (let [react-root (or (get @render-roots container)
                         (let [root (domc/create-root container)]
-                          (core-swap-4! render-roots assoc container root)
-                          root))]
+                          (core-swap! render-roots assoc container root)
+                          root))
+]
      (try
-       (act (fn []
-              (.render react-root (reagent/as-element component))
-              (reagent/flush)))
-       (act (fn []
-              (reagent/flush)
-              (batch/flush-after-render)))
+       (react-dom/flushSync
+         (fn []
+           (.render react-root (reagent/as-element component))
+           (reagent/flush)))
+       (batch/flush-after-render)
+       (act (fn []))
        (catch :default e (throw (ex-info "Render Error" {:message e})))))))
 
-(defn flush []
-  (act (fn [] (reagent/flush)))
-  (act (fn []
-         (reagent/flush)
-         (batch/flush-after-render))))
-
-(def ^:private core-swap-2! (.-cljs$core$IFn$_invoke$arity$2 core-swap!))
-(def ^:private core-swap-3! (.-cljs$core$IFn$_invoke$arity$3 core-swap!))
-(def ^:private core-swap-4! (.-cljs$core$IFn$_invoke$arity$4 core-swap!))
+(defn flush [] (sync-flush))
 
 (defn reset!
   "reset! wrapped in act and flush for React 18 test compatibility."
   [atom val]
-  (act (fn []
-         (core-reset! atom val)
-         (reagent/flush)))
-  (act (fn []
-         (reagent/flush)
-         (batch/flush-after-render))))
+  (core-reset! atom val)
+  (sync-flush))
 
 (defn swap!
-  "swap! wrapped in act and flush for React 18 test compatibility."
+  "swap! wrapped in flush for React 18 test compatibility."
   [atom f & args]
-  (act (fn []
-         (case (count args)
-           0 (core-swap-2! atom f)
-           1 (core-swap-3! atom f (first args))
-           2 (core-swap-4! atom f (first args) (second args)))
-         (reagent/flush)))
-  (act (fn []
-         (reagent/flush)
-         (batch/flush-after-render))))
+  (apply core-swap! atom f args)
+  (sync-flush))
 
 (defn- resolve-node
   ([action thing]
@@ -198,9 +254,10 @@
 ;region Private Event Helpers
 
 (defn- dispatch-event
-  "Dispatches a DOM event on the node, wrapped in act()."
+  "Dispatches a DOM event on the node. State changes from the handler
+   are committed on the next flush (called by the ! variants)."
   [node event]
-  (act #(.dispatchEvent node event)))
+  (.dispatchEvent node event))
 
 (defn- mouse-event [type opts]
   (js/MouseEvent. type (clj->js (merge {:bubbles true :cancelable true} opts))))
@@ -808,18 +865,6 @@
 (defn invoke-last-ajax-post-handler [payload] (some-> (last-ajax-post-handler) (ccc/invoke payload)))
 (defn invoke-last-ajax-get-handler [payload] (some-> (last-ajax-get-handler) (ccc/invoke payload)))
 
-(defn stub-reset-swap []
-  (list
-   (before
-    (set! cljs.core/reset_BANG_ (fn [a v] (reset! a v)))
-    (set! (.-cljs$core$IFn$_invoke$arity$2 cljs.core/swap_BANG_) (fn [a f] (swap! a f)))
-    (set! (.-cljs$core$IFn$_invoke$arity$3 cljs.core/swap_BANG_) (fn [a f x] (swap! a f x)))
-    (set! (.-cljs$core$IFn$_invoke$arity$4 cljs.core/swap_BANG_) (fn [a f x y] (swap! a f x y))))
-   (after
-    (set! cljs.core/reset_BANG_ core-reset!)
-    (set! (.-cljs$core$IFn$_invoke$arity$2 cljs.core/swap_BANG_) core-swap-2!)
-    (set! (.-cljs$core$IFn$_invoke$arity$3 cljs.core/swap_BANG_) core-swap-3!)
-    (set! (.-cljs$core$IFn$_invoke$arity$4 cljs.core/swap_BANG_) core-swap-4!))))
 
 (defn stub-ws [] (redefs-around [ws/call! (stub :ws/call!)]))
 (defn last-ws-call-id [] (when-let [args (stub/last-invocation-of :ws/call!)] (first args)))

@@ -1,8 +1,7 @@
 (ns c3kit.wire.google
   (:require [c3kit.apron.corec :as ccc]
             [c3kit.apron.log :as log]
-            [c3kit.wire.js :as wjs]
-            [reagent.core :as reagent]))
+            [c3kit.wire.js :as wjs]))
 
 ;; https://developers.google.com/identity/gsi/web/reference/html-reference#element_with_class_g_id_signin
 
@@ -33,10 +32,6 @@
 (defn oauth-button
   "Renders the Google OAuth Button."
   [options body]
-  (reagent/with-let [ref-node (atom nil)]
-    (reagent/after-render
-      (fn []
-        (when-let [node @ref-node]
-          (on-button-mount options node)
-          (reset! ref-node nil))))
-    (with-ref body #(reset! ref-node %))))
+  (with-ref body (fn [node]
+                   (when node
+                     (on-button-mount options node)))))
