@@ -15,6 +15,16 @@ reagent/reagent     {:mvn/version "2.0.1"}
 
 Remove any explicit dependency on `cljsjs/react-dom-test-utils` — it is no longer used.
 
+## What Wire Handles Automatically
+
+Wire 3.0 handles these React 18 concerns internally — **no changes needed in consumer test code** for these:
+
+- **Functional compiler**: Wire sets `{:function-components true}` so `with-let finally` blocks fire properly via `useEffect` cleanup
+- **Synchronous cleanup**: Wire overrides Reagent's deferred `queue-cleanup` to run synchronously, so event listeners and reactions are cleaned up between tests
+- **Listener tracking**: Wire tracks all `document`/`window` event listeners and removes leaked ones between tests
+- **`act()` scoping**: `IS_REACT_ACT_ENVIRONMENT` is managed internally — `true` only during `act()` calls
+- **Synchronous rendering**: `flushSync` ensures renders commit immediately
+
 ## Breaking Changes in spec_helper
 
 ### 1. `simulator` var removed
@@ -45,7 +55,11 @@ Replace with the specific event function:
 (wire/click! "#button")
 ```
 
-### 3. `mouse-down` signature normalized
+### 3. `stub-reset-swap` removed
+
+No longer needed. `wire/reset!` and `wire/swap!` handle flushing directly without arity-specific overrides.
+
+### 4. `mouse-down` signature normalized
 
 The old 3-arity `[root button selector]` is removed. Use opts map instead:
 
@@ -57,13 +71,13 @@ The old 3-arity `[root button selector]` is removed. Use opts map instead:
 (wire/mouse-down! root "#button" {:button 1})
 ```
 
-### 4. `check-box` uses click events
+### 5. `check-box` uses click events
 
 `check-box` now dispatches a native `click` event instead of `Simulate.change`. It only dispatches when the desired value differs from the current DOM state. This matches real browser behavior where clicking a checkbox toggles its state.
 
 **Impact:** Tests that call `(wire/check-box! selector true)` on an already-checked checkbox will be a no-op. If your test relies on the onChange handler firing regardless of current state, you may need to adjust.
 
-### 5. `change` is now element-type-aware
+### 6. `change` is now element-type-aware
 
 `change` detects the element type and dispatches the appropriate event:
 
@@ -74,7 +88,7 @@ The old 3-arity `[root button selector]` is removed. Use opts map instead:
 
 **Impact:** If you have non-React event listeners on `change` events for text inputs, they won't fire — use the DOM `input` event instead. For `<select>` elements, the `change` event is dispatched as before.
 
-### 6. `wire/unmount` replaces `reagent.dom/unmount-component-at-node`
+### 7. `wire/unmount` replaces `reagent.dom/unmount-component-at-node`
 
 React 18 uses `createRoot` / `root.unmount()` instead of `ReactDOM.unmountComponentAtNode`. The old API is a no-op in React 18. Wire now provides:
 
@@ -99,13 +113,13 @@ React 18 batches ALL state updates by default, not just those inside event handl
 
 ### Use `wire/reset!` and `wire/swap!` for Reagent Atoms
 
-Wire provides `act()`-wrapped versions of `reset!` and `swap!`. Use these instead of `clojure.core/reset!` and `clojure.core/swap!` when modifying Reagent atoms that affect rendered components:
+Wire provides flush-wrapped versions of `reset!` and `swap!`. Use these instead of `clojure.core/reset!` and `clojure.core/swap!` when modifying Reagent atoms that affect rendered components:
 
 ```clojure
 ;; Before (may not flush in React 18)
 (reset! my-atom new-value)
 
-;; After (wrapped in act, flushes synchronously)
+;; After (flushes synchronously)
 (wire/reset! my-atom new-value)
 ```
 
@@ -120,13 +134,25 @@ If your `before` block sets up state that components depend on, add a `wire/flus
   (wire/flush))  ;; Ensure components re-render with new state
 ```
 
+### Multiple Flushes for Effect Chains
+
+Components with `use-effect` that trigger state changes may need multiple `wire/flush` calls to fully settle. If a single flush isn't enough (component renders but the effect-triggered re-render hasn't happened), add another flush:
+
+```clojure
+(wire/render [my-component])
+(wire/flush)   ;; First: render + effects
+(wire/flush)   ;; Second: re-renders from effect state changes
+```
+
+This is common with components that compute derived state in `use-effect`.
+
 ### `act()` Warnings
 
-Wire now scopes `IS_REACT_ACT_ENVIRONMENT` to `act()` calls only — it's `false` by default and set to `true` inside each `act()` invocation. This means:
+Wire scopes `IS_REACT_ACT_ENVIRONMENT` to `act()` calls only — it's `false` by default and set to `true` inside each `act()` invocation. This means:
 
 - **You should NOT see act warnings from `before`/`after` blocks.** State updates outside `act()` are expected in test setup and no longer produce warnings.
 - **You WILL see act warnings if `IS_REACT_ACT_ENVIRONMENT` is set to `true` globally.** If you previously set this flag yourself, remove it — wire handles it internally.
-- Wire's `render`, `flush`, `reset!`, `swap!`, and all event functions use `act()` internally, so all rendering-related state updates are properly wrapped.
+- Wire's `render`, `flush`, `reset!`, `swap!`, and all event functions handle `act()` internally, so all rendering-related state updates are properly wrapped.
 
 If you do need to wrap a custom state update in `act()` (e.g., simulating an async callback that triggers a re-render), use `wire/act` directly:
 
@@ -135,22 +161,24 @@ If you do need to wrap a custom state update in `act()` (e.g., simulating an asy
 (wire/flush)
 ```
 
-### `with-redefs` and `wire/render` Timing
+### `with-let finally` Cleanup
 
-React 18's `wire/render` uses double-`act()` to flush both Reagent and React batches. If you use `with-redefs` inside a test body and call `wire/render` within it, the second `act()` pass may trigger a re-render AFTER `with-redefs` has restored the original bindings.
+Wire ensures `with-let finally` blocks fire synchronously on unmount. This means:
 
-**Symptoms:** Test stubs `time/now` or other functions, renders a component, but the component sees the real (unstubbed) value.
+- Event listeners registered in `with-let` are properly removed
+- Intervals/timeouts started in `with-let` are properly cleared
+- Reagent reactions are properly disposed
 
-**Workaround:** Use `wire/unmount` then `wire/render` inside the `with-redefs` scope. The unmount forces React 18 to discard the existing component tree, and the fresh render picks up the stubbed bindings:
+Tests that verify cleanup behavior (e.g., checking that an interval is cleared after unmount) should work naturally:
 
 ```clojure
-(with-redefs [time/now #(time/parse "yyyy-MM-dd" "2021-02-01")]
+(it "clears interval on unmount"
   (wire/unmount)
-  (wire/render [my-component])
-  (should-contain "2021" (wire/html "#-year")))
+  (wire/flush)
+  (should-be empty? (worker/intervals)))
 ```
 
-`wire/flush` alone won't work because non-reactive function calls (like `time/now`) don't trigger Reagent re-renders.
+No special handling is needed — write tests in a behavioral style, agnostic to whether cleanup happens via `useEffect` or `with-let finally`.
 
 ### Bucket re-memory and Reagent 2
 
@@ -176,14 +204,6 @@ The native `click` event for checkboxes behaves differently from `Simulate.chang
 ;; If you need to ensure the handler fires:
 (wire/click! "#my-checkbox")  ;; Always toggles
 ```
-
-### Pattern: Select/deselect all in multi-select
-
-If a "Select All" checkbox is controlled by React and your test calls `(wire/check-box! "#select-all" true)` but the checkbox is already checked (React rendered it as checked), the click won't fire. Solutions:
-
-1. Use `wire/click!` directly to always toggle
-2. Ensure the test starts from a known unchecked state
-3. Check the current state before deciding to click
 
 ### Pattern: Controlled checkbox with stubbed handlers
 
@@ -227,33 +247,6 @@ For cases where you only need the bubbling event, `wire/focus-out!` is also avai
 
 ```clojure
 (wire/focus-out! "#my-input")  ;; dispatches only focusout (bubbles)
-```
-
-## Form-2 Components and Modal Re-install
-
-Reagent form-2 components (outer `let` + inner `fn`) persist their local state (atoms created in the `let`) across React 18 re-renders. When a modal is closed and re-opened with `modal/install!`, React 18 may reuse the existing component instance rather than remounting, so the ratom retains values from the previous test.
-
-Fix: add `wire/flush` between `modal/close!` and `modal/install!` to ensure React fully unmounts the component before remounting:
-
-```clojure
-(modal/close!)
-(wire/flush)          ;; Force React to unmount the form-2 component
-(modal/install! :my-modal :key value)
-(wire/flush)          ;; Ensure the new instance renders
-```
-
-If the component reads from the DB, ensure the DB entity has the correct state before re-opening.
-
-## `component-did-update` Lifecycle in React 18
-
-React 18 may skip `component-did-update` when re-rendering with identical props. If a test renders the same component twice and expects the update lifecycle to fire, pass a different prop to force the update:
-
-```clojure
-;; First render
-(wire/render [my-component {:value "a"}])
-
-;; Second render — must differ from first to trigger component-did-update
-(wire/render [my-component {:value "b"}])
 ```
 
 ## `pushState` SecurityError on `file://` Protocol
