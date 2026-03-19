@@ -78,22 +78,22 @@
 
 (set! (.-addEventListener js/document)
       (fn [type handler & args]
-        (clojure.core/swap! doc-listeners conj [type handler])
+        (core-swap! doc-listeners conj [type handler])
         (.call orig-doc-add js/document type handler (first args))))
 
 (set! (.-removeEventListener js/document)
       (fn [type handler & args]
-        (clojure.core/swap! doc-listeners (fn [ls] (filterv #(not= % [type handler]) ls)))
+        (core-swap! doc-listeners (fn [ls] (filterv #(not= % [type handler]) ls)))
         (.call orig-doc-remove js/document type handler (first args))))
 
 (set! (.-addEventListener js/window)
       (fn [type handler & args]
-        (clojure.core/swap! win-listeners conj [type handler])
+        (core-swap! win-listeners conj [type handler])
         (.call orig-win-add js/window type handler (first args))))
 
 (set! (.-removeEventListener js/window)
       (fn [type handler & args]
-        (clojure.core/swap! win-listeners (fn [ls] (filterv #(not= % [type handler]) ls)))
+        (core-swap! win-listeners (fn [ls] (filterv #(not= % [type handler]) ls)))
         (.call orig-win-remove js/window type handler (first args))))
 
 (defn- remove-all-tracked-listeners! []
@@ -185,8 +185,7 @@
    (let [react-root (or (get @render-roots container)
                         (let [root (domc/create-root container)]
                           (core-swap! render-roots assoc container root)
-                          root))
-]
+                          root))]
      (try
        (react-dom/flushSync
          (fn []
