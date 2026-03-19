@@ -163,6 +163,7 @@
    and drains React effects with a single act(noop)."
   []
   (react-dom/flushSync reagent/flush)
+  (react-dom/flushSync reagent/flush)
   (batch/flush-after-render)
   (act (fn [])))
 
