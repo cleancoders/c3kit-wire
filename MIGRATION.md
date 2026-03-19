@@ -2,6 +2,45 @@
 
 This guide covers migrating consumer projects from the previous wire (React 16 + Reagent 1) to the new wire (React 18 + Reagent 2).
 
+## Architecture Rationale
+
+Understanding *why* wire's test infrastructure works the way it does will help diagnose issues in consumer projects.
+
+### The Problem Chain
+
+1. **React 18's `act()`** processes all pending work recursively (renders → effects → state changes → re-renders → ...). A naive double-`act()` per flush caused catastrophic slowdown in large test suites.
+
+2. **The fix: `flushSync` + single `act(noop)`**. `react-dom/flushSync` synchronously commits renders without recursive draining. A trailing `act(fn [])` processes only deferred `useEffect` callbacks. This cut test time from ~680s to ~43s for a 4347-test suite.
+
+3. **But `with-let finally` didn't fire.** Reagent's class-based compiler ties `with-let` cleanup to reaction disposal, which is lazy/GC-dependent. Components would unmount but their `finally` blocks (which remove event listeners, clear intervals, dispose reactions) never ran.
+
+4. **The fix: functional compiler**. Setting `{:function-components true}` makes all components render as React functional components. `with-let finally` becomes a `useEffect` cleanup, which React processes during unmount.
+
+5. **But `useEffect` cleanup was STILL deferred.** Reagent's `queue-cleanup` in the functional compiler uses `Promise.resolve().then(...)` — a microtask. In synchronous JSDOM test execution, microtasks from Promise don't run between synchronous operations. So cleanup was scheduled but never executed.
+
+6. **The fix: synchronous `queue-cleanup` override.** Wire overrides `reagent.impl.component/queue-cleanup` to run disposal immediately instead of deferring to a microtask. This is the critical piece — without it, every `with-let finally` block in the codebase silently leaks.
+
+7. **Safety net: listener tracking.** Even with proper cleanup, any bug that prevents a `finally` block from running would leak document/window event listeners. Wire intercepts `addEventListener`/`removeEventListener` on `document` and `window`, tracking all listeners. On `reset-dom!` (between tests), any remaining tracked listeners are forcefully removed. This prevents progressive slowdown from listener accumulation.
+
+### Key Diagnostic: Progressive Slowdown
+
+If tests get slower as the suite progresses (e.g., individual `describe` blocks run fast when focused but crawl in the full suite), the likely cause is **leaked event listeners or undisposed Reagent reactions**. Check:
+
+1. Are `with-let finally` blocks actually firing? Add a `println` in a `finally` block and verify it prints during the test run, not at process shutdown.
+2. Is `queue-cleanup` being overridden? The override must run before any components render.
+3. Is the functional compiler active? Without it, `with-let` cleanup uses class lifecycle methods that may not fire in React 18's JSDOM environment.
+
+### Key Diagnostic: `with-let finally` Not Firing
+
+If unmount tests fail (e.g., "expected interval to be cleared"), the `finally` block isn't executing during unmount. The root cause is almost always the `queue-cleanup` microtask issue. Verify the override is in place and runs synchronously.
+
+### Key Diagnostic: Tests Pass Individually but Fail Together
+
+This usually means test isolation is broken — state from one test leaks into the next. Common causes:
+- Module-level Reagent atoms that aren't reset between tests
+- Document/window event listeners that accumulate
+- React roots that aren't properly unmounted
+
 ## Dependency Updates
 
 Update your `deps.edn`:
