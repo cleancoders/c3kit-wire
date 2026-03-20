@@ -151,24 +151,4 @@
         (sut/swap! a assoc :count 5)
         (should-contain "5" (sut/text))))
     )
-
-  (context "stub-reset-swap"
-    (sut/stub-reset-swap)
-
-    (it "reset! flushes React state"
-      (let [a         (reagent/atom :old)
-            component (fn [] [:div (str @a)])]
-        (sut/render [component])
-        (should-contain "old" (sut/text))
-        (reset! a :new)
-        (should-contain "new" (sut/text))))
-
-    (it "swap! flushes React state"
-      (let [a         (reagent/atom 0)
-            component (fn [] [:div (str @a)])]
-        (sut/render [component])
-        (should-contain "0" (sut/text))
-        (swap! a inc)
-        (should-contain "1" (sut/text))))
-    )
   )

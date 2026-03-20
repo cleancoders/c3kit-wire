@@ -68,6 +68,11 @@
 
 
 ;region Document/Window listener tracking
+; Monkey-patches addEventListener/removeEventListener on document and window to track all
+; registered listeners. This allows bulk cleanup between tests via remove-all-tracked-listeners!
+; (called from reset-dom!), preventing listener leaks from one test polluting the next.
+; Must be namespace-level set! calls (not inside before blocks) so the patching happens once,
+; globally, before any test runs.
 
 (def ^:private doc-listeners (atom []))
 (def ^:private win-listeners (atom []))
