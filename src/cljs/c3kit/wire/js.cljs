@@ -406,6 +406,21 @@
 
 ;; ^^^^^ Painting on Canvas ^^^^^
 
+(defn use-effect
+  "React 18-safe useEffect wrapper.
+  Arities:
+    (use-effect f)               - runs f on every render, no cleanup
+    (use-effect f deps)          - runs f when deps change, no cleanup. deps is a clojure vector.
+    (use-effect f cleanup deps)  - runs f when deps change, cleanup called on unmount/re-run. deps is a clojure vector."
+  ([f] (use-effect f nil nil))
+  ([f deps] (use-effect f nil deps))
+  ([f cleanup deps]
+   (js/React.useEffect
+     (fn []
+       (f)
+       (or cleanup js/undefined))
+     (when deps (to-array deps)))))
+
 (defn scroll-into-view
   ([thing] (scroll-into-view thing {:behavior "smooth"}))
   ([thing options]

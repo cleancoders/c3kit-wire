@@ -1,7 +1,7 @@
 (ns c3kit.wire.spec-helper-spec
   (:require-macros
     [speclj.core :refer [after around before before-all context describe it
-                         redefs-around should should-be-nil should-contain should-have-invoked should-not should-not-be-nil should-not-contain should-not-throw
+                         redefs-around should focus-context should-be-nil should-contain should-have-invoked should-not should-not-be-nil should-not-contain should-not-throw
                          should-not= should= stub with with-stubs]])
   (:require [c3kit.apron.corec :as ccc]
             [c3kit.wire.ajax :as ajax]
@@ -117,4 +117,38 @@
     (ws/call! :foo {} (stub :handler))
     (sut/invoke-last-ws-call-handler :params)
     (should-have-invoked :handler {:with [:params]}))
+
+  (context "scroll events"
+    (it "dispatches scroll event on element"
+      (sut/render [:div#-scrollable {:on-scroll (stub :on-scroll)}])
+      (sut/scroll! "#-scrollable")
+      (should-have-invoked :on-scroll))
+    )
+
+  (context "act-wrapped atom operations"
+
+    (it "reset! resets atom value within act"
+      (let [a         (reagent/atom :old)
+            component (fn [] [:div (str @a)])]
+        (sut/render [component])
+        (should-contain "old" (sut/text))
+        (sut/reset! a :new)
+        (should-contain "new" (sut/text))))
+
+    (it "swap! swaps atom value within act"
+      (let [a         (reagent/atom 0)
+            component (fn [] [:div (str @a)])]
+        (sut/render [component])
+        (should-contain "0" (sut/text))
+        (sut/swap! a inc)
+        (should-contain "1" (sut/text))))
+
+    (it "swap! passes additional args"
+      (let [a         (reagent/atom {:count 0})
+            component (fn [] [:div (str (:count @a))])]
+        (sut/render [component])
+        (should-contain "0" (sut/text))
+        (sut/swap! a assoc :count 5)
+        (should-contain "5" (sut/text))))
+    )
   )

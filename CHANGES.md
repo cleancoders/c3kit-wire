@@ -1,3 +1,21 @@
+### 3.0.0
+ * Upgrades to React 18 and Reagent 2
+ * All components now render as React functional components (functional compiler enabled by default)
+ * `with-let finally` blocks fire synchronously on unmount
+ * Rendering uses `flushSync` for synchronous commits instead of `act()` for performance
+ * `wire/reset!` and `wire/swap!` now flush synchronously after updating
+ * `wire/unmount` replaces `reagent.dom/unmount-component-at-node` (React 18 `createRoot` API)
+ * Event functions (`click!`, `key-down!`, `blur!`, etc.) dispatch native DOM events with optional opts maps
+ * `change` is now element-type-aware (text inputs dispatch `input`, selects dispatch `change`, checkboxes dispatch `click`)
+ * `blur!`/`focus!` dispatch both bubbling and non-bubbling variants for React 18 event delegation
+ * `check-box` uses native `click` events (only fires when value actually changes)
+ * Document/window event listeners are tracked and cleaned up between tests
+ * Adds `wire/act` for wrapping custom state updates that need effect processing
+ * Adds `wire/suppress-history-push-state!` for `file://` protocol test environments
+ * Removes `simulator` var, `simulate`/`simulate!`, and `stub-reset-swap`
+ * Removes old `mouse-down` 3-arity `[root button selector]` — use opts map instead
+ * See docs/migrating-to-3.0.0.md for full upgrade guide
+
 ### 2.8.6
  * Fixes bug where default wrap accept header middleware was in the wrong order inside wrap-rest
 
