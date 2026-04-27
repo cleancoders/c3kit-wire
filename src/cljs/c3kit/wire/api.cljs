@@ -2,7 +2,6 @@
   (:require [c3kit.apron.corec :as ccc]
             [c3kit.apron.log :as log]
             [c3kit.wire.apic :as apic]
-            [c3kit.wire.flash :as flash]
             [c3kit.wire.flashc :as flashc]
             [c3kit.wire.js :as cc]))
 
@@ -28,7 +27,7 @@
     (catch :default e
       (log/error "AJAX handler error")
       (log/error e)
-      (flash/add-error! "Oh no!  I choked on some data.  Doh!"))))
+      ((:flash-add-error! @config) "Oh no!  I choked on some data.  Doh!"))))
 
 (defn- redirect [uri] (some-> @config :redirect-fn (ccc/invoke uri)))
 (def refresh-link [:a {:href "#" :on-click (comp cc/redirect! cc/page-href)} "refresh"])
@@ -38,7 +37,7 @@
 
 (defn new-version! [version]
   (log/warn "new version: " version ", was: " (:version @config))
-  (flash/add! new-version-flash))
+  ((:flash-add! @config) new-version-flash))
 
 ;; Options:    - extensible
 ;;  :after-all - a no-arg fn that is always invoked at the end of the entire call process
@@ -47,11 +46,11 @@
 ;;  :on-error - a (fn [payload] ...) that will be invoked when the response status is :error
 
 (defn handle-api-response [raw-response {:keys [handler options]}]
-  (flash/remove! server-down-flash)
+  ((:flash-remove! @config) server-down-flash)
   (log/trace "raw response: " raw-response)
   (let [{:keys [status flash payload version uri]} (apic/conform-response raw-response)]
     (when (seq flash)
-      (run! flash/add! flash))
+      (run! (:flash-add! @config) flash))
     (when (and version (not= version (:version @config)))
       (new-version! version))
     (when (= :ok status)
