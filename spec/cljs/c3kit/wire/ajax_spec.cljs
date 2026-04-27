@@ -5,6 +5,7 @@
             [c3kit.apron.log :as log]
             [c3kit.wire.ajax :as sut]
             [c3kit.wire.api :as api]
+            [c3kit.wire.core.ajax :as core]
             [c3kit.wire.flash :as flash]
             [c3kit.wire.js :as cc]
             [c3kit.wire.spec-helper :as helper]
@@ -32,9 +33,9 @@
 
   (context "triage-response"
 
-    (redefs-around [api/handle-api-response        (stub :handle-api-response)
-                    sut/handle-server-down         (stub :handle-server-down)
-                    sut/handle-unexpected-response (stub :handle-unknown)])
+    (redefs-around [api/handle-api-response         (stub :handle-api-response)
+                    core/handle-server-down         (stub :handle-server-down)
+                    core/handle-unexpected-response (stub :handle-unknown)])
 
     (it "success"
       (sut/triage-response {:error-code :no-error :status 200} {})
@@ -136,23 +137,23 @@
 
   (context "main api"
 
-    (redefs-around [sut/-do-ajax-request (stub :-do-ajax-request)])
+    (redefs-around [core/-do-ajax-request (stub :-do-ajax-request)])
 
     (it "get!"
       (sut/get! "/endpoint" {:foo "bar"} ccc/noop)
-      (let [[call] (stub/last-invocation-of :-do-ajax-request)]
+      (let [[_state call] (stub/last-invocation-of :-do-ajax-request)]
         (should= "GET" (:method call))
         (should= http/get (:method-fn call))))
 
     (it "post!"
       (sut/post! "/endpoint" {:foo "bar"} ccc/noop)
-      (let [[call] (stub/last-invocation-of :-do-ajax-request)]
+      (let [[_state call] (stub/last-invocation-of :-do-ajax-request)]
         (should= "POST" (:method call))
         (should= http/post (:method-fn call))))
 
     (it "request!"
       (sut/request! :foo "/endpoint" {:foo "bar"} ccc/noop)
-      (let [[call] (stub/last-invocation-of :-do-ajax-request)]
+      (let [[_state call] (stub/last-invocation-of :-do-ajax-request)]
         (should= "FOO" (:method call))))
 
     )
