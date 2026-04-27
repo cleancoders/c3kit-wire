@@ -1,6 +1,7 @@
 (ns c3kit.wire.flash
   (:require [c3kit.apron.corec :refer [conjv]]
             [c3kit.apron.log :as log]
+            [c3kit.wire.api :as api]
             [c3kit.wire.flashc :as flashc]
             [c3kit.wire.js :as wjs]
             [c3kit.wire.util :as util]
@@ -56,3 +57,13 @@
     [:div.flash-root
      (for [f flashes]
        ^{:key (flashc/id f)} [flash-message f])]))
+
+;; Side-effecting registration with c3kit.wire.api/config on namespace load.
+;; This is unusual — most namespaces don't mutate other namespaces' state at load time —
+;; but it's how we preserve backward compatibility: existing consumers expect that
+;; requiring any React-flavored namespace (which transitively requires this one) wires up
+;; flash side effects in api and core.ajax. See docs/superpowers/specs/2026-04-27-wire-core-split-design.md.
+(api/configure!
+  :flash-add!       add!
+  :flash-add-error! add-error!
+  :flash-remove!    remove!)

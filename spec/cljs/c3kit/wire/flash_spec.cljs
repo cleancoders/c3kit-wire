@@ -4,6 +4,7 @@
                                         should-contain should-have-invoked should-not should-not-be-nil
                                         should-not-contain should-not-have-invoked should-not= should= stub with with-stubs]])
   (:require [c3kit.apron.log :as log]
+            [c3kit.wire.api]
             [c3kit.wire.flash :as sut]
             [c3kit.wire.flashc :as flashc]
             [c3kit.wire.js :as wjs]
@@ -124,4 +125,10 @@
       (should-not-have-invoked :timeout))
 
     )
+
+  (it "registers itself with c3kit.wire.api on load"
+    (let [c @c3kit.wire.api/config]
+      (should= sut/add!       (:flash-add!       c))
+      (should= sut/add-error! (:flash-add-error! c))
+      (should= sut/remove!    (:flash-remove!    c))))
   )
