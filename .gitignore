@@ -9,4 +9,5 @@
 /lib
 /node_modules
 /target
+/.worktrees
 package-lock.json
