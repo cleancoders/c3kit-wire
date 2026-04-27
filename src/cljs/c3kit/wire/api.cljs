@@ -15,6 +15,9 @@
                    :ws-on-reconnected             nil
                    :ws-uri                        nil
                    :ws-uri-path                   "/user/websocket"
+                   :flash-add!                    (constantly nil)
+                   :flash-add-error!              (constantly nil)
+                   :flash-remove!                 (constantly nil)
                    }))
 
 (defn configure! [& options] (swap! config merge (ccc/->options options)))

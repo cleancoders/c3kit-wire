@@ -52,8 +52,8 @@
       )
 
     (redefs-around [sut/-request! (stub :request {:invoke (fn [_ callback] (callback @response))})])
-    (before (reset! api/config {})
-            (reset! response {:status 200 :body 1}))
+    (around [it] (let [saved @api/config] (reset! api/config {}) (it) (reset! api/config saved)))
+    (before (reset! response {:status 200 :body 1}))
 
     (it "passes through handler without middleware"
       (should= 2 (sut/get! url request callback)))

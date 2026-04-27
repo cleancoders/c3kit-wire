@@ -102,4 +102,10 @@
         (should-have-invoked :on-error)))
     )
 
+  (it "config exposes flash callback slots"
+    (let [c @sut/config]
+      (should-not-be-nil (:flash-add!       c))
+      (should-not-be-nil (:flash-add-error! c))
+      (should-not-be-nil (:flash-remove!    c))))
+
   )
