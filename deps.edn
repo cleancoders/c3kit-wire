@@ -28,7 +28,7 @@
                                      ;com.cleancoders.c3kit/apron    {:local/root "../apron"}
                                      ;com.cleancoders.c3kit/scaffold {:local/root "../scaffold"}
                                      }
-                     :extra-paths   ["dev" "spec/clj" "spec/cljc" "spec/cljs"]}
+                     :extra-paths   ["dev" "spec/clj" "spec/cljc" "spec/cljs" "src/cljs-react"]}
            :spec    {:main-opts ["-m" "speclj.main" "-c" "-t" "~slow"]}
            :spec-ci {:main-opts ["-m" "speclj.main" "-c"]}
            :cljs    {:main-opts ["-m" "c3kit.scaffold.cljs"]}
