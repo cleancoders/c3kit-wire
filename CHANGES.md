@@ -1,9 +1,13 @@
 ### 3.1.0
  * Splits the library into two artifacts:
-   * `com.cleancoders.c3kit/wire` (existing) — React-flavored, includes Reagent, cljsjs/react, cljsjs/react-dom. No consumer changes required; behavior preserved.
+   * `com.cleancoders.c3kit/wire` (existing) — React-flavored, includes Reagent, cljsjs/react, cljsjs/react-dom. No consumer changes required for typical usage; behavior preserved.
    * `com.cleancoders.c3kit/wire-core` (new) — React-free. Provides ajax/rest/websocket and JS-interop layers under `c3kit.wire.core.*` for projects that don't use Reagent.
  * Decouples `c3kit.wire.api` from `c3kit.wire.flash` via configurable callbacks (`:flash-add!`, `:flash-add-error!`, `:flash-remove!` in `api/config`). When you require any React-flavored namespace, `c3kit.wire.flash` auto-registers as the implementation, preserving existing behavior.
  * Internally, `c3kit.wire.ajax/rest/websocket` are now thin Reagent wrappers over `c3kit.wire.core.ajax/rest/websocket`; public defs (`active-ajax-requests`, `active-reqs`, `open?`, all functions) keep their reactivity, names, and arities.
+ * Notes for consumers who reach into internals:
+   * `with-redefs` / `redefs-around` on internal functions in `c3kit.wire.{ajax,rest,websocket}` (e.g. `triage-response`, `handle-server-down`, `make-call!`, `-do-ajax-request`, `-request!`) no longer intercepts internal calls — wrapper functions delegate to `c3kit.wire.core.{ajax,rest,websocket}` and the call chain runs there. Stub the corresponding `c3kit.wire.core.*` symbol instead.
+   * `c3kit.wire.websocket/client` is no longer exposed at the wrapper namespace; if you were `set!`-ing it (e.g. in tests), use `c3kit.wire.core.websocket/client`.
+   * `c3kit.wire.websocket/push-handler` is now a 1-arg delegating fn rather than a multimethod. To register a `defmethod`, extend `c3kit.wire.core.websocket/push-handler` instead — its dispatch fn takes `[state message]`.
 
 ### 3.0.0
  * Upgrades to React 18 and Reagent 2
