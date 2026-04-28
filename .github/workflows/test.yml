@@ -42,3 +42,6 @@ jobs:
 
       - name: Run ClojureScript Tests
         run: clojure -M:test:cljs once
+
+      - name: Run wire-core Classpath Isolation Tests
+        run: clojure -M:test-core:cljs once
