@@ -1,0 +1,22 @@
+{:ns-prefix      "c3kit.wire.core"
+ :ignore-errors  ["goog/i18n/bidi.js"]
+ :development    {:cache-analysis true
+                  :optimizations  :none
+                  :output-dir     "target/cljs-core/"
+                  :output-to      "target/cljs-core/c3kit_wire_core_dev.js"
+                  :pretty-print   true
+                  :source-map     true
+                  :sources        ["spec/cljs/c3kit/wire/core" "src/cljc" "src/cljs"]
+                  :specs          true
+                  :verbose        false
+                  }
+ :ci             {:cache-analysis false
+                  :optimizations  :none
+                  :output-dir     "target/cljs-core/"
+                  :output-to      "target/cljs-core/c3kit_wire_core.js"
+                  :pretty-print   false
+                  :sources        ["spec/cljs/c3kit/wire/core" "src/cljc" "src/cljs"]
+                  :specs          true
+                  :verbose        false
+                  }
+ }
