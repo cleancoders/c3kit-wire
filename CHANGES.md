@@ -1,3 +1,10 @@
+### 3.1.0
+ * Splits the library into two artifacts:
+   * `com.cleancoders.c3kit/wire` (existing) — React-flavored, includes Reagent, cljsjs/react, cljsjs/react-dom. No consumer changes required; behavior preserved.
+   * `com.cleancoders.c3kit/wire-core` (new) — React-free. Provides ajax/rest/websocket and JS-interop layers under `c3kit.wire.core.*` for projects that don't use Reagent.
+ * Decouples `c3kit.wire.api` from `c3kit.wire.flash` via configurable callbacks (`:flash-add!`, `:flash-add-error!`, `:flash-remove!` in `api/config`). When you require any React-flavored namespace, `c3kit.wire.flash` auto-registers as the implementation, preserving existing behavior.
+ * Internally, `c3kit.wire.ajax/rest/websocket` are now thin Reagent wrappers over `c3kit.wire.core.ajax/rest/websocket`; public defs (`active-ajax-requests`, `active-reqs`, `open?`, all functions) keep their reactivity, names, and arities.
+
 ### 3.0.0
  * Upgrades to React 18 and Reagent 2
  * All components now render as React functional components (functional compiler enabled by default)
