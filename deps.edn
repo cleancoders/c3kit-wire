@@ -1,5 +1,5 @@
 {
- :paths   ["src/clj" "src/cljc" "src/cljs"]
+ :paths   ["src/clj" "src/cljc" "src/cljs" "src/cljs-react"]
  :deps    {
            buddy/buddy-sign                 {:mvn/version "3.6.1-359"} ; Used by JWT
            cljs-http/cljs-http              {:mvn/version "0.1.49"}
@@ -28,7 +28,7 @@
                                      ;com.cleancoders.c3kit/apron    {:local/root "../apron"}
                                      ;com.cleancoders.c3kit/scaffold {:local/root "../scaffold"}
                                      }
-                     :extra-paths   ["dev" "spec/clj" "spec/cljc" "spec/cljs" "src/cljs-react"]}
+                     :extra-paths   ["dev" "spec/clj" "spec/cljc" "spec/cljs"]}
            :spec    {:main-opts ["-m" "speclj.main" "-c" "-t" "~slow"]}
            :spec-ci {:main-opts ["-m" "speclj.main" "-c"]}
            :cljs    {:main-opts ["-m" "c3kit.scaffold.cljs"]}
