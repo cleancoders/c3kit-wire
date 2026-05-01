@@ -18,7 +18,9 @@ We want non-React consumers to be able to use the React-free portions of the lib
 
 ## Architecture
 
-### Two artifacts, one repo, lockstep versions
+### Two independent artifacts, one repo, lockstep versions
+
+The two jars are **independent** — neither declares the other as a dep. Consumers pick one.
 
 - **`com.cleancoders.c3kit/wire-core`** *(new)* — React-free. No `reagent`, no `cljsjs/react`, no `cljsjs/react-dom` in deps.
 
@@ -29,14 +31,18 @@ We want non-React consumers to be able to use the React-free portions of the lib
   - CLJS namespace (refactored, see "Flash decoupling" below): `c3kit.wire.api` — drops its direct `c3kit.wire.flash` require; gains configurable flash callbacks in its `config` atom (default no-ops).
   - CLJS namespaces (new): `c3kit.wire.core.ajax`, `c3kit.wire.core.rest`, `c3kit.wire.core.websocket` — refactored, state-parameterized versions of today's ajax/rest/websocket. Each ships a default `cljs.core/atom`-backed instance for zero-setup non-React use.
 
-- **`com.cleancoders.c3kit/wire`** *(existing coordinate, no consumer-facing change)* — depends on `wire-core` + `reagent` + `cljsjs/react` + `cljsjs/react-dom`.
+- **`com.cleancoders.c3kit/wire`** *(existing coordinate, no consumer-facing change)* — self-contained. Bundles **all of wire-core's content** plus the Reagent wrappers, and declares `reagent` + `cljsjs/react` + `cljsjs/react-dom` alongside the existing JVM-side deps.
 
-  Provides:
+  Adds on top of wire-core's content:
   - `c3kit.wire.flash` (moved, unchanged).
   - `c3kit.wire.spec_helper` (moved, unchanged).
   - `c3kit.wire.ajax`, `c3kit.wire.rest`, `c3kit.wire.websocket` — thin wrappers that build a state map with `reagent/atom` and delegate to `c3kit.wire.core.*`. Public defs and arities identical to today's source.
 
-Existing consumers' `deps.edn` entries for `c3kit/wire` continue working unchanged; `wire-core` is pulled in transitively without notice.
+Existing consumers' `deps.edn` entries for `c3kit/wire` continue working unchanged. Bumping the version is the only change required.
+
+**Why duplicate content rather than a transitive dep?** The transitive approach (wire → wire-core) breaks when consumers use a `:local/root` jar override or any other resolution path that doesn't transparently pull the new artifact, which is a common workflow. Self-containment is worth the duplicated bytes (~140KB of compressed source) to keep the "bump the version" upgrade path frictionless.
+
+**Mixing both jars on the same classpath produces duplicate `c3kit.wire.*` entries** and is unsupported. Pick one.
 
 ### Source layout
 
@@ -56,7 +62,7 @@ src/
 │       ├── ajax.cljs                  (was c3kit.wire.ajax, refactored)
 │       ├── rest.cljs                  (was c3kit.wire.rest, refactored)
 │       └── websocket.cljs             (was c3kit.wire.websocket, refactored)
-└── cljs-react/c3kit/wire/           → wire jar (NEW source root)
+└── cljs-react/c3kit/wire/           → wire jar only (NEW source root)
     ├── ajax.cljs                    ← NEW thin wrapper
     ├── rest.cljs                    ← NEW thin wrapper
     ├── websocket.cljs               ← NEW thin wrapper
@@ -64,9 +70,9 @@ src/
     └── spec_helper.cljs               (moved from src/cljs/, unchanged)
 ```
 
-Build paths are physically disjoint: `wire-core` packs `src/clj` + `src/cljc` + `src/cljs`; `wire` packs only `src/cljs-react`. No file filtering, no overlap.
+Build paths overlap on purpose: `wire-core` packs `src/clj` + `src/cljc` + `src/cljs`; `wire` packs all four roots (`src/clj` + `src/cljc` + `src/cljs` + `src/cljs-react`). The wire jar's contents are a strict superset of wire-core's plus the React wrappers.
 
-The dev/test classpath includes all four roots — the split happens only at jar-build time.
+The dev/test classpath includes all four roots — the split only matters at jar-build time.
 
 ### Core API: state parameterization
 
@@ -199,8 +205,10 @@ This is the only "wiring" cost incurred by constraint 4 (convenience preserved):
             :jar-file (format "target/%s-%s.jar" (name core-lib) version)})))
 
 (defn jar-react [_]
-  (let [basis (b/create-basis {:project "deps.edn" :aliases [:react-only]})]
-    (b/copy-dir {:src-dirs ["src/cljs-react"]
+  ;; Default basis (no aliases) reads :deps, the full union.
+  (let [basis (b/create-basis {:project "deps.edn"})]
+    ;; Self-contained: the wire jar packs every source root.
+    (b/copy-dir {:src-dirs ["src/clj" "src/cljc" "src/cljs" "src/cljs-react"]
                  :target-dir "target/react/classes"})
     (b/write-pom {:basis basis :lib react-lib :version version
                   :class-dir "target/react/classes"})
@@ -212,12 +220,12 @@ This is the only "wiring" cost incurred by constraint 4 (convenience preserved):
 
 **`deps.edn` aliases drive each jar's pom:**
 
-- `:core-only` — `:replace-deps` with every current dep EXCEPT `reagent` and `cljsjs/react*`.
-- `:react-only` — `:replace-deps` with `c3kit/wire-core` (pinned to current version) + `reagent` + `cljsjs/react` + `cljsjs/react-dom`.
+- `:core-only` — `:replace-deps` with every current dep EXCEPT `reagent` and `cljsjs/react*`. Drives the wire-core pom.
+- (No `:react-only` alias — the wire pom uses the default `:deps` map directly, so it declares the full set including reagent/react.)
 
-The main `:deps` map remains the union (so dev/test see everything). The duplication between `:deps` and the build-only aliases is a known minor wart — acceptable given dep upgrades touch both spots only at upgrade time.
+The main `:deps` map is the source of truth for the wire jar. The `:core-only` alias maintains a parallel React-free subset; dep upgrades touch both spots only at upgrade time.
 
-**Versioning:** lockstep. Single `VERSION` file. `wire`'s pom pins `wire-core` at the exact same version. No version drift possible.
+**Versioning:** lockstep. Single `VERSION` file. The two artifacts always release together at the same version, but the poms do not reference each other.
 
 **Release flow:** `clj -T:build jar-all` produces two jars; CI deploys both in one step.
 
@@ -231,9 +239,11 @@ The main `:deps` map remains the union (so dev/test see everything). The duplica
 - Verify `(make-state my-atom-fn)` produces an instance whose state uses the supplied atom factory.
 - These run under the existing `:test` alias.
 
-**Classpath-isolation check** — a new `:test-core` alias with `:replace-deps` mirroring `:core-only` (no reagent, no cljsjs/react*) plus speclj. Runs only the `c3kit.wire.core.*` specs. If a core namespace accidentally requires reagent, this run fails to compile.
+**Classpath-isolation check** — a new `:test-core` alias with `:replace-deps` mirroring `:core-only` (no reagent, no cljsjs/react*) plus speclj/scaffold/clojurescript. Runs only the `c3kit.wire.core.*` CLJS specs via `clj -M:test-core:cljs once`. If a core namespace accidentally requires reagent (or anything else outside `:core-only`'s deps), CLJS compilation fails.
 
-**CI:** add a `clj -M:test-core:spec-ci` job alongside the existing `clj -M:test:spec-ci`. Both must pass.
+`:test-core` uses `:replace-paths` to drop `src/clj` and `src/cljs-react` from the classpath — the check is CLJS-only, and JVM-side namespaces like `c3kit.wire.google` (which imports Google Java classes) would otherwise pollute the run. Pair `:test-core` with `:cljs`, not `:spec-ci`.
+
+**CI:** add a `clojure -M:test-core:cljs once` job alongside the existing `clojure -M:test:spec-ci` and `clojure -M:test:cljs once` jobs. All must pass.
 
 ## Migration & rollout
 
@@ -243,7 +253,7 @@ Single PR. Order of operations:
 2. Refactor `c3kit.wire.ajax/rest/websocket` into `c3kit.wire.core.ajax/rest/websocket` under `src/cljs/c3kit/wire/core/`. State threaded through, `make-state` + default instance + `*-default!` convenience functions. Replace any direct flash calls in ajax with the same config-driven callback pattern. Add `core.*` specs.
 3. Move `flash.cljs`, `spec_helper.cljs` from `src/cljs/` to `src/cljs-react/`. Add the auto-registration block at the bottom of `flash.cljs`.
 4. Create new thin wrappers `c3kit.wire.ajax/rest/websocket` in `src/cljs-react/`. Reagent-atom state, re-exports, delegations. Each requires `[c3kit.wire.flash]` to ensure callback registration.
-5. Update `deps.edn` `:paths` to add `src/cljs-react`. Add `:core-only`, `:react-only`, `:test-core` aliases.
+5. Update `deps.edn` `:paths` to add `src/cljs-react`. Add `:core-only` and `:test-core` aliases. (No `:react-only` alias — the wire pom uses the default `:deps` map.)
 6. Write `build.clj` for both jars.
 7. Wire CI: add `clj -M:test-core:spec-ci` job.
 8. Bump version, release both jars together.

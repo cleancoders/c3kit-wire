@@ -2,9 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+> **⚠️ Plan superseded post-implementation (2026-05-01):** The wire jar is now **self-contained** — it bundles all of wire-core's content plus the React wrappers, with no transitive dep on wire-core. See the design doc's Architecture section for the current shape and rationale. Tasks 16, 17 (and parts of others) below describe the original wire-depends-on-wire-core approach; the current `dev/build.clj` and `deps.edn` reflect the revised approach. Treat this plan as historical context for how the split was assembled, not as a description of the current build.
+
 **Goal:** Split `c3kit-wire` into two artifacts (`wire-core` for React-free use, `wire` for React/Reagent consumers) so non-React applications can use ajax/rest/websocket/JS-interop layers without pulling in React.
 
-**Architecture:** Two artifacts published from one repo, lockstep-versioned. `wire-core` ships React-free namespaces under `src/clj`, `src/cljc`, and `src/cljs` (including new `c3kit.wire.core.ajax/rest/websocket`). `wire` ships only `src/cljs-react/` and depends on `wire-core` + Reagent + cljsjs/react. Existing consumers' `deps.edn` keeps working unchanged. Flash side effects in `c3kit.wire.api` and `c3kit.wire.core.ajax` are decoupled via callbacks in the `api/config` atom; `c3kit.wire.flash` registers itself on namespace load.
+**Architecture:** Two artifacts published from one repo, lockstep-versioned. `wire-core` ships React-free namespaces under `src/clj`, `src/cljc`, and `src/cljs` (including new `c3kit.wire.core.ajax/rest/websocket`). `wire` is self-contained — it ships everything `wire-core` ships plus the Reagent wrappers under `src/cljs-react/`, and declares Reagent + cljsjs/react alongside the existing JVM-side deps. The two artifacts are independent; neither declares the other as a dep. Existing consumers' `deps.edn` keeps working unchanged. Flash side effects in `c3kit.wire.api` and `c3kit.wire.core.ajax` are decoupled via callbacks in the `api/config` atom; `c3kit.wire.flash` registers itself on namespace load.
 
 **Tech Stack:** Clojure 1.12, ClojureScript 1.12, Reagent 2, Speclj 3.12, tools.build 0.10, deps.edn.
 

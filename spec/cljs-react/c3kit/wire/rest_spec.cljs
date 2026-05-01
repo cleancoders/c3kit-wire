@@ -6,6 +6,7 @@
             [cljs.core.async :refer-macros [go]]
             [cljs.core.async :as async]
             [cljs-http.client :as client]
+            [c3kit.wire.core.rest :as core]
             [c3kit.wire.rest :as sut]))
 
 (declare handler)
@@ -51,9 +52,9 @@
 
       )
 
-    (redefs-around [sut/-request! (stub :request {:invoke (fn [_ callback] (callback @response))})])
-    (before (reset! api/config {})
-            (reset! response {:status 200 :body 1}))
+    (redefs-around [core/-request! (stub :request {:invoke (fn [_state _channel callback] (callback @response))})])
+    (around [it] (let [saved @api/config] (reset! api/config {}) (it) (reset! api/config saved)))
+    (before (reset! response {:status 200 :body 1}))
 
     (it "passes through handler without middleware"
       (should= 2 (sut/get! url request callback)))

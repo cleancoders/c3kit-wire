@@ -1,16 +1,19 @@
-(ns c3kit.wire.websocket
+(ns c3kit.wire.core.websocket
   (:require [c3kit.apron.corec :as ccc]
             [c3kit.apron.log :as log]
             [c3kit.wire.api :as api]
             [c3kit.wire.js :as wjs]
             [c3kit.wire.websocketc :as wsc]
-            [clojure.string :as str]
-            [reagent.core :as reagent]))
+            [clojure.string :as str]))
+
+(defn make-state
+  ([] (make-state cljs.core/atom))
+  ([atom-fn] {:open?         (atom-fn false)
+              :reconnection? (atom false)
+              :pending-calls (atom [])}))
 
 (def client nil)
-(def open? (reagent/atom false))
-(def reconnection? (atom false))
-(defonce pending-calls (atom []))
+
 (declare connect!)
 
 (defn handle-remote-response [remote-call response]
@@ -26,52 +29,49 @@
   (log/debug "call: " kind params)
   (wsc/call! client kind params (partial handle-remote-response remote-call)))
 
-(defn call! [kind params handler & opt-args]
+(defn call! [state kind params handler & opt-args]
   (let [remote-call (build-remote-call kind params handler opt-args)]
-    (if @open?
+    (if @(:open? state)
       (make-call! remote-call)
-      (swap! pending-calls conj remote-call))))
+      (swap! (:pending-calls state) conj remote-call))))
 
-(defn on-open [_]
-  (let [calls @pending-calls]
-    (reset! pending-calls [])
+(defn on-open [state _]
+  (let [calls @(:pending-calls state)]
+    (reset! (:pending-calls state) [])
     (doseq [call calls]
       (make-call! call))))
 
-(defmulti push-handler :kind)
+(defmulti push-handler (fn [_state message] (:kind message)))
 
-(defmethod push-handler :ws/ping [_]) ; nothing to do really
+(defmethod push-handler :ws/ping [_ _])
 
-(defmethod push-handler :default [message]
+(defmethod push-handler :default [_ message]
   (log/warn "Unhandled push event: " message))
 
-(defmethod push-handler :ws/hello [{:keys [params]}]
+(defmethod push-handler :ws/hello [_ {:keys [params]}]
   (log/debug "hello: " params))
 
-(defmethod push-handler :ws/open [_]
-  (reset! open? true)
-  (when @reconnection?
-    (reset! reconnection? false)
+(defmethod push-handler :ws/open [state _]
+  (reset! (:open? state) true)
+  (when @(:reconnection? state)
+    (reset! (:reconnection? state) false)
     (when-let [on-reconnected (:ws-on-reconnected @api/config)]
       (on-reconnected)))
-  (let [calls @pending-calls]
-    (reset! pending-calls [])
+  (let [calls @(:pending-calls state)]
+    (reset! (:pending-calls state) [])
     (doseq [call calls]
       (make-call! call))))
 
-(defmethod push-handler :ws/close [_]
-  (reset! open? false)
-  (reset! reconnection? true)
+(defmethod push-handler :ws/close [state _]
+  (reset! (:open? state) false)
+  (reset! (:reconnection? state) true)
   (log/warn "connection closed... reconnecting")
   (wjs/timeout 1000 (connect! @api/config)))
 
-(defmethod push-handler :ws/error [_] (log/warn "websocket error"))
+(defmethod push-handler :ws/error [_ _] (log/warn "websocket error"))
 
-; ----------------- end handlers ------------------------
-
-(defn message-handler [message]
-  ;(log/info "received message: " message)
-  (push-handler message))
+(defn message-handler [state message]
+  (push-handler state message))
 
 (defn- build-local-uri [path]
   (let [location (wjs/page-location)
@@ -91,30 +91,22 @@
         uri           (build-connection-uri config connection-id)]
     (wsc/connect! client uri (:ws-csrf-token config) connection-id)))
 
-(defn start! []
+(defn start! [state atom-fn]
   (when-not client
     (if (:ws-csrf-token @api/config)
-      (do (set! client (wsc/create message-handler :atom-fn reagent/atom))
+      (do (set! client (wsc/create (partial message-handler state) :atom-fn atom-fn))
           (connect! @api/config))
       (log/error "CSRF Token missing.  Unable to start websocket."))))
 
 (defn stop! []
-  ;; TODO - MDM: add close capability
   (log/info "stopping websocket"))
 
-(defn disconnected-button []
-  (let [open? (reagent/atom false)]
-    (fn []
-      [:div.contextual-menu-anchor
-       [:button#-disconnected-button.disconnected.naked {:on-click #(reset! open? true)}
-        [:span.fas.fa-exclamation-triangle.animation.error.small-margin-left]]
-       (when @open?
-         [:div#-disconnected-menu-overlay.contextual-menu {:on-click #(reset! open? false)}
-          [:div#-disconnected-menu.card
-           [:h5.small-margin-bottom [:span.fas.fa-link] "Connection Broken"]
-           ;[:p (pr-str @ws/channel-state)]
-           [:p.margin-bottom "Your connection with the server has been broken. "
-            "We are trying to reconnect.  If that doesn't seem to help, please try reloading this page."]
-           [:button.primary {:on-click wjs/page-reload!} "Reload Page"]]])])))
+(defonce default-state (make-state))
+(def open? (:open? default-state))
+(def reconnection? (:reconnection? default-state))
+(def pending-calls (:pending-calls default-state))
 
-(defn connection-status [] (when-not @open? [disconnected-button]))
+(defn call-default! [kind params handler & opt-args]
+  (apply call! default-state kind params handler opt-args))
+
+(defn start-default! [] (start! default-state cljs.core/atom))

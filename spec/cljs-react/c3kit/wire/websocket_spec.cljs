@@ -4,6 +4,7 @@
   (:require [c3kit.apron.corec :as ccc]
             [c3kit.apron.log :as log]
             [c3kit.wire.api :as api]
+            [c3kit.wire.core.websocket :as core]
             [c3kit.wire.js :as wjs]
             [c3kit.wire.websocket :as sut]
             [c3kit.wire.websocketc :as wsc]
@@ -15,7 +16,7 @@
   (with-stubs)
   (around [it] (log/capture-logs (it)))
 
-  (redefs-around [sut/make-call! (stub :make-call!)])
+  (redefs-around [core/make-call! (stub :make-call!)])
 
   (it "on-connect callback"
     (sut/call! :some/call {} ccc/noop)
@@ -24,7 +25,7 @@
     (should-have-invoked :make-call!))
 
   (it "on-connect invokes immediately if already connected"
-    (set! sut/client (atom {:connection {:open? true}}))
+    (set! core/client (atom {:connection {:open? true}}))
     (sut/call! :some/call {} ccc/noop)
     (should-have-invoked :make-call!))
 

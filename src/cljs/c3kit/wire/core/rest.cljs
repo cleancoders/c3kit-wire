@@ -1,22 +1,25 @@
-(ns c3kit.wire.rest
+(ns c3kit.wire.core.rest
   (:require [c3kit.apron.corec :as ccc]
             [c3kit.wire.api :as api]
             [c3kit.wire.restc :as restc]
             [cljs-http.client :as client]
             [cljs.core.async :refer-macros [go]]
-            [cljs.core.async :as async]
-            [reagent.core :as reagent]))
+            [cljs.core.async :as async]))
+
+(defn make-state
+  ([] (make-state cljs.core/atom))
+  ([atom-fn] {:active-requests (atom-fn 0)}))
 
 (defn configure! [& options]
   (swap! api/config merge (ccc/->options options)))
 
-(defn success? [response] (<= 200 (:status response) 299))
-(defn error? [response] (<= 400 (:status response) 600))
-(defn bad-req? [response] (= 400 (:status response)))
+(defn success?         [response] (<= 200 (:status response) 299))
+(defn error?           [response] (<= 400 (:status response) 600))
+(defn bad-req?         [response] (= 400 (:status response)))
 (defn unauthenticated? [response] (= 401 (:status response)))
-(defn unauthorized? [response] (= 403 (:status response)))
-(defn not-found? [response] (= 404 (:status response)))
-(defn server-error? [response] (<= 500 (:status response)))
+(defn unauthorized?    [response] (= 403 (:status response)))
+(defn not-found?       [response] (= 404 (:status response)))
+(defn server-error?    [response] (<= 500 (:status response)))
 
 (defn payload [opts response]
   (if (:rest/unwrap-body? opts)
@@ -64,31 +67,30 @@
             (handler response))]
     (partial (middleware callback) opts)))
 
-(def active-reqs (reagent/atom 0))
-(defn activity? [] (not= 0 @active-reqs))
-
-(defn -request! [channel callback]
+(defn -request! [state channel callback]
   (go
-    (swap! active-reqs inc)
+    (swap! (:active-requests state) inc)
     (callback (async/<! channel))
-    (swap! active-reqs dec))
+    (swap! (:active-requests state) dec))
   nil)
 
-(defn request! [method url request handler options]
+(defn request! [state method url request handler options]
   (let [opts       (merge @api/config (ccc/->options options))
         middleware (:rest/response-middleware opts)
         callback   (if middleware (wrap-handler middleware handler opts) handler)
         channel    (method url (restc/-maybe-update-req request))]
-    (-request! channel callback)))
+    (-request! state channel callback)))
 
-(defn get! [url request callback & opts]
-  (request! client/get url request callback opts))
+(defn get!    [state url request callback & opts] (request! state client/get    url request callback opts))
+(defn post!   [state url request callback & opts] (request! state client/post   url request callback opts))
+(defn put!    [state url request callback & opts] (request! state client/put    url request callback opts))
+(defn delete! [state url request callback & opts] (request! state client/delete url request callback opts))
 
-(defn post! [url request callback & opts]
-  (request! client/post url request callback opts))
+(defonce default-state (make-state))
+(def active-reqs (:active-requests default-state))
+(defn activity? [] (not= 0 @active-reqs))
 
-(defn put! [url request callback & opts]
-  (request! client/put url request callback opts))
-
-(defn delete! [url request callback & opts]
-  (request! client/delete url request callback opts))
+(defn get-default!    [url request callback & opts] (apply get!    default-state url request callback opts))
+(defn post-default!   [url request callback & opts] (apply post!   default-state url request callback opts))
+(defn put-default!    [url request callback & opts] (apply put!    default-state url request callback opts))
+(defn delete-default! [url request callback & opts] (apply delete! default-state url request callback opts))

@@ -1,3 +1,16 @@
+### 4.0.0
+ * Adds a second, React-free artifact alongside the existing `wire` jar:
+   * `com.cleancoders.c3kit/wire` (existing) — React-flavored. Self-contained: ships everything `wire-core` ships **plus** the Reagent wrappers and React/Reagent deps. Most consumers upgrading from 3.0.0 just bump the version (see breaking changes below for the exceptions).
+   * `com.cleancoders.c3kit/wire-core` (new) — React-free. Same `c3kit.wire.*` namespaces minus the Reagent wrappers (`ajax`, `rest`, `websocket`, `flash`, `spec_helper`), plus the new `c3kit.wire.core.{ajax,rest,websocket}` namespaces. No `reagent` / `cljsjs/react*` deps. Pull this if your project doesn't use React.
+ * The two artifacts are independent — `wire` does **not** declare `wire-core` as a dependency. Pick one. Pulling both onto the same classpath produces duplicate `c3kit.wire.*` entries.
+ * Decouples `c3kit.wire.api` from `c3kit.wire.flash` via configurable callbacks (`:flash-add!`, `:flash-add-error!`, `:flash-remove!` in `api/config`). When you require any React-flavored namespace, `c3kit.wire.flash` auto-registers as the implementation, preserving existing behavior.
+ * Internally, `c3kit.wire.ajax/rest/websocket` are now thin Reagent wrappers over `c3kit.wire.core.ajax/rest/websocket`; public defs (`active-ajax-requests`, `active-reqs`, `open?`, all functions) keep their reactivity, names, and arities.
+ * **Note for `:local/root` / `:git/url` consumers:** the default `:deps` map in `deps.edn` is now the React-free core dep set; `reagent` and `cljsjs/react*` live on a new `:react` alias. Maven consumers (`:mvn/version`) are unaffected — the published poms still declare the full dep list for whichever artifact you pulled. Projects that depend on `c3kit-wire` via `:local/root` or `:git/url` need to add `:react` to their alias chain (or pin Reagent/React deps themselves) to keep getting the React layer in development.
+ * **Breaking changes for consumers who reach into internals** (this is why the major version bumps from 3 to 4):
+   * `c3kit.wire.websocket/push-handler` is now a 1-arg delegating fn rather than a multimethod. `(defmethod c3kit.wire.websocket/push-handler ...)` will fail at namespace load time with a `Cannot read properties of undefined (reading 'call')` error. Migrate by extending `c3kit.wire.core.websocket/push-handler` instead — its dispatch fn takes `[state message]`, so the method body needs an extra `_state` arg.
+   * `c3kit.wire.websocket/client` is no longer exposed at the wrapper namespace; if you were `set!`-ing it (e.g. in tests), use `c3kit.wire.core.websocket/client`.
+   * `with-redefs` / `redefs-around` on internal functions in `c3kit.wire.{ajax,rest,websocket}` (e.g. `triage-response`, `handle-server-down`, `make-call!`, `-do-ajax-request`, `-request!`) no longer intercepts internal calls — wrapper functions delegate to `c3kit.wire.core.{ajax,rest,websocket}` and the call chain runs there. Stub the corresponding `c3kit.wire.core.*` symbol instead.
+
 ### 3.0.0
  * Upgrades to React 18 and Reagent 2
  * All components now render as React functional components (functional compiler enabled by default)
