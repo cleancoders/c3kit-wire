@@ -25,14 +25,16 @@
   (b/delete {:path "target"}))
 
 (defn- core-basis []
-  (b/create-basis {:project "deps.edn" :aliases [:core-only]}))
+  ;; The main :deps map is the React-free core dep set, so the default basis
+  ;; (no aliases) is exactly what wire-core's pom should declare.
+  (b/create-basis {:project "deps.edn"}))
 
 (defn- react-basis []
-  ;; Inject wire-core at the current VERSION via :extra so the alias itself
-  ;; doesn't have to keep a hard-coded version string in sync with VERSION.
-  (b/create-basis {:project "deps.edn"
-                   :aliases [:react-only]
-                   :extra   {:deps {core-lib {:mvn/version version}}}}))
+  ;; The wire jar is self-contained — it ships all of wire-core's sources plus
+  ;; the React wrappers — so its pom needs every runtime dep. The :react alias
+  ;; layers reagent + cljsjs/react* on top of the core :deps, producing exactly
+  ;; that union.
+  (b/create-basis {:project "deps.edn" :aliases [:react]}))
 
 (defn jar-core [_]
   (println "building" core-jar-file)
@@ -50,7 +52,10 @@
 (defn jar-react [_]
   (println "building" react-jar-file)
   (let [basis (react-basis)]
-    (b/copy-dir {:src-dirs   ["src/cljs-react"]
+    ;; Self-contained: ship every source root. The wire jar duplicates wire-core's
+    ;; content on purpose so that pulling wire alone works as a drop-in for 3.0.0,
+    ;; with no transitive dep on wire-core.
+    (b/copy-dir {:src-dirs   ["src/clj" "src/cljc" "src/cljs" "src/cljs-react"]
                  :target-dir react-class-dir})
     (b/write-pom {:basis     basis
                   :class-dir react-class-dir
@@ -72,13 +77,6 @@
 (defn jar [_]
   (clean nil)
   (jar-core nil)
-  ;; Install wire-core to local Maven so jar-react's basis can resolve it.
-  ;; This is a side effect of building, intentional: the wire jar's pom must
-  ;; declare wire-core as a dep at the same version, and tools.deps insists on
-  ;; resolving every declared dep. Local install is the simplest way to make
-  ;; that resolution succeed without round-tripping through Clojars.
-  (println "installing wire-core" version "to local Maven (build prerequisite)")
-  (aether/install (deploy-config core-lib core-jar-file core-class-dir))
   (jar-react nil))
 
 (defn tag [_]
@@ -91,9 +89,9 @@
                     (shell/sh "git" "push" "--tags")))))
 
 (defn install [_]
-  ;; (jar nil) already installs wire-core to local Maven as a build prerequisite,
-  ;; so we only install the wire jar here.
   (jar nil)
+  (println "installing wire-core" version)
+  (aether/install (deploy-config core-lib core-jar-file core-class-dir))
   (println "installing wire" version)
   (aether/install (deploy-config react-lib react-jar-file react-class-dir)))
 

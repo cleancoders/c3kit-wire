@@ -9,7 +9,7 @@
                   :output-to      "target/cljs/c3kit_wire_dev.js"
                   :pretty-print   true
                   :source-map     true
-                  :sources        ["spec/cljc" "spec/cljs" "src/cljc" "src/cljs"]
+                  :sources        ["spec/cljc" "spec/cljs" "spec/cljs-react" "src/cljc" "src/cljs" "src/cljs-react"]
                   :specs          true
                   :verbose        false
                   :watch-fn       c3kit.scaffold.cljs/on-dev-compiled
@@ -20,7 +20,7 @@
                   :output-dir     "target/cljs/"
                   :output-to      "target/cljs/c3kit_wire.js"
                   :pretty-print   false
-                  :sources        ["spec/cljc" "spec/cljs" "src/cljs" "src/cljc"]
+                  :sources        ["spec/cljc" "spec/cljs" "spec/cljs-react" "src/cljc" "src/cljs" "src/cljs-react"]
                   :specs          true
                   :verbose        false
                   }
@@ -34,7 +34,7 @@
                   :pretty-print   false
                   ;:pretty-print   true
                   ;:pseudo-names   true
-                  :sources        ["src/cljc" "src/cljs"]
+                  :sources        ["src/cljc" "src/cljs" "src/cljs-react"]
                   :specs          false
                   :verbose        false
                   }
@@ -46,7 +46,7 @@
                   :output-to      "target/cljs/c3kit_wire.js"
                   :pretty-print   true
                   :pseudo-names   true
-                  :sources        ["src/cljc" "src/cljs"]
+                  :sources        ["src/cljc" "src/cljs" "src/cljs-react"]
                   :specs          false
                   :verbose        false
                   }

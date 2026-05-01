@@ -1,10 +1,8 @@
 {
- :paths   ["src/clj" "src/cljc" "src/cljs" "src/cljs-react"]
+ :paths   ["src/clj" "src/cljc" "src/cljs"]
  :deps    {
            buddy/buddy-sign                 {:mvn/version "3.6.1-359"} ; Used by JWT
            cljs-http/cljs-http              {:mvn/version "0.1.49"}
-           cljsjs/react                     {:mvn/version "18.3.1-1"}
-           cljsjs/react-dom                 {:mvn/version "18.3.1-1"}
            com.cleancoders.c3kit/apron      {:mvn/version "2.5.0"}
            compojure/compojure              {:mvn/version "1.7.2" :exclusions [ring/ring-core ring/ring-codec]}
            http-kit/http-kit                {:mvn/version "2.8.1"}
@@ -13,11 +11,18 @@
            org.clojure/clojure              {:mvn/version "1.12.4"}
            org.clojure/core.async           {:mvn/version "1.8.741"}
            org.redisson/redisson            {:mvn/version "3.52.0"} ; Used for Redis Locks
-           reagent/reagent                  {:mvn/version "2.0.1"}
            ring/ring                        {:mvn/version "1.15.3"}
            ring/ring-anti-forgery           {:mvn/version "1.4.0"}
            }
  :aliases {
+           ;; React layer — adds the Reagent wrappers, their deps, the React-flavored specs,
+           ;; and the React scaffold cljs config. Chain this in to build/test/develop the wire jar.
+           ;; dev-react/ comes before dev-core/ in classpath order (it appears earlier in the
+           ;; alias chain), so its config/cljs.edn wins when both are on the classpath.
+           :react   {:extra-deps  {cljsjs/react     {:mvn/version "18.3.1-1"}
+                                   cljsjs/react-dom {:mvn/version "18.3.1-1"}
+                                   reagent/reagent  {:mvn/version "2.0.1"}}
+                     :extra-paths ["src/cljs-react" "spec/cljs-react" "dev-react"]}
            :test    {:extra-deps    {speclj/speclj                           {:mvn/version "3.12.0"}
                                      org.clojure/clojurescript               {:mvn/version "1.12.134"}
                                      com.cleancoders.c3kit/scaffold          {:mvn/version "2.3.2"}
@@ -31,38 +36,11 @@
                      :extra-paths   ["dev" "spec/clj" "spec/cljc" "spec/cljs"]}
            :spec    {:main-opts ["-m" "speclj.main" "-c" "-t" "~slow"]}
            :spec-ci {:main-opts ["-m" "speclj.main" "-c"]}
-           :cljs    {:main-opts ["-m" "c3kit.scaffold.cljs"]}
-           :core-only  {:replace-deps {buddy/buddy-sign                 {:mvn/version "3.6.1-359"}
-                                       cljs-http/cljs-http              {:mvn/version "0.1.49"}
-                                       com.cleancoders.c3kit/apron      {:mvn/version "2.5.0"}
-                                       compojure/compojure              {:mvn/version "1.7.2" :exclusions [ring/ring-core ring/ring-codec]}
-                                       http-kit/http-kit                {:mvn/version "2.8.1"}
-                                       io.lettuce/lettuce-core          {:mvn/version "6.8.1.RELEASE"}
-                                       org.apache.commons/commons-pool2 {:mvn/version "2.12.1"}
-                                       org.clojure/clojure              {:mvn/version "1.12.4"}
-                                       org.clojure/core.async           {:mvn/version "1.8.741"}
-                                       org.redisson/redisson            {:mvn/version "3.52.0"}
-                                       ring/ring                        {:mvn/version "1.15.3"}
-                                       ring/ring-anti-forgery           {:mvn/version "1.4.0"}}}
-           :test-core  {:replace-deps {buddy/buddy-sign                 {:mvn/version "3.6.1-359"}
-                                      cljs-http/cljs-http              {:mvn/version "0.1.49"}
-                                      com.cleancoders.c3kit/apron      {:mvn/version "2.5.0"}
-                                      com.cleancoders.c3kit/scaffold   {:mvn/version "2.3.2"}
-                                      compojure/compojure              {:mvn/version "1.7.2" :exclusions [ring/ring-core ring/ring-codec]}
-                                      http-kit/http-kit                {:mvn/version "2.8.1"}
-                                      io.lettuce/lettuce-core          {:mvn/version "6.8.1.RELEASE"}
-                                      org.apache.commons/commons-pool2 {:mvn/version "2.12.1"}
-                                      org.clojure/clojure              {:mvn/version "1.12.4"}
-                                      org.clojure/clojurescript        {:mvn/version "1.12.134"}
-                                      org.clojure/core.async           {:mvn/version "1.8.741"}
-                                      org.redisson/redisson            {:mvn/version "3.52.0"}
-                                      ring/ring                        {:mvn/version "1.15.3"}
-                                      ring/ring-anti-forgery           {:mvn/version "1.4.0"}
-                                      speclj/speclj                    {:mvn/version "3.12.0"}}
-                       :extra-paths  ["dev-core" "dev" "src/clj" "src/cljc" "src/cljs" "spec/cljs/c3kit/wire/core"]}
-           :react-only {:replace-deps {cljsjs/react     {:mvn/version "18.3.1-1"}
-                                       cljsjs/react-dom {:mvn/version "18.3.1-1"}
-                                       reagent/reagent  {:mvn/version "2.0.1"}}}
+           ;; CLJS test runner. dev-core/config/cljs.edn provides the React-free scaffold config
+           ;; (only spec/cljs and src/cljs sources). When :react is also chained, dev-react/config/cljs.edn
+           ;; takes precedence — see :react above.
+           :cljs    {:extra-paths ["dev-core"]
+                     :main-opts   ["-m" "c3kit.scaffold.cljs"]}
            :antq    {:deps      {com.github.liquidz/antq {:mvn/version "2.11.1276"}}
                      :main-opts ["-m" "antq.core"]}
            :build   {:extra-deps  {io.github.clojure/tools.build {:mvn/version "0.10.11"}
