@@ -7,6 +7,8 @@ A library component of [c3kit - Clean Coders Clojure Kit](https://github.com/cle
 _"If you look very closely at just one wire in the cage, you cannot see the other wires."_ - Marilyn Frye
 
 [![Wire Build](https://github.com/cleancoders/c3kit-wire/actions/workflows/test.yml/badge.svg)](https://github.com/cleancoders/c3kit-wire/actions/workflows/test.yml)
+[![Clojars Project](https://img.shields.io/clojars/v/com.cleancoders.c3kit/wire.svg)](https://clojars.org/com.cleancoders.c3kit/wire)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 Wire is a toolset for building rich-client web applications, clojure on the server side and clojurescript on the client side.
 
@@ -83,19 +85,31 @@ Maven consumers (the `:mvn/version` case) are unaffected by the deps.edn layout 
 
 If you depend on `c3kit-wire` via `:local/root` or `:git/url`, your project reads this `deps.edn` directly. The default `:deps` is React-free, so add the `:react` alias to your alias chain (or pin `reagent` / `cljsjs/react*` yourself) when you need the Reagent layer.
 
+# Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the development workflow, TDD
+expectations, the dual-jar story, and pull-request requirements. This project
+follows the [Contributor Covenant Code of Conduct](CODE_OF_CONDUCT.md).
+Security issues should be reported privately — see [SECURITY.md](SECURITY.md).
+
 # Deployment
 
-In order to deploy to c3kit you must be a member of the Clojars group `com.cleancoders.c3kit`.
+You must be a member of the Clojars group `com.cleancoders.c3kit`.
 
-1. Go to https://clojars.org/tokens and configure a token with the appropriate scope
-2. Set the following environment variables
+1. Generate a deploy token at https://clojars.org/tokens with the appropriate scope.
+2. Export credentials:
 
 ```
 CLOJARS_USERNAME=<your username>
 CLOJARS_PASSWORD=<your deploy key>
 ```
 
-3. Update VERSION file
+3. Update `VERSION`.
 4. `clj -T:build deploy`
 
-`clj -T:build deploy` cleans, builds both jars, and pushes them to Clojars. `clj -T:build jar` builds without deploying. Both jars share the same VERSION.
+`clj -T:build deploy` cleans, builds both jars, and pushes them to Clojars.
+`clj -T:build jar` builds without deploying. Both jars share the same VERSION.
+
+# License
+
+[MIT](LICENSE) © Clean Coders.
