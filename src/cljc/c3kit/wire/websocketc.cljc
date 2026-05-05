@@ -111,11 +111,14 @@
                                       (let [request-counter (inc (:request-counter conn 0))
                                             conn            (assoc conn :request-counter request-counter)]
                                         (if responder
-                                          (let [timeout (when-let [timeout-millis (:request-timeout @server)]
-                                                          (-create-timeout! server conn request-counter timeout-millis))]
-                                            (update conn :responders assoc request-counter [responder timeout]))
-                                          conn))))]
-    (request (:request-counter connection) kind params (some? responder))))
+                                          (update conn :responders assoc request-counter [responder nil])
+                                          conn))))
+        request-id (:request-counter connection)]
+    (when (and responder (get-in connection [:responders request-id]))
+      (when-let [timeout-millis (:request-timeout @server)]
+        (let [timeout (-create-timeout! server conn-atom request-id timeout-millis)]
+          (swap! conn-atom assoc-in [:responders request-id 1] timeout))))
+    (request request-id kind params (some? responder))))
 
 (defn -do-call! [state connection kind params handler options]
   (let [options (when options (ccc/->options options))]
