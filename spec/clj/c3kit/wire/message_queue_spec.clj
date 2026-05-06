@@ -103,6 +103,12 @@
            (sut/enqueue "foo" "buzz")
            @flushed?#
            (should= "bazbuzz" @result#)
+           (let [deadline# (+ (System/currentTimeMillis) 2000)]
+             (loop []
+               (when (and (not (.contains (log/captured-logs-str) (str ex#)))
+                          (< (System/currentTimeMillis) deadline#))
+                 (Thread/sleep 10)
+                 (recur))))
            (should-contain (str ex#) (log/captured-logs-str))))
 
        (it "message structure"
