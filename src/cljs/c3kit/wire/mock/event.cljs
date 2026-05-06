@@ -5,7 +5,7 @@
 
 ;region API
 
-;; TODO [BAC]: Could be better (maybe?)... will work for now
+;; TODO: Could be better (maybe?)... will work for now
 (defmulti ->OpenEvent (fn [ws] (type ws)))
 (defmulti ->CloseEvent (fn [ws _code _reason _clean?] (type ws)))
 (defmulti ->MessageEvent (fn [ws _data] (type ws)))

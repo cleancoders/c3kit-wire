@@ -3,7 +3,7 @@ goog.provide('c3kit.wire.dnd_mobile_patch');
 goog.require('goog.fx.AbstractDragDrop');
 goog.require('goog.fx.DragDropGroup');
 
-// MDM - This Patch is based on a commit to Closure that was later reverted.
+// This patch is based on a commit to Closure that was later reverted.
 // https://git.codepku.com/zmcdbp/closure-library/commit/b996453ea82014ceaf004d41aed5d0f4dc3f07aa
 
 goog.fx.AbstractDragDrop.prototype.initItem = function (item) {
@@ -76,7 +76,7 @@ goog.fx.DragDropItem.prototype.maybeStartDrag_ = function (event, element) {
     // this.eventHandler_.listen(doc, eventType.MOUSEUP, this.mouseUp_, true).listen(doc, eventType.TOUCHEND, this.mouseUp_, true);
 
     // this.currentDragElement_ = element;
-    // MDM - What we want is the element that we registered for drag-n-drop, not any child element.
+    // What we want is the element that we registered for drag-n-drop, not any child element.
     this.currentDragElement_ = this.element;
 
     this.startPosition_ = new goog.math.Coordinate(event.clientX, event.clientY);
@@ -100,7 +100,7 @@ goog.fx.DragDropItem.prototype.maybeStartTouchDrag_ = function (event, element) 
     this.eventHandler_.listen(doc,goog.events.EventType.TOUCHEND, this.touchEnd_, true);
 
     // this.currentDragElement_ = element;
-    // MDM - What we want is the element that we registered for drag-n-drop, not any child element.
+    // What we want is the element that we registered for drag-n-drop, not any child element.
     this.currentDragElement_ = this.element;
     this.startPosition_ = new goog.math.Coordinate(event.clientX, event.clientY);
 };
