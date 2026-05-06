@@ -1,3 +1,6 @@
+### 4.0.1
+ * `c3kit.wire.core.{ajax,rest}` now expose state-bound consumer functions: `get!`, `post!`, `put!`, `delete!`, and (ajax) `request!` operate on `default-state` and match the arities of their `c3kit.wire.{ajax,rest}` counterparts, so consumers can `(:require [c3kit.wire.core.ajax :as ajax])` and call `ajax/get!`. The state-taking primitives are now `do-get!`, `do-post!`, `do-put!`, `do-delete!`, `do-request!`. The previous `*-default!` variants are removed.
+
 ### 4.0.0
  * Adds a second, React-free artifact alongside the existing `wire` jar:
    * `com.cleancoders.c3kit/wire` (existing) — React-flavored. Self-contained: ships everything `wire-core` ships **plus** the Reagent wrappers and React/Reagent deps. Most consumers upgrading from 3.0.0 just bump the version (see breaking changes below for the exceptions).

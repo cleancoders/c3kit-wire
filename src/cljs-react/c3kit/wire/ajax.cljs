@@ -28,6 +28,6 @@
 (defn -do-ajax-request [ajax-call]
   (core/-do-ajax-request -state ajax-call))
 
-(defn get!     [url params handler & opts] (apply core/get!     -state url params handler opts))
-(defn post!    [url params handler & opts] (apply core/post!    -state url params handler opts))
-(defn request! [m url params handler & opts] (apply core/request! -state m url params handler opts))
+(defn get!     [url params handler & opts]   (apply core/do-get!     -state url params handler opts))
+(defn post!    [url params handler & opts]   (apply core/do-post!    -state url params handler opts))
+(defn request! [m url params handler & opts] (apply core/do-request! -state m url params handler opts))

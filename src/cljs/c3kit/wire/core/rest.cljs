@@ -81,16 +81,16 @@
         channel    (method url (restc/-maybe-update-req request))]
     (-request! state channel callback)))
 
-(defn get!    [state url request callback & opts] (request! state client/get    url request callback opts))
-(defn post!   [state url request callback & opts] (request! state client/post   url request callback opts))
-(defn put!    [state url request callback & opts] (request! state client/put    url request callback opts))
-(defn delete! [state url request callback & opts] (request! state client/delete url request callback opts))
+(defn do-get!    [state url request callback & opts] (request! state client/get    url request callback opts))
+(defn do-post!   [state url request callback & opts] (request! state client/post   url request callback opts))
+(defn do-put!    [state url request callback & opts] (request! state client/put    url request callback opts))
+(defn do-delete! [state url request callback & opts] (request! state client/delete url request callback opts))
 
 (defonce default-state (make-state))
 (def active-reqs (:active-requests default-state))
 (defn activity? [] (not= 0 @active-reqs))
 
-(defn get-default!    [url request callback & opts] (apply get!    default-state url request callback opts))
-(defn post-default!   [url request callback & opts] (apply post!   default-state url request callback opts))
-(defn put-default!    [url request callback & opts] (apply put!    default-state url request callback opts))
-(defn delete-default! [url request callback & opts] (apply delete! default-state url request callback opts))
+(defn get!    [url request callback & opts] (apply do-get!    default-state url request callback opts))
+(defn post!   [url request callback & opts] (apply do-post!   default-state url request callback opts))
+(defn put!    [url request callback & opts] (apply do-put!    default-state url request callback opts))
+(defn delete! [url request callback & opts] (apply do-delete! default-state url request callback opts))

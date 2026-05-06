@@ -91,13 +91,13 @@
    :params    params
    :handler   handler})
 
-(defn get! [state url params handler & opt-args]
+(defn do-get! [state url params handler & opt-args]
   (-do-ajax-request state (build-ajax-call "GET" http/get url params handler opt-args)))
 
-(defn post! [state url params handler & opt-args]
+(defn do-post! [state url params handler & opt-args]
   (-do-ajax-request state (build-ajax-call "POST" http/post url params handler opt-args)))
 
-(defn request! [state method url params handler & opt-args]
+(defn do-request! [state method url params handler & opt-args]
   (let [method-name (str/upper-case (name method))
         method-fn (fn [url & [req]] (http/request (merge req {:method method :url url})))]
     (-do-ajax-request state (build-ajax-call method-name method-fn url params handler opt-args))))
@@ -106,6 +106,6 @@
 (def active-ajax-requests (:active-requests default-state))
 (defn activity? [] (not= 0 @active-ajax-requests))
 
-(defn get-default!     [url params handler & opts] (apply get!     default-state url params handler opts))
-(defn post-default!    [url params handler & opts] (apply post!    default-state url params handler opts))
-(defn request-default! [m url params handler & opts] (apply request! default-state m url params handler opts))
+(defn get!     [url params handler & opts]   (apply do-get!     default-state url params handler opts))
+(defn post!    [url params handler & opts]   (apply do-post!    default-state url params handler opts))
+(defn request! [m url params handler & opts] (apply do-request! default-state m url params handler opts))

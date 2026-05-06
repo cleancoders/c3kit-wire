@@ -27,7 +27,7 @@
 
 (defn -request! [channel callback] (core/-request! -state channel callback))
 (defn request!  [method url request handler options] (core/request! -state method url request handler options))
-(defn get!      [url request callback & opts] (apply core/get!    -state url request callback opts))
-(defn post!     [url request callback & opts] (apply core/post!   -state url request callback opts))
-(defn put!      [url request callback & opts] (apply core/put!    -state url request callback opts))
-(defn delete!   [url request callback & opts] (apply core/delete! -state url request callback opts))
+(defn get!      [url request callback & opts] (apply core/do-get!    -state url request callback opts))
+(defn post!     [url request callback & opts] (apply core/do-post!   -state url request callback opts))
+(defn put!      [url request callback & opts] (apply core/do-put!    -state url request callback opts))
+(defn delete!   [url request callback & opts] (apply core/do-delete! -state url request callback opts))
