@@ -52,7 +52,7 @@
   (select-keys m [:qname :message]))
 
 (defn messages
-  "Adds a new message to the queue"
+  "Returns the messages on the queue. With no args, returns all messages across queues; with qname, returns messages for that queue."
   ([] (map conform-message (-all-messages @impl)))
   ([qname] (map conform-message (-queue-messages @impl qname))))
 

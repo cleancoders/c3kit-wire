@@ -13,6 +13,7 @@
    * `c3kit.wire.websocket/push-handler` is now a 1-arg delegating fn rather than a multimethod. `(defmethod c3kit.wire.websocket/push-handler ...)` will fail at namespace load time with a `Cannot read properties of undefined (reading 'call')` error. Migrate by extending `c3kit.wire.core.websocket/push-handler` instead — its dispatch fn takes `[state message]`, so the method body needs an extra `_state` arg.
    * `c3kit.wire.websocket/client` is no longer exposed at the wrapper namespace; if you were `set!`-ing it (e.g. in tests), use `c3kit.wire.core.websocket/client`.
    * `with-redefs` / `redefs-around` on internal functions in `c3kit.wire.{ajax,rest,websocket}` (e.g. `triage-response`, `handle-server-down`, `make-call!`, `-do-ajax-request`, `-request!`) no longer intercepts internal calls — wrapper functions delegate to `c3kit.wire.core.{ajax,rest,websocket}` and the call chain runs there. Stub the corresponding `c3kit.wire.core.*` symbol instead.
+   * `c3kit.wire.ajax/wrap-catch-api-errors` was renamed to `c3kit.wire.ajax/wrap-catch-ajax-errors` (no alias retained). Update any middleware stack that referenced the old name.
 
 ### 3.0.0
  * Upgrades to React 18 and Reagent 2

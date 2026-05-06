@@ -4,6 +4,7 @@
             [c3kit.apron.log :as log]
             [c3kit.wire.api :as api]
             [c3kit.wire.js :as cc]
+            [c3kit.wire.restc :as restc]
             [cljs-http.client :as http]
             [cljs.core.async :as async]
             [clojure.string :as str]))
@@ -32,11 +33,8 @@
         (= 403 (:status response)) ((:flash-add! @api/config) api/forbidden-flash)
         :else (handle-unexpected-response response ajax-call)))
 
-(defn- success? [{:keys [status]}]
-  (<= 200 status 299))
-
 (defn triage-response [state response ajax-call]
-  (cond (success? response) (api/handle-api-response (:body response) ajax-call)
+  (cond (restc/success? response) (api/handle-api-response (:body response) ajax-call)
         :else (if-let [handler (:ajax-on-unsuccessful-response @api/config)]
                 (handler response ajax-call)
                 (handle-unsuccessful-response state response ajax-call))))

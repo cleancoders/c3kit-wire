@@ -8,11 +8,12 @@
 
 (def default-config {:reload? false})
 
-(defn init! [config]
+(defn init!
   "Initialize the namespace with the following options:
   {
   :reload? false    ;; when true, will reload handler vars each time they are requested (for development)
   }"
+  [config]
   (reset! reload? (:reload? config false)))
 
 (defn wrap-prefix

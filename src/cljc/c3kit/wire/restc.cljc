@@ -99,8 +99,7 @@
 
 (defn ->cookies-str [cookies]
   (->> cookies
-       (map #(list (name (first %)) (:value (second %))))
-       (map #(str (first %) "=" (second %)))
+       (map (fn [[k v]] (str (name k) "=" (:value v))))
        (str/join ";")))
 
 ; TODO - append cookies if present already

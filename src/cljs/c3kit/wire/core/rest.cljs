@@ -13,7 +13,7 @@
 (defn configure! [& options]
   (swap! api/config merge (ccc/->options options)))
 
-(defn success?         [response] (<= 200 (:status response) 299))
+(def  success?         restc/success?)
 (defn error?           [response] (<= 400 (:status response) 600))
 (defn bad-req?         [response] (= 400 (:status response)))
 (defn unauthenticated? [response] (= 401 (:status response)))

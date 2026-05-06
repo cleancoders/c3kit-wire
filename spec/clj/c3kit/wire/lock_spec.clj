@@ -1,6 +1,5 @@
 (ns c3kit.wire.lock-spec
-  (:require [c3kit.wire.lock :as lock]
-            [c3kit.wire.lock :as sut]
+  (:require [c3kit.wire.lock :as sut]
             [c3kit.wire.redis]
             [speclj.core :refer :all]))
 
@@ -57,21 +56,21 @@
            (should= #{:end1 :end2} (set (drop 2 @result#)))))
 
        (it "clears all locks"
-         (let [lock#      (lock/create spec#)
+         (let [lock#      (sut/create spec#)
                executed?# (atom nil)]
-           (lock/-acquire lock# "foo")
-           (lock/-acquire lock# "bar")
-           (lock/-acquire lock# "baz")
-           (lock/-clear lock#)
-           (lock/with-lock "foo"
-             (lock/with-lock "bar"
-               (lock/with-lock "baz"
+           (sut/-acquire lock# "foo")
+           (sut/-acquire lock# "bar")
+           (sut/-acquire lock# "baz")
+           (sut/-clear lock#)
+           (sut/with-lock "foo"
+             (sut/with-lock "bar"
+               (sut/with-lock "baz"
                  (reset! executed?# true))))
            (should= true @executed?#)))
 
        (it "locks nil"
          (let [executed?# (atom nil)]
-           (lock/with-lock nil
+           (sut/with-lock nil
              (reset! executed?# true))
            (should= true @executed?#)))
 
