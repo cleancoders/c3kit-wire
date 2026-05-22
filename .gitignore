@@ -11,3 +11,5 @@
 /target
 /.worktrees
 package-lock.json
+.clj-kondo/.cache
+.clj-kondo/imports
