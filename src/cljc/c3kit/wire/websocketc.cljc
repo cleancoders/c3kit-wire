@@ -36,6 +36,20 @@
 (defn unpack [data] (try (util/<-edn data) (catch #?(:clj Exception :cljs :default) _ data)))
 (defn pack [message] (util/->edn message))
 
+#?(:clj
+   (def default-transport
+     "The server-side websocket transport wire depends on. A map of three fns,
+     defaulting to http-kit. Supply your own via the :transport option to create
+     to run on another Ring server.
+
+     :open  - (fn [request callbacks]) opens a socket from a ring request; callbacks
+              is {:on-receive :on-close :on-open}. Returns the ring response.
+     :send! - (fn [socket data]) sends data on the socket. Returns truthy on success.
+     :close - (fn [socket]) closes the socket."
+     {:open  httpkit/as-channel
+      :send! httpkit/send!
+      :close httpkit/close}))
+
 (declare send-to!)
 (declare call!)
 (declare ^:private connections)
@@ -158,8 +172,9 @@
        false)
 
      (defn- send-to! [server connection socket message]
-       (let [connection-id (:id @connection)]
-         (if (httpkit/send! socket (pack message))
+       (let [connection-id (:id @connection)
+             send!         (-> @server :transport :send!)]
+         (if (send! socket (pack message))
            true
            (handle-failed-send! server connection-id))))
 
@@ -285,7 +300,8 @@
         server     (merge default-options
                           (select-keys options (keys default-options))
                           #?(:clj  {:connections {}
-                                    :scheduler   (-new-scheduler)}
+                                    :scheduler   (-new-scheduler)
+                                    :transport   (:transport options default-transport)}
                              :cljs {:connection nil})
                           {:message-handler message-handler})
         state-atom (atom-fn server)]
@@ -306,13 +322,14 @@
       (let [connection-id (-> request :params :connection-id)]
         (or (maybe-invalid-csrf-token request options)
             (maybe-invalid-connection-id connection-id)
-            (httpkit/as-channel request {:on-receive (partial -data-received server connection-id)
-                                         :on-close   (partial -channel-on-close server connection-id)
-                                         :on-open    (partial -open-connection! server request connection-id)
-                                         ;; Maybe delete the two below.  They don't seem used.
-                                         ;:init       (partial -channel-init server connection-id)
-                                         ;:on-ping    (partial -channel-on-ping server connection-id)
-                                         })))))
+            (let [open (-> @server :transport :open)]
+              (open request {:on-receive (partial -data-received server connection-id)
+                             :on-close   (partial -channel-on-close server connection-id)
+                             :on-open    (partial -open-connection! server request connection-id)
+                             ;; Maybe delete the two below.  They don't seem used.
+                             ;:init       (partial -channel-init server connection-id)
+                             ;:on-ping    (partial -channel-on-ping server connection-id)
+                             }))))))
    :cljs
    (defn connect!
      "Open a websocket connection to the server.
@@ -357,7 +374,7 @@
      "Close the connection with connection-id"
      [state connection-id]
      (if-let [socket (get-in @state [:connections connection-id :socket])]
-       (httpkit/close socket)
+       ((-> @state :transport :close) socket)
        (log/warn "websocket: attempt to close missing socket: " connection-id)))
    :cljs
    (defn close!
