@@ -1,3 +1,6 @@
+### 4.1.0
+ * Server-side WebSocket is no longer hard-wired to http-kit. `c3kit.wire.websocketc/create` accepts a `:transport` option — a map of `:open`, `:send!`, and `:close` fns — and `c3kit.wire.api` gains a `:ws-transport` config key that `c3kit.wire.websocket/start` threads through, so an app wiring WebSocket via `websocket/service` can run on another Ring server by calling `(api/configure! :ws-transport ...)` with an adapter. http-kit stays the default; consumers who configure nothing are unaffected.
+
 ### 4.0.1
  * `c3kit.wire.core.{ajax,rest}` now expose state-bound consumer functions: `get!`, `post!`, `put!`, `delete!`, and (ajax) `request!` operate on `default-state` and match the arities of their `c3kit.wire.{ajax,rest}` counterparts, so consumers can `(:require [c3kit.wire.core.ajax :as ajax])` and call `ajax/get!`. The state-taking primitives are now `do-get!`, `do-post!`, `do-put!`, `do-delete!`, `do-request!`. The previous `*-default!` variants are removed.
 
