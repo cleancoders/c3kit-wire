@@ -13,3 +13,4 @@
 package-lock.json
 .clj-kondo/.cache
 .clj-kondo/imports
+.security-session-start-sha
