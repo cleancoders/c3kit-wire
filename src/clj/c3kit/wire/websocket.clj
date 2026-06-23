@@ -112,8 +112,11 @@
 (defn start [app]
   (log/report "Starting websocket")
   (when (app/development?) (development!))
-  (let [handler (if (app/development?) (refresh-handler) message-handler)
-        server  (wsc/create handler)]
+  (let [handler   (if (app/development?) (refresh-handler) message-handler)
+        transport (:ws-transport @api/config)
+        server    (if transport
+                    (wsc/create handler :transport transport)
+                    (wsc/create handler))]
     (assoc app :ws/server server)))
 
 (defn stop [app]
