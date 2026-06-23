@@ -4,7 +4,6 @@
    [speclj.core #?(:clj :refer :cljs :refer-macros)
     [context describe it should= should-contain should-not-contain should-throw should with-stubs stub with
      before should-have-invoked should-not-have-invoked should-not-throw around should-not= should-be-a]]
-   #?(:clj [org.httpkit.server :as httpkit])
    [c3kit.apron.corec :as ccc]
    [c3kit.apron.log :as log #?(:clj :refer :cljs :refer-macros) [capture-logs]]
    [c3kit.apron.time :as time :refer [seconds ago]]
@@ -34,12 +33,15 @@
   (with-stubs)
   (with now (time/now))
   (stub-now @now)
-  (with state (sut/create (stub :message-handler {:invoke (fn [_] @message-handler-result)})))
+  (with state (sut/create (stub :message-handler {:invoke (fn [_] @message-handler-result)})
+                          #?@(:clj [:transport {:open  (stub :httpkit/as-channel {:return :channel})
+                                               :send! (stub :socket/send! {:invoke (fn [& _] @send!-result)})
+                                               :close (stub :httpkit/close)}])))
   #?(:clj (with request {:params {:connection-id "client-123" :ws-csrf-token "csrf-blah"} :session/key "csrf-blah"}))
   (around [it]
     (with-redefs [sut/-create-timeout!                           (stub :sut/create-timeout {:return :fake-timeout})
                   sut/-cancel-timeout!                           (stub :sut/cancel-timeout)
-                  #?(:clj httpkit/send! :cljs sut/-socket-send!) (stub :socket/send! {:invoke (fn [& _] @send!-result)})
+                  #?(:cljs sut/-socket-send!) #?(:cljs (stub :socket/send! {:invoke (fn [& _] @send!-result)}))
                   #?(:cljs js/setTimeout) #?(:cljs (stub :js/setTimeout {:return :fake-timeout}))
                   #?(:clj sut/-schedule-with-delay) #?(:clj      (stub :-schedule-with-delay {:return :fake-delay-task}))
                   #?(:clj sut/-new-scheduler) #?(:clj            (stub :-new-scheduler {:return :fake-scheduler}))]
@@ -147,6 +149,12 @@
     (it "on-data"
       (should= nil (:on-data @@state))
       (should= "on-data" (:on-data @(sut/create :blah :on-data "on-data"))))
+
+    #?(:clj
+       (it "transport"
+         (should= sut/default-transport (:transport @(sut/create :blah)))
+         (let [transport {:open :a-open :send! :a-send :close :a-close}]
+           (should= transport (:transport @(sut/create :blah :transport transport))))))
 
     (it "atom-fn"
       (let [state (sut/create :blah :atom-fn #(atom (assoc % :foo :bar)))]
@@ -425,7 +433,6 @@
      (context "server"
 
        (with request {:params {:connection-id "client-123" :ws-csrf-token "csrf-blah"} :session/key "csrf-blah"})
-       (around [it] (with-redefs [httpkit/send! (stub :httpkit/send! {:invoke (fn [& _] @send!-result)})] (it)))
        (before (reset! message-handler-result nil)
                (reset! send!-result true))
 
@@ -445,24 +452,22 @@
              (should= "Invalid connection id" (:body response))))
 
          (it "socket response"
-           (with-redefs [httpkit/as-channel (stub :httpkit/as-channel {:return :channel})]
-             (let [response (sut/handler @state @request)
-                   [ch-request options] (stub/last-invocation-of :httpkit/as-channel)]
-               (should= :channel response)
-               (should= @request ch-request)
-               ;(should-contain :init options)
-               (should-contain :on-receive options)
-               ;(should-contain :on-ping options)
-               (should-contain :on-close options)
-               (should-contain :on-open options))))
+           (let [response (sut/handler @state @request)
+                 [ch-request options] (stub/last-invocation-of :httpkit/as-channel)]
+             (should= :channel response)
+             (should= @request ch-request)
+             ;(should-contain :init options)
+             (should-contain :on-receive options)
+             ;(should-contain :on-ping options)
+             (should-contain :on-close options)
+             (should-contain :on-open options)))
 
          (it "socket response with read-csrf option"
-           (with-redefs [httpkit/as-channel (stub :httpkit/as-channel {:return :channel})]
-             (let [request  (-> @request
-                                (assoc-in [:foo :bar] "custom-csrf")
-                                (assoc-in [:params :ws-csrf-token] "custom-csrf"))
-                   response (sut/handler @state request {:read-csrf (comp :bar :foo)})]
-               (should= :channel response))))
+           (let [request  (-> @request
+                              (assoc-in [:foo :bar] "custom-csrf")
+                              (assoc-in [:params :ws-csrf-token] "custom-csrf"))
+                 response (sut/handler @state request {:read-csrf (comp :bar :foo)})]
+             (should= :channel response)))
          )
 
        (context "on-open"
@@ -482,8 +487,8 @@
 
          (it "says hello to client"
            (sut/-open-connection! @state @request "conn-abc" "a-socket")
-           (should-have-invoked :httpkit/send!)
-           (let [[socket message-str] (stub/last-invocation-of :httpkit/send!)
+           (should-have-invoked :socket/send!)
+           (let [[socket message-str] (stub/last-invocation-of :socket/send!)
                  message (sut/unpack message-str)]
              (should= "a-socket" socket)
              (should= :ws/hello (:kind message))))
@@ -506,8 +511,6 @@
          )
 
        (context "close"
-
-         (around [it] (with-redefs [httpkit/close (stub :httpkit/close)] (it)))
 
          (it "missing socket"
            (should-not-throw (sut/close! @state "blah"))
