@@ -3,6 +3,10 @@
 Date: 2026-06-24
 Status: Approved (design)
 
+Quality bar: this is an **open-source** library. It must be **secure by default**,
+**SOLID**, and built **test-first (TDD)**. The sections below treat those as hard
+constraints, not aspirations.
+
 ## Purpose
 
 Provide a reusable, high-quality service-worker library for `c3kit.wire` that gives
@@ -72,6 +76,11 @@ The standard five. Each is a **constructor** returning a handler `(fn [ctx reque
 - `:cache` — cache name (string). App names it; may embed the app version for deploy invalidation.
 - `:fallback` — optional `Response` or `(fn [request] -> Response)`. Default: a 503
   "Service Unavailable" `Response`.
+- `:allow-cross-origin` — opt in to caching cross-origin responses (default false; see Security).
+- `:cache-credentialed` — opt in to caching credentialed/auth responses (default false; see Security).
+
+All caching in every strategy is gated by the shared `cacheable?` predicate (Security), so the
+secure-by-default policy holds regardless of which strategy is chosen.
 
 Strategy semantics:
 - **cache-first** — return cached if present; else fetch, cache a clone, return; on network
@@ -152,6 +161,74 @@ invoked*. Coverage:
 - Lifecycle: install precaches + skipWaiting; activate purges only non-keep caches + claims;
   fetch routes GET vs passes through non-GET.
 - Registration: registers, wires update callbacks, no-ops without `serviceWorker`.
+
+## Security (secure by default)
+
+A service worker intercepts every request under its scope and persists responses on disk.
+That makes it a security-sensitive surface; the defaults must be conservative and the unsafe
+choices must be explicit opt-ins.
+
+- **Secure context only.** `register!` no-ops gracefully (resolved nil) when not in a secure
+  context (`self.isSecureContext` false). HTTPS/localhost is browser-enforced; we fail closed,
+  never throw.
+- **Same-origin caching by default.** Strategies cache only same-origin requests. Cross-origin
+  caching requires an explicit per-route opt-in (`:allow-cross-origin true`). Prevents silently
+  persisting third-party content.
+- **No opaque-response caching.** Opaque (`type` `"opaque"`/`"opaqueredirect"`) and non-`ok`
+  responses are never written to a cache. Avoids cache poisoning and storing partial/error bodies.
+- **Respect `no-store`.** Responses with `Cache-Control: no-store` are not cached, even on an
+  otherwise-cacheable route.
+- **Don't cache credentialed/auth responses by default.** Requests carrying `Authorization`
+  headers or `credentials: "include"` are treated as non-cacheable unless the route explicitly
+  opts in (`:cache-credentialed true`). Stops auth-scoped data leaking into a shared cache.
+- **GET-only writes.** Only `GET` responses are ever cached; non-GET always passes through to
+  the network. (Caching a mutation response is meaningless and risky.)
+- **Inert fallback.** The default 503 fallback carries an empty body and no headers derived from
+  the request — it leaks nothing.
+- **No dynamic code.** Routes are data + pure predicates; no `eval`, no string-compiled handlers.
+- **Body-clone discipline.** A `Response` body is single-use; strategies clone before caching so
+  the returned response is never a consumed stream.
+- **Scope is documented, not widened.** The library registers at the URL the app gives it and
+  does not broaden scope. Docs warn that SW scope controls all paths beneath it.
+
+These rules live in one place — a `cacheable?` predicate the strategies share — so the policy is
+testable in isolation and applied uniformly. Each rule gets a failing test first.
+
+## SOLID Mapping
+
+- **SRP** — one responsibility per namespace/unit: strategies, route registry, lifecycle
+  handlers, page registration, and fakes are each separate. A change to purge logic doesn't
+  touch strategy code.
+- **OCP** — adding a new strategy is a new constructor returning the same handler shape; the
+  fetch dispatch never changes. Matcher kinds extend through one normalization step, not by
+  editing the registry.
+- **LSP** — every strategy satisfies the same contract `(fn [ctx request] -> Promise<Response>)`
+  and is freely substitutable anywhere a strategy is expected.
+- **ISP** — `ctx` carries only `{:caches :fetch :scope}`; handlers receive exactly what they
+  need. No god-config object.
+- **DIP** — handlers depend on the injected `ctx` abstractions, never on `js/caches` / `js/fetch`
+  globals directly. Production wires real globals; tests wire fakes.
+
+## TDD Discipline
+
+Strict red-green-refactor. No production line without a failing spec first. The `cacheable?`
+security predicate, each strategy's hit/miss/failure path, matcher normalization, the
+activate keep-set/purge, and registration's secure-context + callback wiring each start as a
+red test. Behavior assertions only (what was cached / what response returned), never seam
+assertions.
+
+## Open-Source Readiness
+
+- **License/headers** — inherits the repo's existing license; no new third-party code, no
+  copied wilson source.
+- **Public API documented** — docstrings on every public fn; a usage section in the wire README
+  (or `docs/`) showing a minimal SW namespace + page registration.
+- **No app-specific leakage** — zero hardcoded paths, asset names, schemas, or endpoints from any
+  app. All such values are caller-supplied.
+- **No secrets, no telemetry** — the library makes no network calls of its own beyond the
+  fetches a strategy is explicitly asked to perform.
+- **Self-contained tests** — fakes ship in `src/`, so the public test surface is reusable and the
+  examples in docs are runnable.
 
 ## Improvements Over Wilson
 
