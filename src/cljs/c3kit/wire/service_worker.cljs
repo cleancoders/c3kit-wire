@@ -75,10 +75,13 @@
       :else      (js/Response. nil #js {:status 503 :statusText "Service Unavailable"}))))
 
 (defn cache-response!
-  "Clone + cache response when the shared security policy permits. Returns response."
+  "Clone + cache response when the shared security policy permits. Returns response.
+   The cache write is fire-and-forget; any put failure (e.g. QuotaExceededError) is
+   swallowed after logging so the calling strategy is never rejected."
   [ctx opts request response]
   (when (cacheable? ctx request response opts)
-    (cache-put ctx (:cache opts) request (.clone response)))
+    (.catch (cache-put ctx (:cache opts) request (.clone response))
+            (fn [err] (log/warn "[ServiceWorker] cache put failed:" err))))
   response)
 
 ;; ---- caches known to the library (for activate purge) ----------------------
@@ -100,7 +103,7 @@
                  (or cached
                      (.then (invoke-fetch ctx request)
                             (fn [response] (cache-response! ctx opts request response))))))
-        (.catch (fn [_] (->fallback opts request))))))
+        (.catch (fn [err] (log/warn "[ServiceWorker] cache-first error:" err) (->fallback opts request))))))
 
 (defn network-first
   "Strategy: fetch from network and cache; on network error serve from cache; if the cache also misses, return the fallback."
@@ -109,7 +112,8 @@
   (fn [ctx request]
     (-> (invoke-fetch ctx request)
         (.then (fn [response] (cache-response! ctx opts request response)))
-        (.catch (fn [_]
+        (.catch (fn [err]
+                  (log/warn "[ServiceWorker] network-first fetch error:" err)
                   (.then (cache-match ctx (:cache opts) request)
                          (fn [cached] (or cached (->fallback opts request)))))))))
 
@@ -126,14 +130,14 @@
            (fn [cached]
              (let [network (-> (invoke-fetch ctx request)
                                (.then (fn [response] (cache-response! ctx opts request response)))
-                               (.catch (fn [_] (->fallback opts request))))]
+                               (.catch (fn [err] (log/warn "[ServiceWorker] stale-while-revalidate error:" err) (->fallback opts request))))]
                (or cached network))))))
 
 (defn network-only
   "Strategy: always fetch from network; no caching; fallback on network error."
   [opts]
   (fn [ctx request]
-    (.catch (invoke-fetch ctx request) (fn [_] (->fallback opts request)))))
+    (.catch (invoke-fetch ctx request) (fn [err] (log/warn "[ServiceWorker] network-only error:" err) (->fallback opts request)))))
 
 (defn cache-only
   "Strategy: serve from cache only; no network; fallback on cache miss."
@@ -195,13 +199,19 @@
 (defn- network-passthrough [ctx request] (invoke-fetch ctx request))
 
 (defn handle-fetch
-  "Dispatch a fetch event's request to the matching route strategy, default handler, or network passthrough."
+  "Dispatch a fetch event's request to the matching route strategy, default handler, or network passthrough.
+   Guards the resolved value: if a strategy resolves to nil/undefined (which would cause
+   respondWith(undefined) to crash the page), substitutes a 503 fallback response."
   [ctx request]
-  (if (= "GET" (.-method request))
-    (if-let [handler (or (match-route request) @default-handler)]
-      (handler ctx request)
-      (network-passthrough ctx request))
-    (network-passthrough ctx request)))
+  (let [thenable (if (= "GET" (.-method request))
+                   (if-let [handler (or (match-route request) @default-handler)]
+                     (handler ctx request)
+                     (network-passthrough ctx request))
+                   (network-passthrough ctx request))]
+    (.then thenable (fn [resp]
+                      (if (some? resp)
+                        resp
+                        (->fallback {} request))))))
 
 (defn install
   "Handle the SW install event: skipWaiting and precache configured urls if any."
@@ -213,7 +223,9 @@
                 (.then (open-cache ctx cache) (fn [c] (.addAll c (clj->js urls)))))))
 
 (defn activate
-  "Handle the SW activate event: delete stale caches not in known-cache-names, then claim clients."
+  "Handle the SW activate event: delete stale caches not in known-cache-names, then claim clients.
+   Each cache delete is best-effort: a rejected delete (e.g. cache locked/busy) is logged and
+   swallowed so that clients.claim is always reached."
   [ctx event]
   (log/info "[ServiceWorker] activate")
   (let [keep?  (known-cache-names)
@@ -225,7 +237,10 @@
                              (reduce (fn [p name]
                                        (if (keep? name)
                                          p
-                                         (.then p (fn [_] (.delete caches name)))))
+                                         (.then p (fn [_]
+                                                    (.catch (.delete caches name)
+                                                            (fn [err]
+                                                              (log/warn "[ServiceWorker] cache delete failed for" name ":" err)))))))
                                      names*
                                      (js->clj names))))
                     (.then (fn [_] (.. (:scope ctx) -clients (claim))))))))
