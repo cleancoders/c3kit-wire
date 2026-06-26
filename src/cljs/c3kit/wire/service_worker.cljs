@@ -15,20 +15,43 @@
 
 (defn- opaque? [response] (boolean (#{"opaque" "opaqueredirect"} (.-type response))))
 
-(defn- no-store? [response]
-  (boolean (some-> (.. response -headers) (.get "Cache-Control") (str/includes? "no-store"))))
+(defn- cache-control-tokens [response]
+  (some-> (.. response -headers) (.get "Cache-Control") str/lower-case (str/split #"[,\s]+")))
+
+(defn- cache-control-blocks? [response]
+  (boolean (some #{"no-store" "no-cache" "private"} (cache-control-tokens response))))
+
+(defn- vary-sensitive? [response]
+  (boolean (some-> (.. response -headers) (.get "Vary") str/lower-case
+                   (str/split #"[,\s]+")
+                   (as-> tokens (some #{"*" "cookie" "authorization"} tokens)))))
+
+(defn- set-cookie? [response]
+  (boolean (some-> (.. response -headers) (.get "Set-Cookie"))))
 
 (defn- credentialed? [request]
   (or (= "include" (.-credentials request))
       (boolean (some-> (.-headers request) (.get "Authorization")))))
 
 (defn cacheable?
-  "Should this response be written to the cache? Secure by default."
+  "Should this response be written to the cache? Secure by default.
+
+   Hard blocks (not overridable by opts):
+   - Cache-Control: no-store, no-cache, or private
+   - Vary: * or Cookie or Authorization (per-user content)
+   - Set-Cookie present (response sets session state)
+
+   Threat-model note: detects credentials via Authorization header or
+   credentials: \"include\", and blocks Vary/Set-Cookie/private/no-cache
+   responses. CANNOT detect same-origin cookie auth — apps must route
+   private cookie-authenticated endpoints to network-only (or omit caching)."
   [ctx request response opts]
   (and (= "GET" (.-method request))
        (boolean (.-ok response))
        (not (opaque? response))
-       (not (no-store? response))
+       (not (cache-control-blocks? response))
+       (not (vary-sensitive? response))
+       (not (set-cookie? response))
        (or (:allow-cross-origin opts) (same-origin? ctx request))
        (or (:cache-credentialed opts) (not (credentialed? request)))))
 
