@@ -58,4 +58,15 @@
                                     :on-active (fn [reg] (reset! active reg))})
                 ((unchecked-get registration "__fire") "updatefound")
                 ((unchecked-get installing "__fire") "statechange")
-                (should= registration @active))))
+                (should= registration @active)))
+
+          (it "unregister-with calls .unregister on the live registration"
+              (let [unregistered (atom false)
+                    reg          (js-obj "unregister" (fn [] (reset! unregistered true) (fake/->resolved true)))
+                    container    (js-obj "getRegistration" (fn [] (fake/->resolved reg)))]
+                (sut/unregister-with container)
+                (should= true @unregistered)))
+
+          (it "unregister-with returns a resolved thenable when no serviceWorker container"
+              (let [result (sut/unregister-with nil)]
+                (should (fn? (unchecked-get result "then"))))))

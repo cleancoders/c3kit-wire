@@ -126,6 +126,10 @@ are stripped from `Request` objects in `ServiceWorkerGlobalScope`). If your app 
 cookie-session authentication without `Authorization` headers, you must route those
 endpoints explicitly to `network-only` or omit caching for them.
 
+Strategies available inside the service worker: `cache-first`, `network-first`,
+`stale-while-revalidate`, `cache-only`, `network-only`. Each is a factory — call
+it with an opts map, register the result as a route handler.
+
 Your service worker entry (compiled to `/service-worker.js`):
 
 ```clojure
@@ -137,6 +141,7 @@ Your service worker entry (compiled to `/service-worker.js`):
   (sw/register-route! #"/img/"  (sw/cache-first {:cache "images"}))
   (sw/register-route! #"/api/"  (sw/network-first {:cache "api"}))
   (sw/register-route! "/"       (sw/stale-while-revalidate {:cache "pages"}))
+  (sw/register-route! #"/static/" (sw/cache-only {:cache "static"}))
   (sw/set-default!              (sw/network-only {}))
   (sw/start!))
 ```
@@ -149,6 +154,9 @@ On the page:
 
 (swr/register! {:url "/service-worker.js"
                 :on-update (fn [_] (js/console.log "update available"))})
+
+;; To remove the service worker (e.g. when rolling back):
+(swr/unregister!)
 ```
 
 Embed your app version in cache names (e.g. `(str "shell-" version)`) to get
@@ -158,6 +166,18 @@ automatic purge of prior-deploy caches on `activate`.
 not wrapped in `event.waitUntil`, so a browser may terminate the service worker before
 the refresh completes. The next request still serves the prior cached value and
 re-triggers revalidation. For must-refresh resources prefer `network-first`.
+
+**precache! atomicity:** URLs passed to `precache!` are handed to `cache.addAll`, which
+is atomic — if any single URL returns a 4xx/5xx or network-fails, the entire install
+fails and the service worker never activates. Every URL must be an absolute or
+same-origin path that resolves successfully at install time.
+
+**Security footguns — `:allow-cross-origin` and `:cache-credentialed`:** these opts
+are explicit opt-outs of the secure-by-default caching gate. Use them only with a
+tight matcher (exact host + path, narrow regexp) that covers exactly the resources
+you intend to cache. A broad matcher (e.g. `(fn [_] true)`) with either opt enabled
+can cause the cache to store attacker-influenced cross-origin responses or per-user
+credentialed responses, potentially leaking private data across sessions.
 
 # License
 

@@ -154,7 +154,13 @@
           (it "returns fallback when miss and network fails"
               (let [ctx (fake/->ctx {:fetch (fake/fake-fetch :reject)})
                     req (fake/->request "https://app.test/a")]
-                (should= 503 (.-status (resolved-value ((sut/cache-first {:cache "c"}) ctx req)))))))
+                (should= 503 (.-status (resolved-value ((sut/cache-first {:cache "c"}) ctx req))))))
+
+          (it "uses custom :fallback fn on miss and network fail"
+              (let [ctx (fake/->ctx {:fetch (fake/fake-fetch :reject)})
+                    req (fake/->request "https://app.test/a")]
+                (should= "custom"
+                         (.-body (resolved-value ((sut/cache-first {:cache "c" :fallback (fn [_] (fake/->response "custom"))}) ctx req)))))))
 
 (describe "network-first"
           (it "fetches, caches, and returns when online"
@@ -174,7 +180,13 @@
           (it "returns 503 fallback when network fails and no cache"
               (let [ctx (fake/->ctx {:fetch (fake/fake-fetch :reject)})
                     req (fake/->request "https://app.test/a")]
-                (should= 503 (.-status (resolved-value ((sut/network-first {:cache "c"}) ctx req)))))))
+                (should= 503 (.-status (resolved-value ((sut/network-first {:cache "c"}) ctx req))))))
+
+          (it "uses custom :fallback fn when network fails and no cache"
+              (let [ctx (fake/->ctx {:fetch (fake/fake-fetch :reject)})
+                    req (fake/->request "https://app.test/a")]
+                (should= "custom"
+                         (.-body (resolved-value ((sut/network-first {:cache "c" :fallback (fn [_] (fake/->response "custom"))}) ctx req)))))))
 
 (describe "stale-while-revalidate"
           (it "returns cached immediately and refreshes the cache in the background"
@@ -284,7 +296,12 @@
 
           (it "resolves to a 503 fallback when strategy returns nil"
               (sut/register-route! (fn [_] true) (fn [_ _] (fake/->resolved nil)))
-              (should= 503 (.-status (resolved-value (sut/handle-fetch (fake/->ctx) (fake/->request "https://app.test/a")))))))
+              (should= 503 (.-status (resolved-value (sut/handle-fetch (fake/->ctx) (fake/->request "https://app.test/a"))))))
+
+          (it "passes GET with no route and no default straight to the network"
+              (let [net (fake/->response "passthrough")
+                    ctx (fake/->ctx {:fetch (fake/fake-fetch net)})]
+                (should= net (resolved-value (sut/handle-fetch ctx (fake/->request "https://app.test/a")))))))
 
 (describe "install"
           (before (sut/reset-config!))
