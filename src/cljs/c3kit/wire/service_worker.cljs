@@ -84,3 +84,23 @@
                   (.then (cache-match ctx (:cache opts) request)
                          (fn [cached] (or cached (->fallback opts request)))))))))
 
+(defn stale-while-revalidate [opts]
+  (register-cache! (:cache opts))
+  (fn [ctx request]
+    (.then (cache-match ctx (:cache opts) request)
+           (fn [cached]
+             (let [network (-> (invoke-fetch ctx request)
+                               (.then (fn [response] (cache-response! ctx opts request response)))
+                               (.catch (fn [_] (->fallback opts request))))]
+               (or cached network))))))
+
+(defn network-only [opts]
+  (fn [ctx request]
+    (.catch (invoke-fetch ctx request) (fn [_] (->fallback opts request)))))
+
+(defn cache-only [opts]
+  (register-cache! (:cache opts))
+  (fn [ctx request]
+    (.then (cache-match ctx (:cache opts) request)
+           (fn [cached] (or cached (->fallback opts request))))))
+

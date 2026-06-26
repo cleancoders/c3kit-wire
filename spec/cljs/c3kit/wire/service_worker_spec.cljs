@@ -153,3 +153,45 @@
               (let [ctx (fake/->ctx {:fetch (fake/fake-fetch :reject)})
                     req (fake/->request "https://app.test/a")]
                 (should= 503 (.-status (resolved-value ((sut/network-first {:cache "c"}) ctx req)))))))
+
+(describe "stale-while-revalidate"
+          (it "returns cached immediately and refreshes the cache in the background"
+              (let [net (fake/->response "fresh")
+                    ctx (fake/->ctx {:fetch (fake/fake-fetch net)})
+                    req (fake/->request "https://app.test/a")
+                    hit (fake/->response "stale")]
+                (seed-cache! ctx "c" req hit)
+                (should= hit (resolved-value ((sut/stale-while-revalidate {:cache "c"}) ctx req)))
+      ;; background revalidation overwrote the cache entry with the network response
+                (should= "fresh" (.-body (resolved-value (.then (.open (:caches ctx) "c") (fn [c] (.match c req))))))))
+
+          (it "awaits network on cache miss"
+              (let [net (fake/->response "fresh")
+                    ctx (fake/->ctx {:fetch (fake/fake-fetch net)})
+                    req (fake/->request "https://app.test/a")]
+                (should= net (resolved-value ((sut/stale-while-revalidate {:cache "c"}) ctx req))))))
+
+(describe "network-only"
+          (it "returns the network response and caches nothing"
+              (let [net (fake/->response "fresh")
+                    ctx (fake/->ctx {:fetch (fake/fake-fetch net)})
+                    req (fake/->request "https://app.test/a")]
+                (should= net (resolved-value ((sut/network-only {}) ctx req)))))
+
+          (it "returns fallback when offline"
+              (let [ctx (fake/->ctx {:fetch (fake/fake-fetch :reject)})
+                    req (fake/->request "https://app.test/a")]
+                (should= 503 (.-status (resolved-value ((sut/network-only {}) ctx req)))))))
+
+(describe "cache-only"
+          (it "returns cached response"
+              (let [ctx (fake/->ctx)
+                    req (fake/->request "https://app.test/a")
+                    hit (fake/->response "cached")]
+                (seed-cache! ctx "c" req hit)
+                (should= hit (resolved-value ((sut/cache-only {:cache "c"}) ctx req)))))
+
+          (it "returns fallback on miss without hitting network"
+              (let [ctx (fake/->ctx {:fetch (fake/fake-fetch :reject)})
+                    req (fake/->request "https://app.test/a")]
+                (should= 503 (.-status (resolved-value ((sut/cache-only {:cache "c"}) ctx req)))))))
