@@ -1,5 +1,5 @@
 (ns c3kit.wire.service-worker-spec
-  (:require-macros [speclj.core :refer [before context describe it should should= should-be-nil should-not should-contain]])
+  (:require-macros [speclj.core :refer [before context describe it should should= should-be-nil should-not should-contain with]])
   (:require [c3kit.wire.js :as wjs]
             [c3kit.wire.service-worker-fake :as fake]
             [c3kit.wire.service-worker :as sut]
@@ -48,40 +48,55 @@
                   (should= true (instance? js/Error @caught))))))
 
 (describe "cacheable?"
-          (let [ctx (fake/->ctx {:scope (fake/->scope {:origin "https://app.test"})})
-                get-req (fake/->request "https://app.test/img.png")
-                ok-resp (fake/->response "x")]
+          (with ctx (fake/->ctx {:scope (fake/->scope {:origin "https://app.test"})}))
+          (with get-req (fake/->request "https://app.test/img.png"))
+          (with ok-resp (fake/->response "x"))
 
-            (it "true for same-origin ok GET"
-                (should= true (sut/cacheable? ctx get-req ok-resp {})))
+          (it "true for same-origin ok GET"
+              (should= true (sut/cacheable? @ctx @get-req @ok-resp {})))
 
-            (it "false for non-GET"
-                (should= false (sut/cacheable? ctx (fake/->request "https://app.test/x" {:method "POST"}) ok-resp {})))
+          (it "false for non-GET"
+              (should= false (sut/cacheable? @ctx (fake/->request "https://app.test/x" {:method "POST"}) @ok-resp {})))
 
-            (it "false for non-ok response"
-                (should= false (sut/cacheable? ctx get-req (fake/->response "x" {:ok false}) {})))
+          (it "false for non-ok response"
+              (should= false (sut/cacheable? @ctx @get-req (fake/->response "x" {:ok false}) {})))
 
-            (it "false for opaque response"
-                (should= false (sut/cacheable? ctx get-req (fake/->response "x" {:type "opaque"}) {})))
+          (it "false for opaque response"
+              (should= false (sut/cacheable? @ctx @get-req (fake/->response "x" {:type "opaque"}) {})))
 
-            (it "false for opaqueredirect response"
-                (should= false (sut/cacheable? ctx get-req (fake/->response "x" {:type "opaqueredirect"}) {})))
+          (it "false for opaqueredirect response"
+              (should= false (sut/cacheable? @ctx @get-req (fake/->response "x" {:type "opaqueredirect"}) {})))
 
-            (it "false for no-store response"
-                (should= false (sut/cacheable? ctx get-req (fake/->response "x" {:headers {"Cache-Control" "no-store"}}) {})))
+          (it "false for no-store response"
+              (should= false (sut/cacheable? @ctx @get-req (fake/->response "x" {:headers {"Cache-Control" "no-store"}}) {})))
 
-            (it "false for cross-origin by default, true when allowed"
-                (let [x (fake/->request "https://cdn.other/x.png")]
-                  (should= false (sut/cacheable? ctx x ok-resp {}))
-                  (should= true  (sut/cacheable? ctx x ok-resp {:allow-cross-origin true}))))
+          (it "false for cross-origin by default, true when allowed"
+              (let [x (fake/->request "https://cdn.other/x.png")]
+                (should= false (sut/cacheable? @ctx x @ok-resp {}))
+                (should= true  (sut/cacheable? @ctx x @ok-resp {:allow-cross-origin true}))))
 
-            (it "false for credentialed by default, true when allowed"
-                (let [c (fake/->request "https://app.test/x" {:credentials "include"})
-                      a (fake/->request "https://app.test/x" {:headers {"Authorization" "Bearer t"}})]
-                  (should= false (sut/cacheable? ctx c ok-resp {}))
-                  (should= false (sut/cacheable? ctx a ok-resp {}))
-                  (should= true  (sut/cacheable? ctx c ok-resp {:cache-credentialed true}))
-                  (should= true  (sut/cacheable? ctx a ok-resp {:cache-credentialed true}))))))
+          (it "false for credentialed by default, true when allowed"
+              (let [c (fake/->request "https://app.test/x" {:credentials "include"})
+                    a (fake/->request "https://app.test/x" {:headers {"Authorization" "Bearer t"}})]
+                (should= false (sut/cacheable? @ctx c @ok-resp {}))
+                (should= false (sut/cacheable? @ctx a @ok-resp {}))
+                (should= true  (sut/cacheable? @ctx c @ok-resp {:cache-credentialed true}))
+                (should= true  (sut/cacheable? @ctx a @ok-resp {:cache-credentialed true}))))
+
+          (it "false for Cache-Control: private"
+              (should= false (sut/cacheable? @ctx @get-req (fake/->response "x" {:headers {"Cache-Control" "private, max-age=0"}}) {})))
+
+          (it "false for Cache-Control: no-cache"
+              (should= false (sut/cacheable? @ctx @get-req (fake/->response "x" {:headers {"Cache-Control" "no-cache"}}) {})))
+
+          (it "false for Vary: Cookie"
+              (should= false (sut/cacheable? @ctx @get-req (fake/->response "x" {:headers {"Vary" "Cookie"}}) {})))
+
+          (it "false for Vary: *"
+              (should= false (sut/cacheable? @ctx @get-req (fake/->response "x" {:headers {"Vary" "*"}}) {})))
+
+          (it "false when Set-Cookie present"
+              (should= false (sut/cacheable? @ctx @get-req (fake/->response "x" {:headers {"Set-Cookie" "sid=abc"}}) {}))))
 
 (defn store-keys [cache] (js->clj (resolved-value (.keys cache))))
 (defn open-cache [ctx name] (resolved-value (.open (:caches ctx) name)))

@@ -114,8 +114,17 @@ CLOJARS_PASSWORD=<your deploy key>
 
 Two namespaces: `c3kit.wire.service-worker` runs inside the service worker
 (`ServiceWorkerGlobalScope`); `c3kit.wire.service-worker-register` runs on the page.
-Caching is secure by default (same-origin, `ok`, non-opaque, non-`no-store`,
-non-credentialed, GET-only).
+Caching is secure by default: same-origin, `ok`, non-opaque, GET-only, with hard
+blocks on `Cache-Control: no-store/no-cache/private`, `Vary: */Cookie/Authorization`,
+and `Set-Cookie` responses. Credentials are detected via `Authorization` header or
+`credentials: "include"` and are blocked by default.
+
+**Security note — threat-model limitation:** the hard blocks cover `Authorization`-header
+and `credentials: "include"` auth as well as `Vary`/`Set-Cookie`/`private`/`no-cache`
+responses. However, the service worker **cannot inspect same-origin cookie headers** (they
+are stripped from `Request` objects in `ServiceWorkerGlobalScope`). If your app uses
+cookie-session authentication without `Authorization` headers, you must route those
+endpoints explicitly to `network-only` or omit caching for them.
 
 Your service worker entry (compiled to `/service-worker.js`):
 
