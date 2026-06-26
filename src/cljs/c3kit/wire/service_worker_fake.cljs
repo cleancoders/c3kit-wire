@@ -33,11 +33,17 @@
 
 (defn- req-url [r] (if (string? r) r (unchecked-get r "url")))
 
-(defn ->cache []
+(defn ->cache
+  "Creates a fake Cache. Options:
+   :reject-put? - when true, .put returns a rejected thenable (simulates QuotaExceededError)"
+  [& [{:keys [reject-put?]}]]
   (let [store (atom {})]
     (js-obj
      "match"  (fn [request] (->resolved (get @store (req-url request))))
-     "put"    (fn [request response] (swap! store assoc (req-url request) response) (->resolved nil))
+     "put"    (fn [request response]
+                (if reject-put?
+                  (->rejected (js/Error. "QuotaExceededError"))
+                  (do (swap! store assoc (req-url request) response) (->resolved nil))))
      "addAll" (fn [urls] (doseq [u (js->clj urls)] (swap! store assoc u :precached)) (->resolved nil))
      "keys"   (fn [] (->resolved (clj->js (vec (keys @store)))))
      "delete" (fn [request]
@@ -45,25 +51,38 @@
                   (swap! store dissoc k) (->resolved had)))
      "__store" store)))
 
-(defn ->caches []
+(defn ->caches
+  "Creates a fake CacheStorage. Options:
+   :reject-delete - set of cache names whose .delete should return a rejected thenable
+   :reject-put    - set of cache names whose cache's .put should return a rejected thenable"
+  [& [{:keys [reject-delete reject-put] :or {reject-delete #{} reject-put #{}}}]]
   (let [caches (atom {})]
     (js-obj
      "open"   (fn [name]
-                (when-not (contains? @caches name) (swap! caches assoc name (->cache)))
+                (when-not (contains? @caches name)
+                  (swap! caches assoc name (->cache {:reject-put? (contains? reject-put name)})))
                 (->resolved (get @caches name)))
      "keys"   (fn [] (->resolved (clj->js (vec (keys @caches)))))
      "has"    (fn [name] (->resolved (contains? @caches name)))
      "delete" (fn [name]
-                (let [had (contains? @caches name)]
-                  (swap! caches dissoc name) (->resolved had)))
+                (if (contains? reject-delete name)
+                  (->rejected (js/Error. (str "delete rejected for " name)))
+                  (let [had (contains? @caches name)]
+                    (swap! caches dissoc name) (->resolved had))))
      "__caches" caches)))
 
-(defn ->scope [& [{:keys [origin] :or {origin "https://app.test"}}]]
-  (js-obj
-   "location"         (js-obj "origin" origin)
-   "skipWaiting"      (fn [] (->resolved nil))
-   "clients"          (js-obj "claim" (fn [] (->resolved nil)))
-   "addEventListener" (fn [_ _])))
+(defn ->scope
+  "Creates a fake ServiceWorkerGlobalScope. Options:
+   :origin - the origin string (default \"https://app.test\")
+   Access __claimed_atom (an atom) to test whether clients.claim was called."
+  [& [{:keys [origin] :or {origin "https://app.test"}}]]
+  (let [claimed (atom false)]
+    (js-obj
+     "location"         (js-obj "origin" origin)
+     "skipWaiting"      (fn [] (->resolved nil))
+     "clients"          (js-obj "claim" (fn [] (reset! claimed true) (->resolved nil)))
+     "addEventListener" (fn [_ _])
+     "__claimed_atom"   claimed)))
 
 (defn fake-fetch [resp-or-fn]
   (fn [request]
