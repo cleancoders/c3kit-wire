@@ -81,3 +81,32 @@
                   (should= false (sut/cacheable? ctx a ok-resp {}))
                   (should= true  (sut/cacheable? ctx c ok-resp {:cache-credentialed true}))
                   (should= true  (sut/cacheable? ctx a ok-resp {:cache-credentialed true}))))))
+
+(defn store-keys [cache] (js->clj (resolved-value (.keys cache))))
+(defn open-cache [ctx name] (resolved-value (.open (:caches ctx) name)))
+
+(describe "fallback + cache-response!"
+          (it "->fallback returns a 503 by default"
+              (should= 503 (.-status (sut/->fallback {} (fake/->request "https://app.test/x")))))
+
+          (it "->fallback uses a provided response"
+              (let [r (fake/->response "down" {:status 200})]
+                (should= r (sut/->fallback {:fallback r} (fake/->request "https://app.test/x")))))
+
+          (it "->fallback calls a fallback fn with the request"
+              (let [req (fake/->request "https://app.test/x")]
+                (should= req (sut/->fallback {:fallback (fn [rq] rq)} req))))
+
+          (it "cache-response! stores cacheable responses and returns the original"
+              (let [ctx (fake/->ctx)
+                    req (fake/->request "https://app.test/a")
+                    rsp (fake/->response "x")]
+                (should= rsp (sut/cache-response! ctx {:cache "c"} req rsp))
+                (should-contain "https://app.test/a" (store-keys (open-cache ctx "c")))))
+
+          (it "cache-response! does not store non-cacheable responses"
+              (let [ctx (fake/->ctx)
+                    req (fake/->request "https://app.test/a" {:method "POST"})
+                    rsp (fake/->response "x")]
+                (sut/cache-response! ctx {:cache "c"} req rsp)
+                (should= [] (store-keys (open-cache ctx "c"))))))
