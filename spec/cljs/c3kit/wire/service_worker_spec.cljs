@@ -125,7 +125,13 @@
                     req (fake/->request "https://app.test/a" {:method "POST"})
                     rsp (fake/->response "x")]
                 (sut/cache-response! ctx {:cache "c"} req rsp)
-                (should= [] (store-keys (open-cache ctx "c"))))))
+                (should= [] (store-keys (open-cache ctx "c")))))
+
+          (it "cache-response! returns original response even when put rejects"
+              (let [ctx (fake/->ctx {:caches (fake/->caches {:reject-put #{"c"}})})
+                    req (fake/->request "https://app.test/a")
+                    rsp (fake/->response "x")]
+                (should= rsp (sut/cache-response! ctx {:cache "c"} req rsp)))))
 
 (defn seed-cache! [ctx name request response]
   (resolved-value (.then (.open (:caches ctx) name) (fn [c] (.put c request response)))))
@@ -185,7 +191,12 @@
               (let [net (fake/->response "fresh")
                     ctx (fake/->ctx {:fetch (fake/fake-fetch net)})
                     req (fake/->request "https://app.test/a")]
-                (should= net (resolved-value ((sut/stale-while-revalidate {:cache "c"}) ctx req))))))
+                (should= net (resolved-value ((sut/stale-while-revalidate {:cache "c"}) ctx req)))))
+
+          (it "returns 503 fallback on cache miss when fetch also rejects"
+              (let [ctx (fake/->ctx {:fetch (fake/fake-fetch :reject)})
+                    req (fake/->request "https://app.test/a")]
+                (should= 503 (.-status (resolved-value ((sut/stale-while-revalidate {:cache "c"}) ctx req)))))))
 
 (describe "network-only"
           (it "returns the network response and caches nothing"
@@ -197,7 +208,14 @@
           (it "returns fallback when offline"
               (let [ctx (fake/->ctx {:fetch (fake/fake-fetch :reject)})
                     req (fake/->request "https://app.test/a")]
-                (should= 503 (.-status (resolved-value ((sut/network-only {}) ctx req)))))))
+                (should= 503 (.-status (resolved-value ((sut/network-only {}) ctx req))))))
+
+          (it "writes nothing to any cache"
+              (let [net (fake/->response "fresh")
+                    ctx (fake/->ctx {:fetch (fake/fake-fetch net)})
+                    req (fake/->request "https://app.test/a")]
+                (resolved-value ((sut/network-only {}) ctx req))
+                (should= [] (store-keys (open-cache ctx "x"))))))
 
 (describe "cache-only"
           (it "returns cached response"
@@ -262,7 +280,11 @@
           (it "passes non-GET straight to the network"
               (let [net (fake/->response "net")
                     ctx (fake/->ctx {:fetch (fake/fake-fetch net)})]
-                (should= net (resolved-value (sut/handle-fetch ctx (fake/->request "https://app.test/a" {:method "POST"})))))))
+                (should= net (resolved-value (sut/handle-fetch ctx (fake/->request "https://app.test/a" {:method "POST"}))))))
+
+          (it "resolves to a 503 fallback when strategy returns nil"
+              (sut/register-route! (fn [_] true) (fn [_ _] (fake/->resolved nil)))
+              (should= 503 (.-status (resolved-value (sut/handle-fetch (fake/->ctx) (fake/->request "https://app.test/a")))))))
 
 (describe "install"
           (before (sut/reset-config!))
@@ -272,7 +294,12 @@
                 (sut/precache! ["https://app.test/shell"] "shell")
                 (sut/install ctx e)
                 (resolved-value (event-wait e))
-                (should-contain "https://app.test/shell" (store-keys (open-cache ctx "shell"))))))
+                (should-contain "https://app.test/shell" (store-keys (open-cache ctx "shell")))))
+
+          (it "does not call waitUntil when no precache is configured"
+              (let [ctx (fake/->ctx) e (->event)]
+                (sut/install ctx e)
+                (should-be-nil (event-wait e)))))
 
 (describe "activate"
           (before (sut/reset-config!))
@@ -286,7 +313,31 @@
                 (resolved-value (event-wait e))
                 (let [names (js->clj (resolved-value (.keys (:caches ctx))))]
                   (should-contain "keep" names)
-                  (should-not (some #{"stale"} names))))))
+                  (should-not (some #{"stale"} names)))))
+
+          (it "deletes two stale caches and keeps known ones"
+              (let [ctx (fake/->ctx) e (->event)]
+                (sut/precache! ["/"] "keep")
+                (resolved-value (.open (:caches ctx) "keep"))
+                (resolved-value (.open (:caches ctx) "stale1"))
+                (resolved-value (.open (:caches ctx) "stale2"))
+                (sut/activate ctx e)
+                (resolved-value (event-wait e))
+                (let [names (js->clj (resolved-value (.keys (:caches ctx))))]
+                  (should-contain "keep" names)
+                  (should-not (some #{"stale1"} names))
+                  (should-not (some #{"stale2"} names)))))
+
+          (it "claims clients even when a stale cache delete rejects"
+              (let [ctx   (fake/->ctx {:caches (fake/->caches {:reject-delete #{"stale"}})})
+                    e     (->event)
+                    scope (:scope ctx)]
+                (sut/precache! ["/"] "keep")
+                (resolved-value (.open (:caches ctx) "keep"))
+                (resolved-value (.open (:caches ctx) "stale"))
+                (sut/activate ctx e)
+                (resolved-value (event-wait e))
+                (should= true @(unchecked-get scope "__claimed_atom")))))
 
 (describe "start!"
           (it "registers install, activate, and fetch listeners on the scope"
