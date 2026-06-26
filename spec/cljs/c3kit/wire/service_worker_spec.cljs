@@ -163,7 +163,7 @@
                     hit (fake/->response "stale")]
                 (seed-cache! ctx "c" req hit)
                 (should= hit (resolved-value ((sut/stale-while-revalidate {:cache "c"}) ctx req)))
-      ;; background revalidation overwrote the cache entry with the network response
+                ;; background revalidation overwrote the cache entry with the network response
                 (should= "fresh" (.-body (resolved-value (.then (.open (:caches ctx) "c") (fn [c] (.match c req))))))))
 
           (it "awaits network on cache miss"
