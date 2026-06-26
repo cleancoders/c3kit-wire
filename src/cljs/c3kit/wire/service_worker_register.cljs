@@ -15,8 +15,10 @@
                                                 "activated" (when on-active (on-active registration))
                                                 nil)))))))
 
-(defn register-with [{:keys [container secure? url on-update on-active]
-                      :or   {url "/service-worker.js"}}]
+(defn register-with
+  "Register the SW using explicit deps: :container, :secure?, :url, :on-update, :on-active. Testable without globals."
+  [{:keys [container secure? url on-update on-active]
+    :or   {url "/service-worker.js"}}]
   (cond
     (not secure?)
     (do (log/warn "service worker: insecure context, skipping registration")
@@ -42,7 +44,9 @@
   [opts]
   (register-with (merge {:container (sw-container) :secure? (secure-context?)} opts)))
 
-(defn unregister! []
+(defn unregister!
+  "Unregister the current service worker registration, if any."
+  []
   (if-let [c (sw-container)]
     (-> (.getRegistration c) (.then (fn [reg] (when reg (.unregister reg)))))
     (js/Promise.resolve nil)))
