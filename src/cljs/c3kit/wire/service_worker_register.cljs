@@ -44,9 +44,14 @@
   [opts]
   (register-with (merge {:container (sw-container) :secure? (secure-context?)} opts)))
 
+(defn unregister-with
+  "Unregister using explicit container dep. Testable without globals."
+  [container]
+  (if container
+    (-> (.getRegistration container) (.then (fn [reg] (when reg (.unregister reg)))))
+    (js/Promise.resolve nil)))
+
 (defn unregister!
   "Unregister the current service worker registration, if any."
   []
-  (if-let [c (sw-container)]
-    (-> (.getRegistration c) (.then (fn [reg] (when reg (.unregister reg)))))
-    (js/Promise.resolve nil)))
+  (unregister-with (sw-container)))

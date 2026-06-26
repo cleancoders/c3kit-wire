@@ -94,7 +94,8 @@
 (defn- invoke-fetch [ctx request] ((:fetch ctx) request))
 
 (defn cache-first
-  "Strategy: serve from cache; on miss fetch, cache, and return; fallback on any error."
+  "Strategy: serve from cache; on miss fetch, cache, and return; fallback on any error.
+   Accepts :allow-cross-origin and :cache-credentialed — these relax the security gate; pair with a tight matcher."
   [opts]
   (register-cache! (:cache opts))
   (fn [ctx request]
@@ -106,7 +107,8 @@
         (.catch (fn [err] (log/warn "[ServiceWorker] cache-first error:" err) (->fallback opts request))))))
 
 (defn network-first
-  "Strategy: fetch from network and cache; on network error serve from cache; if the cache also misses, return the fallback."
+  "Strategy: fetch from network and cache; on network error serve from cache; if the cache also misses, return the fallback.
+   Accepts :allow-cross-origin and :cache-credentialed — these relax the security gate; pair with a tight matcher."
   [opts]
   (register-cache! (:cache opts))
   (fn [ctx request]
@@ -122,7 +124,8 @@
    Note: the background revalidation is fire-and-forget — it is not wrapped in event.waitUntil (the
    strategy has no access to the fetch event), so a browser may terminate the worker before the refresh
    write completes. The cache still refreshes on a normal page that stays alive; the next request gets the
-   prior cached value and triggers a fresh revalidation."
+   prior cached value and triggers a fresh revalidation.
+   Accepts :allow-cross-origin and :cache-credentialed — these relax the security gate; pair with a tight matcher."
   [opts]
   (register-cache! (:cache opts))
   (fn [ctx request]
@@ -134,13 +137,15 @@
                (or cached network))))))
 
 (defn network-only
-  "Strategy: always fetch from network; no caching; fallback on network error."
+  "Strategy: always fetch from network; no caching; fallback on network error.
+   Does not accept :allow-cross-origin or :cache-credentialed (nothing is cached)."
   [opts]
   (fn [ctx request]
     (.catch (invoke-fetch ctx request) (fn [err] (log/warn "[ServiceWorker] network-only error:" err) (->fallback opts request)))))
 
 (defn cache-only
-  "Strategy: serve from cache only; no network; fallback on cache miss."
+  "Strategy: serve from cache only; no network; fallback on cache miss.
+   Accepts :allow-cross-origin and :cache-credentialed — these relax the security gate; pair with a tight matcher."
   [opts]
   (register-cache! (:cache opts))
   (fn [ctx request]
