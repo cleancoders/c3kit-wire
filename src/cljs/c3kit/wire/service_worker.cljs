@@ -139,3 +139,53 @@
 
 (defn known-cache-names [] @known-caches)
 
+;; ---- lifecycle -------------------------------------------------------------
+
+(defn- network-passthrough [ctx request] (invoke-fetch ctx request))
+
+(defn handle-fetch [ctx request]
+  (if (= "GET" (.-method request))
+    (if-let [handler (or (match-route request) @default-handler)]
+      (handler ctx request)
+      (network-passthrough ctx request))
+    (network-passthrough ctx request)))
+
+(defn install [ctx event]
+  (log/info "[ServiceWorker] install")
+  (.skipWaiting (:scope ctx))
+  (when-let [{:keys [cache urls]} @precache-config]
+    (.waitUntil event
+                (.then (open-cache ctx cache) (fn [c] (.addAll c (clj->js urls)))))))
+
+(defn activate [ctx event]
+  (log/info "[ServiceWorker] activate")
+  (let [keep?  (known-cache-names)
+        caches (:caches ctx)
+        names* (.keys caches)]
+    (.waitUntil event
+                (-> names*
+                    (.then (fn [names]
+                             (reduce (fn [p name]
+                                       (if (keep? name)
+                                         p
+                                         (.then p (fn [_] (.delete caches name)))))
+                                     names*
+                                     (js->clj names))))
+                    (.then (fn [_] (.. (:scope ctx) -clients (claim))))))))
+
+(defn- fetch-listener [ctx event]
+  (.respondWith event (handle-fetch ctx (.-request event))))
+
+(defn ctx-from-globals []
+  {:caches js/caches
+   :fetch  (fn [request] (js/fetch request))
+   :scope  js/self})
+
+(defn start!
+  ([] (start! (ctx-from-globals)))
+  ([ctx]
+   (wjs/add-listener (:scope ctx) "install"  (fn [e] (install ctx e)))
+   (wjs/add-listener (:scope ctx) "activate" (fn [e] (activate ctx e)))
+   (wjs/add-listener (:scope ctx) "fetch"    (fn [e] (fetch-listener ctx e)))
+   nil))
+
