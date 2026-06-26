@@ -178,9 +178,24 @@ choices must be explicit opt-ins.
   responses are never written to a cache. Avoids cache poisoning and storing partial/error bodies.
 - **Respect `no-store`.** Responses with `Cache-Control: no-store` are not cached, even on an
   otherwise-cacheable route.
+- **Respect `no-cache` and `private`.** In addition to `no-store`, responses whose
+  `Cache-Control` directive contains `no-cache` or `private` are never cached. The check
+  tokenizes the header value (case-insensitive, split on whitespace/comma) so any of the
+  three directives blocks the write regardless of order or additional directives.
+- **Block `Vary: *`, `Vary: Cookie`, `Vary: Authorization`.** Responses that vary on a
+  wildcard or on credential-bearing headers indicate per-user content and are never cached.
+- **Block `Set-Cookie`.** A response that sets a cookie is treated as session-bearing and
+  is never cached.
 - **Don't cache credentialed/auth responses by default.** Requests carrying `Authorization`
   headers or `credentials: "include"` are treated as non-cacheable unless the route explicitly
-  opts in (`:cache-credentialed true`). Stops auth-scoped data leaking into a shared cache.
+  opts in (`:cache-credentialed true`).
+- **Threat-model limitation.** The above blocks cover `Authorization`-header auth and
+  `credentials: "include"` auth, plus response-side signals (`Vary`, `Set-Cookie`,
+  `Cache-Control: private/no-cache`). They do NOT auto-detect same-origin cookie auth:
+  service workers cannot inspect same-origin `Cookie` request headers (the browser strips
+  them from `Request` objects inside `ServiceWorkerGlobalScope`). Apps that rely on
+  cookie-session authentication without `Authorization` headers must route those endpoints
+  to `network-only` (or omit caching) themselves.
 - **GET-only writes.** Only `GET` responses are ever cached; non-GET always passes through to
   the network. (Caching a mutation response is meaningless and risky.)
 - **Inert fallback.** The default 503 fallback carries an empty body and no headers derived from
