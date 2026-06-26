@@ -104,3 +104,38 @@
     (.then (cache-match ctx (:cache opts) request)
            (fn [cached] (or cached (->fallback opts request))))))
 
+;; ---- route registry --------------------------------------------------------
+
+(defonce ^:private routes (atom []))
+(defonce ^:private default-handler (atom nil))
+(defonce ^:private precache-config (atom nil))
+
+(defn reset-config! []
+  (reset! routes [])
+  (reset! default-handler nil)
+  (reset! precache-config nil)
+  (reset! known-caches #{}))
+
+(defn- ->matcher [m]
+  (cond
+    (fn? m)      m
+    (regexp? m)  (fn [request] (boolean (re-find m (.-url request))))
+    (string? m)  (fn [request] (= m (.-pathname (js/URL. (.-url request)))))
+    :else        (throw (ex-info "invalid route matcher" {:matcher m}))))
+
+(defn register-route! [matcher strategy]
+  (swap! routes conj {:match (->matcher matcher) :handler strategy})
+  nil)
+
+(defn set-default! [strategy] (reset! default-handler strategy) nil)
+
+(defn match-route [request]
+  (some (fn [{:keys [match handler]}] (when (match request) handler)) @routes))
+
+(defn precache! [urls cache-name]
+  (register-cache! cache-name)
+  (reset! precache-config {:cache cache-name :urls (vec urls)})
+  nil)
+
+(defn known-cache-names [] @known-caches)
+

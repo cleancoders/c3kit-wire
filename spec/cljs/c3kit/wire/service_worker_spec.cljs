@@ -1,5 +1,5 @@
 (ns c3kit.wire.service-worker-spec
-  (:require-macros [speclj.core :refer [context describe it should should= should-be-nil should-not should-contain]])
+  (:require-macros [speclj.core :refer [before context describe it should should= should-be-nil should-not should-contain]])
   (:require [c3kit.wire.service-worker-fake :as fake]
             [c3kit.wire.service-worker :as sut]
             [speclj.core]))
@@ -195,3 +195,32 @@
               (let [ctx (fake/->ctx {:fetch (fake/fake-fetch :reject)})
                     req (fake/->request "https://app.test/a")]
                 (should= 503 (.-status (resolved-value ((sut/cache-only {:cache "c"}) ctx req)))))))
+
+(describe "route registry"
+          (before (sut/reset-config!))
+
+          (it "matches by predicate fn, first match wins"
+              (let [a (fn [_ _] :a) b (fn [_ _] :b)]
+                (sut/register-route! (fn [req] (re-find #"/a" (.-url req))) a)
+                (sut/register-route! (fn [_] true) b)
+                (should= a (sut/match-route (fake/->request "https://host.test/a")))
+                (should= b (sut/match-route (fake/->request "https://host.test/z")))))
+
+          (it "matches by regexp against url"
+              (sut/register-route! #"/api/" (fn [_ _] :api))
+              (should-not (nil? (sut/match-route (fake/->request "https://app.test/api/x"))))
+              (should-be-nil (sut/match-route (fake/->request "https://app.test/page"))))
+
+          (it "matches by exact pathname string"
+              (sut/register-route! "/exact" (fn [_ _] :exact))
+              (should-not (nil? (sut/match-route (fake/->request "https://app.test/exact"))))
+              (should-be-nil (sut/match-route (fake/->request "https://app.test/exact/more"))))
+
+          (it "returns nil when nothing matches"
+              (should-be-nil (sut/match-route (fake/->request "https://app.test/x"))))
+
+          (it "precache! and strategy caches populate known-cache-names"
+              (sut/precache! ["/"] "shell")
+              (sut/register-route! #"/img/" (sut/cache-first {:cache "images"}))
+              (should-contain "shell" (sut/known-cache-names))
+              (should-contain "images" (sut/known-cache-names))))
