@@ -42,7 +42,9 @@
 (defn- cache-put [ctx name request response]
   (.then (open-cache ctx name) (fn [cache] (.put cache request response))))
 
-(defn ->fallback [opts request]
+(defn ->fallback
+  "Return a fallback Response: calls :fallback fn, returns :fallback value, or synthesizes a 503."
+  [opts request]
   (let [fb (:fallback opts)]
     (cond
       (fn? fb)   (fb request)
@@ -65,7 +67,9 @@
 
 (defn- invoke-fetch [ctx request] ((:fetch ctx) request))
 
-(defn cache-first [opts]
+(defn cache-first
+  "Strategy: serve from cache; on miss fetch, cache, and return; fallback on any error."
+  [opts]
   (register-cache! (:cache opts))
   (fn [ctx request]
     (-> (cache-match ctx (:cache opts) request)
@@ -75,7 +79,9 @@
                             (fn [response] (cache-response! ctx opts request response))))))
         (.catch (fn [_] (->fallback opts request))))))
 
-(defn network-first [opts]
+(defn network-first
+  "Strategy: fetch from network and cache; on network error serve from cache; if the cache also misses, return the fallback."
+  [opts]
   (register-cache! (:cache opts))
   (fn [ctx request]
     (-> (invoke-fetch ctx request)
@@ -84,7 +90,13 @@
                   (.then (cache-match ctx (:cache opts) request)
                          (fn [cached] (or cached (->fallback opts request)))))))))
 
-(defn stale-while-revalidate [opts]
+(defn stale-while-revalidate
+  "Strategy: serve cached immediately; refresh cache from network in background; await network on miss.
+   Note: the background revalidation is fire-and-forget — it is not wrapped in event.waitUntil (the
+   strategy has no access to the fetch event), so a browser may terminate the worker before the refresh
+   write completes. The cache still refreshes on a normal page that stays alive; the next request gets the
+   prior cached value and triggers a fresh revalidation."
+  [opts]
   (register-cache! (:cache opts))
   (fn [ctx request]
     (.then (cache-match ctx (:cache opts) request)
@@ -94,11 +106,15 @@
                                (.catch (fn [_] (->fallback opts request))))]
                (or cached network))))))
 
-(defn network-only [opts]
+(defn network-only
+  "Strategy: always fetch from network; no caching; fallback on network error."
+  [opts]
   (fn [ctx request]
     (.catch (invoke-fetch ctx request) (fn [_] (->fallback opts request)))))
 
-(defn cache-only [opts]
+(defn cache-only
+  "Strategy: serve from cache only; no network; fallback on cache miss."
+  [opts]
   (register-cache! (:cache opts))
   (fn [ctx request]
     (.then (cache-match ctx (:cache opts) request)
@@ -110,7 +126,9 @@
 (defonce ^:private default-handler (atom nil))
 (defonce ^:private precache-config (atom nil))
 
-(defn reset-config! []
+(defn reset-config!
+  "Reset all route, default-handler, precache, and known-cache state to empty."
+  []
   (reset! routes [])
   (reset! default-handler nil)
   (reset! precache-config nil)
@@ -123,41 +141,57 @@
     (string? m)  (fn [request] (= m (.-pathname (js/URL. (.-url request)))))
     :else        (throw (ex-info "invalid route matcher" {:matcher m}))))
 
-(defn register-route! [matcher strategy]
+(defn register-route!
+  "Register a strategy for requests matching matcher (fn, regexp, or exact-pathname string)."
+  [matcher strategy]
   (swap! routes conj {:match (->matcher matcher) :handler strategy})
   nil)
 
-(defn set-default! [strategy] (reset! default-handler strategy) nil)
+(defn set-default!
+  "Set the fallback strategy used when no registered route matches a GET request."
+  [strategy] (reset! default-handler strategy) nil)
 
-(defn match-route [request]
+(defn match-route
+  "Return the first registered strategy whose matcher accepts request, or nil."
+  [request]
   (some (fn [{:keys [match handler]}] (when (match request) handler)) @routes))
 
-(defn precache! [urls cache-name]
+(defn precache!
+  "Configure urls to be fetched and stored in cache-name during the install event."
+  [urls cache-name]
   (register-cache! cache-name)
   (reset! precache-config {:cache cache-name :urls (vec urls)})
   nil)
 
-(defn known-cache-names [] @known-caches)
+(defn known-cache-names
+  "Return the set of cache names registered by strategies and precache! (used during activate purge)."
+  [] @known-caches)
 
 ;; ---- lifecycle -------------------------------------------------------------
 
 (defn- network-passthrough [ctx request] (invoke-fetch ctx request))
 
-(defn handle-fetch [ctx request]
+(defn handle-fetch
+  "Dispatch a fetch event's request to the matching route strategy, default handler, or network passthrough."
+  [ctx request]
   (if (= "GET" (.-method request))
     (if-let [handler (or (match-route request) @default-handler)]
       (handler ctx request)
       (network-passthrough ctx request))
     (network-passthrough ctx request)))
 
-(defn install [ctx event]
+(defn install
+  "Handle the SW install event: skipWaiting and precache configured urls if any."
+  [ctx event]
   (log/info "[ServiceWorker] install")
   (.skipWaiting (:scope ctx))
   (when-let [{:keys [cache urls]} @precache-config]
     (.waitUntil event
                 (.then (open-cache ctx cache) (fn [c] (.addAll c (clj->js urls)))))))
 
-(defn activate [ctx event]
+(defn activate
+  "Handle the SW activate event: delete stale caches not in known-cache-names, then claim clients."
+  [ctx event]
   (log/info "[ServiceWorker] activate")
   (let [keep?  (known-cache-names)
         caches (:caches ctx)
@@ -176,12 +210,15 @@
 (defn- fetch-listener [ctx event]
   (.respondWith event (handle-fetch ctx (.-request event))))
 
-(defn ctx-from-globals []
+(defn ctx-from-globals
+  "Build a production ctx map from ServiceWorkerGlobalScope globals (js/caches, js/fetch, js/self)."
+  []
   {:caches js/caches
    :fetch  (fn [request] (js/fetch request))
    :scope  js/self})
 
 (defn start!
+  "Wire install, activate, and fetch listeners onto the SW scope. Calls ctx-from-globals when ctx omitted."
   ([] (start! (ctx-from-globals)))
   ([ctx]
    (wjs/add-listener (:scope ctx) "install"  (fn [e] (install ctx e)))

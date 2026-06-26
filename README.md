@@ -110,6 +110,46 @@ CLOJARS_PASSWORD=<your deploy key>
 `clj -T:build deploy` cleans, builds both jars, and pushes them to Clojars.
 `clj -T:build jar` builds without deploying. Both jars share the same VERSION.
 
+## Service Worker (offline caching)
+
+Two namespaces: `c3kit.wire.service-worker` runs inside the service worker
+(`ServiceWorkerGlobalScope`); `c3kit.wire.service-worker-register` runs on the page.
+Caching is secure by default (same-origin, `ok`, non-opaque, non-`no-store`,
+non-credentialed, GET-only).
+
+Your service worker entry (compiled to `/service-worker.js`):
+
+```clojure
+(ns my-app.service-worker
+  (:require [c3kit.wire.service-worker :as sw]))
+
+(defn -main []
+  (sw/precache! ["/" "/css/app.css" "/img/logo.png"] (str "shell-" my-app/version))
+  (sw/register-route! #"/img/"  (sw/cache-first {:cache "images"}))
+  (sw/register-route! #"/api/"  (sw/network-first {:cache "api"}))
+  (sw/register-route! "/"       (sw/stale-while-revalidate {:cache "pages"}))
+  (sw/set-default!              (sw/network-only {}))
+  (sw/start!))
+```
+
+On the page:
+
+```clojure
+(ns my-app.main
+  (:require [c3kit.wire.service-worker-register :as swr]))
+
+(swr/register! {:url "/service-worker.js"
+                :on-update (fn [_] (js/console.log "update available"))})
+```
+
+Embed your app version in cache names (e.g. `(str "shell-" version)`) to get
+automatic purge of prior-deploy caches on `activate`.
+
+**stale-while-revalidate caveat:** background revalidation is fire-and-forget and is
+not wrapped in `event.waitUntil`, so a browser may terminate the service worker before
+the refresh completes. The next request still serves the prior cached value and
+re-triggers revalidation. For must-refresh resources prefer `network-first`.
+
 # License
 
 [MIT](LICENSE) © Clean Coders.
