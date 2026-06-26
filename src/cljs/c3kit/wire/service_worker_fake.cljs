@@ -39,7 +39,7 @@
      "match"  (fn [request] (->resolved (get @store (req-url request))))
      "put"    (fn [request response] (swap! store assoc (req-url request) response) (->resolved nil))
      "addAll" (fn [urls] (doseq [u (js->clj urls)] (swap! store assoc u :precached)) (->resolved nil))
-     "keys"   (fn [] (->resolved (clj->js (keys @store))))
+     "keys"   (fn [] (->resolved (clj->js (vec (keys @store)))))
      "delete" (fn [request]
                 (let [k (req-url request) had (contains? @store k)]
                   (swap! store dissoc k) (->resolved had)))
@@ -51,7 +51,7 @@
      "open"   (fn [name]
                 (when-not (contains? @caches name) (swap! caches assoc name (->cache)))
                 (->resolved (get @caches name)))
-     "keys"   (fn [] (->resolved (clj->js (keys @caches))))
+     "keys"   (fn [] (->resolved (clj->js (vec (keys @caches)))))
      "has"    (fn [name] (->resolved (contains? @caches name)))
      "delete" (fn [name]
                 (let [had (contains? @caches name)]

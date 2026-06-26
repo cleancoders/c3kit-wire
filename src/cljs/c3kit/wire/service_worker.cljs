@@ -31,3 +31,27 @@
        (not (no-store? response))
        (or (:allow-cross-origin opts) (same-origin? ctx request))
        (or (:cache-credentialed opts) (not (credentialed? request)))))
+
+;; ---- cache helpers ---------------------------------------------------------
+
+(defn- open-cache [ctx name] (.open (:caches ctx) name))
+
+(defn- cache-match [ctx name request]
+  (.then (open-cache ctx name) (fn [cache] (.match cache request))))
+
+(defn- cache-put [ctx name request response]
+  (.then (open-cache ctx name) (fn [cache] (.put cache request response))))
+
+(defn ->fallback [opts request]
+  (let [fb (:fallback opts)]
+    (cond
+      (fn? fb)   (fb request)
+      (some? fb) fb
+      :else      (js/Response. nil #js {:status 503 :statusText "Service Unavailable"}))))
+
+(defn cache-response!
+  "Clone + cache response when the shared security policy permits. Returns response."
+  [ctx opts request response]
+  (when (cacheable? ctx request response opts)
+    (cache-put ctx (:cache opts) request (.clone response)))
+  response)
