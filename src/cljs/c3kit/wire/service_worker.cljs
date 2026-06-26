@@ -55,3 +55,32 @@
   (when (cacheable? ctx request response opts)
     (cache-put ctx (:cache opts) request (.clone response)))
   response)
+
+;; ---- caches known to the library (for activate purge) ----------------------
+
+(defonce ^:private known-caches (atom #{}))
+(defn- register-cache! [name] (when name (swap! known-caches conj name)) name)
+
+;; ---- strategies (LSP: each returns (fn [ctx request] -> thenable<Response>)) ----
+
+(defn- invoke-fetch [ctx request] ((:fetch ctx) request))
+
+(defn cache-first [opts]
+  (register-cache! (:cache opts))
+  (fn [ctx request]
+    (-> (cache-match ctx (:cache opts) request)
+        (.then (fn [cached]
+                 (or cached
+                     (.then (invoke-fetch ctx request)
+                            (fn [response] (cache-response! ctx opts request response))))))
+        (.catch (fn [_] (->fallback opts request))))))
+
+(defn network-first [opts]
+  (register-cache! (:cache opts))
+  (fn [ctx request]
+    (-> (invoke-fetch ctx request)
+        (.then (fn [response] (cache-response! ctx opts request response)))
+        (.catch (fn [_]
+                  (.then (cache-match ctx (:cache opts) request)
+                         (fn [cached] (or cached (->fallback opts request)))))))))
+
