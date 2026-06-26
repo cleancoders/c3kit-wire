@@ -110,3 +110,46 @@
                     rsp (fake/->response "x")]
                 (sut/cache-response! ctx {:cache "c"} req rsp)
                 (should= [] (store-keys (open-cache ctx "c"))))))
+
+(defn seed-cache! [ctx name request response]
+  (resolved-value (.then (.open (:caches ctx) name) (fn [c] (.put c request response)))))
+
+(describe "cache-first"
+          (it "returns cached response without fetching"
+              (let [ctx (fake/->ctx {:fetch (fake/fake-fetch :reject)})
+                    req (fake/->request "https://app.test/a")
+                    hit (fake/->response "cached")]
+                (seed-cache! ctx "c" req hit)
+                (should= hit (resolved-value ((sut/cache-first {:cache "c"}) ctx req)))))
+
+          (it "fetches, caches, and returns on cache miss"
+              (let [net (fake/->response "fresh")
+                    ctx (fake/->ctx {:fetch (fake/fake-fetch net)})
+                    req (fake/->request "https://app.test/a")]
+                (should= net (resolved-value ((sut/cache-first {:cache "c"}) ctx req)))
+                (should-contain "https://app.test/a" (store-keys (open-cache ctx "c")))))
+
+          (it "returns fallback when miss and network fails"
+              (let [ctx (fake/->ctx {:fetch (fake/fake-fetch :reject)})
+                    req (fake/->request "https://app.test/a")]
+                (should= 503 (.-status (resolved-value ((sut/cache-first {:cache "c"}) ctx req)))))))
+
+(describe "network-first"
+          (it "fetches, caches, and returns when online"
+              (let [net (fake/->response "fresh")
+                    ctx (fake/->ctx {:fetch (fake/fake-fetch net)})
+                    req (fake/->request "https://app.test/a")]
+                (should= net (resolved-value ((sut/network-first {:cache "c"}) ctx req)))
+                (should-contain "https://app.test/a" (store-keys (open-cache ctx "c")))))
+
+          (it "falls back to cache when network fails"
+              (let [ctx (fake/->ctx {:fetch (fake/fake-fetch :reject)})
+                    req (fake/->request "https://app.test/a")
+                    hit (fake/->response "cached")]
+                (seed-cache! ctx "c" req hit)
+                (should= hit (resolved-value ((sut/network-first {:cache "c"}) ctx req)))))
+
+          (it "returns 503 fallback when network fails and no cache"
+              (let [ctx (fake/->ctx {:fetch (fake/fake-fetch :reject)})
+                    req (fake/->request "https://app.test/a")]
+                (should= 503 (.-status (resolved-value ((sut/network-first {:cache "c"}) ctx req)))))))
