@@ -1,6 +1,7 @@
 (ns c3kit.wire.service-worker-spec
   (:require-macros [speclj.core :refer [before context describe it should should= should-be-nil should-not should-contain]])
-  (:require [c3kit.wire.service-worker-fake :as fake]
+  (:require [c3kit.wire.js :as wjs]
+            [c3kit.wire.service-worker-fake :as fake]
             [c3kit.wire.service-worker :as sut]
             [speclj.core]))
 
@@ -224,3 +225,60 @@
               (sut/register-route! #"/img/" (sut/cache-first {:cache "images"}))
               (should-contain "shell" (sut/known-cache-names))
               (should-contain "images" (sut/known-cache-names))))
+
+(defn ->event [] (let [a (atom {})]
+                   (js-obj "waitUntil"   (fn [p] (swap! a assoc :wait p) p)
+                           "respondWith" (fn [r] (swap! a assoc :respond r) r)
+                           "__a" a)))
+(defn event-wait [e] (:wait @(unchecked-get e "__a")))
+(defn event-respond [e] (:respond @(unchecked-get e "__a")))
+
+(describe "handle-fetch"
+          (before (sut/reset-config!))
+
+          (it "routes GET to the matching strategy"
+              (sut/register-route! (fn [_] true) (fn [_ _] (fake/->resolved (fake/->response "routed"))))
+              (should= "routed" (.-body (resolved-value (sut/handle-fetch (fake/->ctx) (fake/->request "https://app.test/a"))))))
+
+          (it "uses the default handler when no route matches"
+              (sut/set-default! (fn [_ _] (fake/->resolved (fake/->response "default"))))
+              (should= "default" (.-body (resolved-value (sut/handle-fetch (fake/->ctx) (fake/->request "https://app.test/a"))))))
+
+          (it "passes non-GET straight to the network"
+              (let [net (fake/->response "net")
+                    ctx (fake/->ctx {:fetch (fake/fake-fetch net)})]
+                (should= net (resolved-value (sut/handle-fetch ctx (fake/->request "https://app.test/a" {:method "POST"})))))))
+
+(describe "install"
+          (before (sut/reset-config!))
+
+          (it "precaches configured urls and waits on it"
+              (let [ctx (fake/->ctx) e (->event)]
+                (sut/precache! ["https://app.test/shell"] "shell")
+                (sut/install ctx e)
+                (resolved-value (event-wait e))
+                (should-contain "https://app.test/shell" (store-keys (open-cache ctx "shell"))))))
+
+(describe "activate"
+          (before (sut/reset-config!))
+
+          (it "deletes caches not in the known set and keeps known ones"
+              (let [ctx (fake/->ctx) e (->event)]
+                (sut/precache! ["/"] "keep")
+                (resolved-value (.open (:caches ctx) "keep"))
+                (resolved-value (.open (:caches ctx) "stale"))
+                (sut/activate ctx e)
+                (resolved-value (event-wait e))
+                (let [names (js->clj (resolved-value (.keys (:caches ctx))))]
+                  (should-contain "keep" names)
+                  (should-not (some #{"stale"} names))))))
+
+(describe "start!"
+          (it "registers install, activate, and fetch listeners on the scope"
+              (let [events (atom [])
+                    scope  (fake/->scope)]
+                (with-redefs [wjs/add-listener (fn [_ ev _] (swap! events conj ev))]
+                  (sut/start! (fake/->ctx {:scope scope}))
+                  (should-contain "install" @events)
+                  (should-contain "activate" @events)
+                  (should-contain "fetch" @events)))))
