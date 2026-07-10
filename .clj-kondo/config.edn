@@ -1,0 +1,2 @@
+{:hooks {:analyze-call {c3kit.wire.redis/borrow-from   hooks.redis/borrow-from
+                        c3kit.wire.redis/wait-for-all hooks.redis/wait-for-all}}}

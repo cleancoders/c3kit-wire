@@ -1,0 +1,4 @@
+# gitleaks baseline (2026-07-09): pre-existing findings accepted as-is.
+# New secrets introduced after this baseline still fail CI.
+e3f0f259ca89d4e4fd1a0960816ff0e13d108a6f:spec/cljc/c3kit/wire/jwtc_spec.cljc:jwt:15
+e3f0f259ca89d4e4fd1a0960816ff0e13d108a6f:spec/cljc/c3kit/wire/jwtc_spec.cljc:jwt:28

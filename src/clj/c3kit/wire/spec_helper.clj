@@ -6,7 +6,8 @@
             [c3kit.wire.flashc :as flashc]
             [c3kit.wire.lock :as lock]
             [c3kit.wire.websocket :as ws]
-            [speclj.core :refer :all]
+            [speclj.core :refer [after before it should should-contain should-have-invoked
+                                 should-not-be-nil should= stub]]
             [speclj.stub :as stub]))
 
 (log/warn!)
@@ -63,19 +64,19 @@
 
 (defmacro test-route [path method route-handler handler & body]
   `(it ~path
-     (check-route ~path ~method ~route-handler ~handler)
-     ~@body))
+       (check-route ~path ~method ~route-handler ~handler)
+       ~@body))
 
 (defmacro test-webs [id sym]
   `(it (str "remote " ~id " -> " '~sym)
-     (let [action# (ws/resolve-handler ~id)]
-       (should-not-be-nil action#)
-       (should= '~sym (.toSymbol action#)))))
+       (let [action# (ws/resolve-handler ~id)]
+         (should-not-be-nil action#)
+         (should= '~sym (.toSymbol action#)))))
 
 (defn with-memory-lock []
   (list
-    (before (lock/configure! {:impl :memory}))
-    (after (lock/shutdown!))))
+   (before (lock/configure! {:impl :memory}))
+   (after (lock/shutdown!))))
 
 (defmacro should-have-locked [key]
   `(should-contain ~key @(.-locks @lock/impl)))
