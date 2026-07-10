@@ -95,7 +95,9 @@
           (it "false for Vary: *"
               (should= false (sut/cacheable? @ctx @get-req (fake/->response "x" {:headers {"Vary" "*"}}) {})))
 
-          (it "false when Set-Cookie present"
+          ;; Guard-logic unit test only: the fake exposes Set-Cookie. Real browsers strip it from
+          ;; headers.get, so this path cannot fire live — see service-worker-real-spec characterization.
+          (it "false when Set-Cookie present (fake exposes it; browsers hide it)"
               (should= false (sut/cacheable? @ctx @get-req (fake/->response "x" {:headers {"Set-Cookie" "sid=abc"}}) {}))))
 
 (defn store-keys [cache] (js->clj (resolved-value (.keys cache))))
