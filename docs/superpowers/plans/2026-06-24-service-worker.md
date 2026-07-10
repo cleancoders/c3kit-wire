@@ -1,6 +1,6 @@
 # Service Worker Library Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Build a secure-by-default, SOLID, test-first ClojureScript service-worker library for `c3kit.wire` providing offline-read caching (precache + 5 configurable per-route strategies) and page-side registration.
 
@@ -47,7 +47,7 @@
   - `(fake-fetch resp-or-fn) -> (fn [request] -> thenable)`; pass `:reject` (or a fn returning `:reject`) to simulate network failure.
   - `(->ctx overrides?) -> {:caches :fetch :scope}`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```clojure
 (ns c3kit.wire.service-worker-spec
@@ -98,12 +98,12 @@
         (should= true (instance? js/Error @caught))))))
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `clj -M:test:cljs once`
 Expected: FAIL — `c3kit.wire.service-worker-fake` namespace does not exist.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```clojure
 (ns c3kit.wire.service-worker-fake
@@ -184,12 +184,12 @@ Expected: FAIL — `c3kit.wire.service-worker-fake` namespace does not exist.
    :scope  (or scope (->scope))})
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `clj -M:test:cljs once`
 Expected: PASS (8 examples in "Service Worker fakes").
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/cljs/c3kit/wire/service_worker_fake.cljs spec/cljs/c3kit/wire/service_worker_spec.cljs
@@ -208,7 +208,7 @@ git commit --no-gpg-sign -m "feat: add service-worker test fakes with sync-promi
 - Consumes: `fake/->ctx`, `fake/->request`, `fake/->response`.
 - Produces: `(cacheable? ctx request response opts) -> boolean`. True only when: method GET, `response.ok`, type not opaque/opaqueredirect, no `Cache-Control: no-store`, same-origin (or `:allow-cross-origin`), not credentialed (or `:cache-credentialed`).
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Append to `spec/cljs/c3kit/wire/service_worker_spec.cljs` (add `[c3kit.wire.service-worker :as sut]` to the `:require`):
 
@@ -246,12 +246,12 @@ Append to `spec/cljs/c3kit/wire/service_worker_spec.cljs` (add `[c3kit.wire.serv
         (should= true  (sut/cacheable? ctx c ok-resp {:cache-credentialed true}))))))
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `clj -M:test:cljs once`
 Expected: FAIL — `c3kit.wire.service-worker` does not exist / `cacheable?` undefined.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 Create `src/cljs/c3kit/wire/service_worker.cljs`:
 
@@ -291,12 +291,12 @@ Create `src/cljs/c3kit/wire/service_worker.cljs`:
        (or (:cache-credentialed opts) (not (credentialed? request)))))
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `clj -M:test:cljs once`
 Expected: PASS (7 examples in "cacheable?").
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/cljs/c3kit/wire/service_worker.cljs spec/cljs/c3kit/wire/service_worker_spec.cljs
@@ -317,7 +317,7 @@ git commit --no-gpg-sign -m "feat: add secure-by-default cacheable? predicate"
   - `(->fallback opts request) -> Response` — `:fallback` (Response or `(fn [request])`) else a 503 `js/Response`.
   - `(cache-response! ctx opts request response) -> response` — clones+puts when `cacheable?`, always returns the original response.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Append:
 
@@ -352,12 +352,12 @@ Append:
       (should= [] (store-keys (open-cache ctx "c"))))))
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `clj -M:test:cljs once`
 Expected: FAIL — `->fallback`/`cache-response!` undefined.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 Append to `src/cljs/c3kit/wire/service_worker.cljs`:
 
@@ -387,14 +387,14 @@ Append to `src/cljs/c3kit/wire/service_worker.cljs`:
   response)
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `clj -M:test:cljs once`
 Expected: PASS (5 examples in "fallback + cache-response!").
 
 Note: `->fallback`'s default branch constructs a real `js/Response`; the test env (headless browser / Node 18+) provides `Response`. This is the only `js/Response` construction in the library and is not on a hot thenable-chain.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/cljs/c3kit/wire/service_worker.cljs spec/cljs/c3kit/wire/service_worker_spec.cljs
@@ -415,7 +415,7 @@ git commit --no-gpg-sign -m "feat: add cache helpers, fallback, and gated cache 
   - `(cache-first opts) -> (fn [ctx request] -> thenable<Response>)`
   - `(network-first opts) -> (fn [ctx request] -> thenable<Response>)`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Append:
 
@@ -464,12 +464,12 @@ Append:
       (should= 503 (.-status (resolved-value ((sut/network-first {:cache "c"}) ctx req)))))))
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `clj -M:test:cljs once`
 Expected: FAIL — `cache-first`/`network-first` undefined.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 Append:
 
@@ -503,12 +503,12 @@ Append:
                          (fn [cached] (or cached (->fallback opts request)))))))))
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `clj -M:test:cljs once`
 Expected: PASS (3 cache-first + 3 network-first examples).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/cljs/c3kit/wire/service_worker.cljs spec/cljs/c3kit/wire/service_worker_spec.cljs
@@ -529,7 +529,7 @@ git commit --no-gpg-sign -m "feat: add cache-first and network-first strategies"
   - `(network-only opts) -> (fn [ctx request] -> thenable<Response>)`
   - `(cache-only opts) -> (fn [ctx request] -> thenable<Response>)`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Append:
 
@@ -577,12 +577,12 @@ Append:
       (should= 503 (.-status (resolved-value ((sut/cache-only {:cache "c"}) ctx req)))))))
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `clj -M:test:cljs once`
 Expected: FAIL — `stale-while-revalidate`/`network-only`/`cache-only` undefined.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 Append:
 
@@ -608,12 +608,12 @@ Append:
            (fn [cached] (or cached (->fallback opts request))))))
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `clj -M:test:cljs once`
 Expected: PASS (2 swr + 2 network-only + 2 cache-only examples).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/cljs/c3kit/wire/service_worker.cljs spec/cljs/c3kit/wire/service_worker_spec.cljs
@@ -638,7 +638,7 @@ git commit --no-gpg-sign -m "feat: add stale-while-revalidate, network-only, cac
   - `(precache! urls cache-name) -> nil` — also registers cache-name as known.
   - `(known-cache-names) -> set`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Append:
 
@@ -673,12 +673,12 @@ Append:
     (should-contain "images" (sut/known-cache-names))))
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `clj -M:test:cljs once`
 Expected: FAIL — registry fns undefined.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 Append:
 
@@ -719,12 +719,12 @@ Append:
 (defn known-cache-names [] @known-caches)
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `clj -M:test:cljs once`
 Expected: PASS (5 examples in "route registry").
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/cljs/c3kit/wire/service_worker.cljs spec/cljs/c3kit/wire/service_worker_spec.cljs
@@ -747,7 +747,7 @@ git commit --no-gpg-sign -m "feat: add SW route registry and precache config"
   - `(activate ctx event)` — `event.waitUntil`: delete caches not in `known-cache-names`, then `clients.claim`.
   - `(start! ctx)` / `(start!)` — wire install/activate/fetch listeners (default ctx from globals).
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Append (uses a tiny fake event capturing `waitUntil`/`respondWith`):
 
@@ -810,12 +810,12 @@ Append (uses a tiny fake event capturing `waitUntil`/`respondWith`):
         (should-contain "fetch" @events)))))
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `clj -M:test:cljs once`
 Expected: FAIL — lifecycle fns undefined.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 Append:
 
@@ -869,12 +869,12 @@ Append:
    nil))
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `clj -M:test:cljs once`
 Expected: PASS (3 handle-fetch + 1 install + 1 activate + 1 start! examples).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/cljs/c3kit/wire/service_worker.cljs spec/cljs/c3kit/wire/service_worker_spec.cljs
@@ -895,7 +895,7 @@ git commit --no-gpg-sign -m "feat: add SW lifecycle handlers and start! wiring"
   - `(register! opts) -> thenable` — fills `:container`/`:secure?` from globals, `:url` default "/service-worker.js".
   - `(unregister!) -> thenable`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `spec/cljs/c3kit/wire/service_worker_register_spec.cljs`:
 
@@ -965,12 +965,12 @@ Create `spec/cljs/c3kit/wire/service_worker_register_spec.cljs`:
       (should= registration @active))))
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `clj -M:test:cljs once`
 Expected: FAIL — `c3kit.wire.service-worker-register` does not exist.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 Create `src/cljs/c3kit/wire/service_worker_register.cljs`:
 
@@ -1025,14 +1025,14 @@ Create `src/cljs/c3kit/wire/service_worker_register.cljs`:
     (js/Promise.resolve nil)))
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `clj -M:test:cljs once`
 Expected: PASS (5 examples in "service worker registration").
 
 Note: `register-with`'s no-op branches construct a real `js/Promise.resolve`. The "no container" test chains `.then` on it — headless/Node env resolves it; the test reads `::x` → nil after resolve. If the env's microtask timing makes this flake, assert on `@(unchecked-get container "__calls")` being empty instead (already covered by the secure-context test).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/cljs/c3kit/wire/service_worker_register.cljs spec/cljs/c3kit/wire/service_worker_register_spec.cljs
@@ -1049,11 +1049,11 @@ git commit --no-gpg-sign -m "feat: add page-side service worker registration"
 
 **Interfaces:** none new — documentation only.
 
-- [ ] **Step 1: Add docstrings to every public fn**
+- [x] **Step 1: Add docstrings to every public fn**
 
 Ensure each public fn in `service_worker.cljs` has a one-line docstring: `cacheable?`, `->fallback`, `cache-response!`, `cache-first`, `network-first`, `stale-while-revalidate`, `network-only`, `cache-only`, `register-route!`, `set-default!`, `match-route`, `precache!`, `known-cache-names`, `reset-config!`, `handle-fetch`, `install`, `activate`, `start!`, `ctx-from-globals`. Strategy docstrings state the cache/network order and the fallback behavior.
 
-- [ ] **Step 2: Add a README usage section**
+- [x] **Step 2: Add a README usage section**
 
 Append to `README.md`:
 
@@ -1094,12 +1094,12 @@ Embed your app version in cache names (e.g. `(str "shell-" version)`) to get
 automatic purge of prior-deploy caches on `activate`.
 ````
 
-- [ ] **Step 3: Run the full suite**
+- [x] **Step 3: Run the full suite**
 
 Run: `clj -M:test:cljs once`
 Expected: PASS — all service-worker examples green, no regressions.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add src/cljs/c3kit/wire/service_worker.cljs README.md
