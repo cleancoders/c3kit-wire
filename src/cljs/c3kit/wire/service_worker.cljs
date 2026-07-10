@@ -26,6 +26,9 @@
                    (str/split #"[,\s]+")
                    (as-> tokens (some #{"*" "cookie" "authorization"} tokens)))))
 
+;; Best-effort only: Set-Cookie is a forbidden response-header name, so a live browser
+;; returns nil here and this guard cannot fire. Kept as defense-in-depth for non-browser/
+;; proxy Response impls that do expose it. See cacheable? docstring; do not rely on it.
 (defn- set-cookie? [response]
   (boolean (some-> (.. response -headers) (.get "Set-Cookie"))))
 
@@ -39,12 +42,19 @@
    Hard blocks (not overridable by opts):
    - Cache-Control: no-store, no-cache, or private
    - Vary: * or Cookie or Authorization (per-user content)
-   - Set-Cookie present (response sets session state)
+
+   Best-effort only (browsers defeat it): Set-Cookie. It is a forbidden
+   response-header name, so headers.get(\"Set-Cookie\") returns nil in a real
+   service worker and this guard cannot fire — it catches Set-Cookie only on
+   non-browser/proxy Response impls that expose the header. Do not rely on it.
 
    Threat-model note: detects credentials via Authorization header or
-   credentials: \"include\", and blocks Vary/Set-Cookie/private/no-cache
-   responses. CANNOT detect same-origin cookie auth — apps must route
-   private cookie-authenticated endpoints to network-only (or omit caching)."
+   credentials: \"include\", and blocks Vary/private/no-cache responses. CANNOT
+   detect same-origin cookie auth, and CANNOT see Set-Cookie in a live browser —
+   apps must route private/session-cookie endpoints to network-only (or omit caching).
+   Cross-origin caveat: Vary is not a CORS-safelisted response header, so on a cross-origin
+   cors response headers.get(\"Vary\") is nil and the Vary guard also cannot fire — under
+   :allow-cross-origin the gate rests on Cache-Control and your matcher, not Vary."
   [ctx request response opts]
   (and (= "GET" (.-method request))
        (boolean (.-ok response))
