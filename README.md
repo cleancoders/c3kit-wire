@@ -115,16 +115,26 @@ CLOJARS_PASSWORD=<your deploy key>
 Two namespaces: `c3kit.wire.service-worker` runs inside the service worker
 (`ServiceWorkerGlobalScope`); `c3kit.wire.service-worker-register` runs on the page.
 Caching is secure by default: same-origin, `ok`, non-opaque, GET-only, with hard
-blocks on `Cache-Control: no-store/no-cache/private`, `Vary: */Cookie/Authorization`,
-and `Set-Cookie` responses. Credentials are detected via `Authorization` header or
-`credentials: "include"` and are blocked by default.
+blocks on `Cache-Control: no-store/no-cache/private` and `Vary: */Cookie/Authorization`.
+Credentials are detected via `Authorization` header or `credentials: "include"` and are
+blocked by default.
 
-**Security note — threat-model limitation:** the hard blocks cover `Authorization`-header
-and `credentials: "include"` auth as well as `Vary`/`Set-Cookie`/`private`/`no-cache`
-responses. However, the service worker **cannot inspect same-origin cookie headers** (they
-are stripped from `Request` objects in `ServiceWorkerGlobalScope`). If your app uses
-cookie-session authentication without `Authorization` headers, you must route those
-endpoints explicitly to `network-only` or omit caching for them.
+**Security note — threat-model limitations (read before caching anything private):**
+The hard blocks reliably cover `Authorization`-header and `credentials: "include"` auth
+and, on same-origin responses, `Cache-Control: private/no-cache/no-store` and `Vary`.
+Two guards **cannot fire in a live browser** — do not rely on them:
+
+- **`Set-Cookie`** is a forbidden response-header name, so `headers.get("Set-Cookie")`
+  returns `nil` inside the service worker. A `Set-Cookie` response is *not* detected and
+  will be cached if nothing else blocks it.
+- **`Vary`** is not a CORS-safelisted response header, so on a **cross-origin** `cors`
+  response `headers.get("Vary")` is `nil` and the `Vary` guard is silently skipped. It
+  works only same-origin.
+- **Same-origin cookie-session auth** is invisible: cookie headers are stripped from
+  `Request` objects in `ServiceWorkerGlobalScope`.
+
+For any private, per-user, session-cookie, or `Set-Cookie` endpoint, route it explicitly
+to `network-only` (or omit caching) — the secure-by-default gate alone is not sufficient.
 
 Strategies available inside the service worker: `cache-first`, `network-first`,
 `stale-while-revalidate`, `cache-only`, `network-only`. Each is a factory — call
