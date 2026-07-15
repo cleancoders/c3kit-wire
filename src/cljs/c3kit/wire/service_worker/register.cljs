@@ -1,4 +1,4 @@
-(ns c3kit.wire.service-worker-register
+(ns c3kit.wire.service-worker.register
   "Page-side service-worker registration. register-with takes its secure-context
    flag and serviceWorker container as explicit args (DIP) so it is testable
    without global redefs; register! fills them from globals."
