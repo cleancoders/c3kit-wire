@@ -1,4 +1,4 @@
-(ns c3kit.wire.service-worker
+(ns c3kit.wire.service-worker.core
   "Secure-by-default offline caching for service workers. All handlers take an
    injected ctx {:caches :fetch :scope} (DIP) and only chain .then/.catch on the
    thenables those injected objects return — never constructing js/Promise — so the

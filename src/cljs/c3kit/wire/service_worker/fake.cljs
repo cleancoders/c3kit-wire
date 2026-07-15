@@ -1,4 +1,4 @@
-(ns c3kit.wire.service-worker-fake
+(ns c3kit.wire.service-worker.fake
   "In-memory test doubles for service-worker specs. Shipped in src so apps that
    build their own SW config can reuse them. Includes a synchronous promise double
    so SW handlers (which only chain .then/.catch on injected thenables) resolve
