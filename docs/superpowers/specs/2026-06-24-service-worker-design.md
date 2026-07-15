@@ -33,9 +33,9 @@ other's bundle.
 
 | Namespace | Scope | Responsibility |
 |---|---|---|
-| `c3kit.wire.service-worker` | `ServiceWorkerGlobalScope` | strategies, route registry, lifecycle handlers, precache |
-| `c3kit.wire.service-worker-register` | window / page | register the SW, drive the update lifecycle |
-| `c3kit.wire.service-worker-fake` | test (shipped in `src/cljs`) | in-memory `FakeCacheStorage`/`FakeCache`/fake-fetch for behavior tests |
+| `c3kit.wire.service-worker.core` | `ServiceWorkerGlobalScope` | strategies, route registry, lifecycle handlers, precache |
+| `c3kit.wire.service-worker.register` | window / page | register the SW, drive the update lifecycle |
+| `c3kit.wire.service-worker.fake` | test (shipped in `src/cljs`) | in-memory `FakeCacheStorage`/`FakeCache`/fake-fetch for behavior tests |
 
 The fakes ship in `src/` (not `spec/`) so apps that build their own SW config get them for
 free — mirroring how wire already ships `spec_helper.cljs` in `src`.

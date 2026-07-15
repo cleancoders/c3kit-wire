@@ -112,8 +112,8 @@ CLOJARS_PASSWORD=<your deploy key>
 
 ## Service Worker (offline caching)
 
-Two namespaces: `c3kit.wire.service-worker` runs inside the service worker
-(`ServiceWorkerGlobalScope`); `c3kit.wire.service-worker-register` runs on the page.
+Two namespaces: `c3kit.wire.service-worker.core` runs inside the service worker
+(`ServiceWorkerGlobalScope`); `c3kit.wire.service-worker.register` runs on the page.
 Caching is secure by default: same-origin, `ok`, non-opaque, GET-only, with hard
 blocks on `Cache-Control: no-store/no-cache/private` and `Vary: */Cookie/Authorization`.
 Credentials are detected via `Authorization` header or `credentials: "include"` and are
@@ -144,7 +144,7 @@ Your service worker entry (compiled to `/service-worker.js`):
 
 ```clojure
 (ns my-app.service-worker
-  (:require [c3kit.wire.service-worker :as sw]))
+  (:require [c3kit.wire.service-worker.core :as sw]))
 
 (defn -main []
   (sw/precache! ["/" "/css/app.css" "/img/logo.png"] (str "shell-" my-app/version))
@@ -160,7 +160,7 @@ On the page:
 
 ```clojure
 (ns my-app.main
-  (:require [c3kit.wire.service-worker-register :as swr]))
+  (:require [c3kit.wire.service-worker.register :as swr]))
 
 (swr/register! {:url "/service-worker.js"
                 :on-update (fn [_] (js/console.log "update available"))})
