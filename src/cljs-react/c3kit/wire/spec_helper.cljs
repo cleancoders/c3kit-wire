@@ -1,6 +1,6 @@
 (ns c3kit.wire.spec-helper
   (:refer-clojure :exclude [flush reset! swap!])
-  (:require-macros [speclj.core :refer [after before redefs-around should-have-invoked should= stub with-stubs]])
+  (:require-macros [speclj.core :refer [after before redefs-around stub]])
   (:require [c3kit.apron.corec :as ccc]
             [c3kit.wire.ajax :as ajax]
             [c3kit.wire.js :as wjs]
@@ -65,7 +65,6 @@
   (batch/flush-after-render)
   (act (fn []))
   (core-reset! render-roots {}))
-
 
 ;region Document/Window listener tracking
 ; Monkey-patches addEventListener/removeEventListener on document and window to track all
@@ -136,8 +135,9 @@
         orig-fn   (.-setToken proto)]
     (ccc/oset proto "setToken"
               (fn [token opt-title]
-                (try (.call orig-fn (js-this) token opt-title)
-                     (catch :default _))))))
+                (this-as this
+                         (try (.call orig-fn this token opt-title)
+                              (catch :default _)))))))
 
 (defn select
   ([selector] (select js/document selector))
@@ -194,9 +194,9 @@
                           root))]
      (try
        (react-dom/flushSync
-         (fn []
-           (.render react-root (reagent/as-element component))
-           (reagent/flush)))
+        (fn []
+          (.render react-root (reagent/as-element component))
+          (reagent/flush)))
        (batch/flush-after-render)
        (act (fn []))
        (catch :default e (throw (ex-info "Render Error" {:message e})))))))
@@ -252,8 +252,7 @@
         wjs/DIGIT6 "6"
         wjs/DIGIT7 "7"
         wjs/DIGIT8 "8"
-        wjs/DIGIT9 "9"
-        }
+        wjs/DIGIT9 "9"}
        (reduce-kv assoc-key-event {})))
 
 ;region Private Event Helpers
@@ -671,15 +670,6 @@
       (.call setter node value)
       (set! (.-value node) value))))
 
-(defn- set-native-checked!
-  "Sets the checked property using the native setter to bypass React's internal tracker."
-  [node value]
-  (let [proto      (js/Object.getPrototypeOf node)
-        descriptor (js/Object.getOwnPropertyDescriptor proto "checked")]
-    (if-let [setter (and descriptor (.-set descriptor))]
-      (.call setter node value)
-      (set! (.-checked node) value))))
-
 (defn- checkbox-or-radio? [node]
   (let [type (.-type node)]
     (or (= "checkbox" type) (= "radio" type))))
@@ -701,8 +691,8 @@
            (dispatch-event node (base-event "change" {})))
 
        (checkbox-or-radio? node)
-       (do (when (not= (boolean value) (.-checked node))
-             (dispatch-event node (mouse-event "click" {}))))
+       (when (not= (boolean value) (.-checked node))
+         (dispatch-event node (mouse-event "click" {})))
 
        (select-element? node)
        (do (set-native-value! node value)
@@ -749,7 +739,6 @@
      :else (wjs/node-text selector-or-elem)))
   ([root selector]
    (some-> (select root selector) wjs/node-text)))
-
 
 (defn html!
   "Throws exception if the node doesn't exist."
@@ -869,7 +858,6 @@
 
 (defn invoke-last-ajax-post-handler [payload] (some-> (last-ajax-post-handler) (ccc/invoke payload)))
 (defn invoke-last-ajax-get-handler [payload] (some-> (last-ajax-get-handler) (ccc/invoke payload)))
-
 
 (defn stub-ws [] (redefs-around [ws/call! (stub :ws/call!)]))
 (defn last-ws-call-id [] (when-let [args (stub/last-invocation-of :ws/call!)] (first args)))

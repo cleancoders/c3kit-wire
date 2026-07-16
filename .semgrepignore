@@ -1,0 +1,8 @@
+# Test fixtures flagged by semgrep — not real vulnerabilities.
+# Insecure-websocket rule: mock/unit WebSocket tests use plaintext URLs
+# because there is no TLS in-process; production code uses secure sockets.
+# JWT token: hardcoded sample token used only to exercise decoding in tests.
+spec/cljs-react/c3kit/wire/websocket_spec.cljs
+spec/cljs-react/c3kit/wire/mock/memory_websocket_spec.cljs
+spec/cljs-react/c3kit/wire/mock/memory_server_spec.cljs
+spec/cljc/c3kit/wire/jwtc_spec.cljc

@@ -1,4 +1,6 @@
 *.iml
+.clj-kondo/.cache
+.clj-kondo/imports
 .cpcache
 .idea
 .DS_Store

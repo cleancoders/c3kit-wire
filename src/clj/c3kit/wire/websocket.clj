@@ -16,6 +16,9 @@
   ([request] (wsc/handler @server request))
   ([request options] (wsc/handler @server request options)))
 
+;; Referenced as a quoted symbol in `default-handlers`, which clj-kondo doesn't
+;; track as usage.
+#_{:clj-kondo/ignore [:unused-private-var]}
 (defn- log-message [{:keys [kind connection-id]}]
   (log/trace (str "websocket call: " kind " client: " connection-id))
   {})
@@ -30,12 +33,11 @@
   (log/warn (str "UNHANDLED websocket connection closed: " connection-id))
   (apic/ok))
 
-(defn close! [cid] #_(@send-fn cid [:chsk/close]))
+(defn close! [_cid] #_(@send-fn cid [:chsk/close]))
 
 (def default-handlers {:ws/open  'c3kit.wire.websocket/log-message
                        :ws/close 'c3kit.wire.websocket/default-on-connection-closed
-                       :ws/ping  'c3kit.wire.websocket/pong
-                       })
+                       :ws/ping  'c3kit.wire.websocket/pong})
 
 (def handler-cache (atom {}))
 
@@ -60,8 +62,7 @@
   (reset! handler-resolver resolve-handler))
 
 (defn push! [client-id event params]
-  (wsc/call! @server client-id event params)
-  )
+  (wsc/call! @server client-id event params))
 
 (defn dispatch-message [msg]
   (if-let [action (@handler-resolver (:kind msg))]
@@ -90,7 +91,6 @@
         (log/error e)
         (apic/error nil (.getMessage e))))))
 
-
 (defn wrap-add-api-version [handler]
   (fn [msg]
     (let [result (handler msg)]
@@ -99,8 +99,7 @@
 (def message-handler (-> dispatch-message
                          wrap-catch-errors
                          wrap-log-message
-                         wrap-add-api-version
-                         ))
+                         wrap-add-api-version))
 
 (defn refresh-handler []
   (let [refresh! (util/resolve-var 'c3kit.apron.refresh/refresh!)]

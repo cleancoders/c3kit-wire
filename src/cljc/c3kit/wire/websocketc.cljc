@@ -1,5 +1,5 @@
 (ns c3kit.wire.websocketc
-  #?(:clj (:import (java.util.concurrent Executors ScheduledExecutorService TimeUnit Future)))
+  #?(:clj (:import (java.util.concurrent Executors ScheduledExecutorService TimeUnit)))
   (:require
    [c3kit.apron.log :as log]
    #?(:clj [org.httpkit.server :as httpkit])
@@ -31,7 +31,6 @@
                :socket          socket
                :request-counter 0
                :open?           false})
-
 
 (defn unpack [data] (try (util/<-edn data) (catch #?(:clj Exception :cljs :default) _ data)))
 (defn pack [message] (util/->edn message))
@@ -154,6 +153,8 @@
         (when (and @connection (:open? @connection) (not (-activity-since? connection moment)))
           (-ping! state connection))))))
 
+;; Used only from the :cljs branch below, so clj-kondo's :clj pass reports it unused.
+#_{:clj-kondo/ignore [:unused-private-var]}
 (defn- connection-closed! [server connection]
   (when (:open? @connection)
     (send-internal-message server connection :ws/close nil)
@@ -190,7 +191,7 @@
      ;(defn -channel-init [server connection-id ch] (log/debug "websocket channel init:" connection-id))
      ;(defn -channel-on-ping [server connection-id ch data] (log/debug "websocket channel on-ping:" connection-id data))
 
-     (defn -data-received [server connection-id socket data]
+     (defn -data-received [server connection-id _socket data]
        (log/debug "websocket channel on-receive:" connection-id data)
        (handle-message server (-connection-cursor server connection-id) data))
 
@@ -213,10 +214,9 @@
      (defn- add-ping-task! [state interval]
        (let [scheduler (:scheduler @state)
              ping-task (-schedule-with-delay scheduler state interval)]
-         (swap! state assoc :ping-task ping-task)))
-     )
+         (swap! state assoc :ping-task ping-task))))
 
-   ;; ------------------------------------------------------------------------------------------------------------------
+;; ------------------------------------------------------------------------------------------------------------------
    :cljs
    (do
 
@@ -254,10 +254,7 @@
 
      (defn- add-ping-task! [state interval]
        (let [task #(-ping-inactive-connections-and-set-timeout! state interval)]
-         (swap! state assoc :ping-task (js/setTimeout task interval))))
-
-     )
-   )
+         (swap! state assoc :ping-task (js/setTimeout task interval))))))
 
 (def ^:private default-options
   {:on-data         nil

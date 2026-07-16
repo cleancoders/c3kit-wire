@@ -1,3 +1,7 @@
+### 4.1.1
+ * Security: patched vulnerable transitive dependencies flagged by clj-watson (1 critical, 6 high, 2 medium). Declares patched versions at the top level (top-level wins over transitive, no exclusions): `org.eclipse.jetty/jetty-server` 12.1.11 (via ring), `io.netty/netty-*` 4.1.135.Final (via redisson), `com.fasterxml.jackson.core/jackson-core` 2.22.1 (via redisson), and `org.bouncycastle/bc*-jdk18on` 1.84 (via buddy-sign); bumps `ring/ring` 1.15.3 → 1.15.5. No public API changes. `:local/root` / `:git/url` consumers inherit the new pins; Maven consumers get them via the published pom.
+ * CI now runs security scanning (clj-watson + semgrep, both blocking) alongside the build in a single parallel workflow, with GitHub Action refs pinned to commit SHAs.
+
 ### 4.1.0
  * Server-side WebSocket is no longer hard-wired to http-kit. `c3kit.wire.websocketc/create` accepts a `:transport` option — a map of `:open`, `:send!`, and `:close` fns — and `c3kit.wire.api` gains a `:ws-transport` config key that `c3kit.wire.websocket/start` threads through, so an app wiring WebSocket via `websocket/service` can run on another Ring server by calling `(api/configure! :ws-transport ...)` with an adapter. http-kit stays the default; consumers who configure nothing are unaffected.
 

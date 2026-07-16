@@ -1,13 +1,9 @@
 (ns c3kit.wire.js
   (:require [c3kit.apron.corec :as ccc]
             [c3kit.apron.log :as log]
-            [c3kit.apron.schema :as schema]
-            [c3kit.apron.time :as time]
             [cljs-http.client :as http]
-            [clojure.string :as str]
             [clojure.string :as s]
-            [goog.object :as gobject])
-  (:import (goog History)))
+            [goog.object :as gobject]))
 
 ;; ----- Key Codes and Events -----
 
@@ -73,7 +69,7 @@
 (defn key-modifier? [e modifier]
   (try ;; test keyboard events don't seem to support this.
     (.getModifierState e modifier)
-    (catch :default e false)))
+    (catch :default _e false)))
 
 (defn shift-modifier? [e] (key-modifier? e "Shift"))
 (defn ctl-modifier? [e] (key-modifier? e "Control"))
@@ -177,13 +173,13 @@
 (defn e-type [e] (.-type e))
 (defn- file->clj [file]
   (ccc/remove-nils
-    {:name                 (.-name file)
-     :type                 (.-type file)
-     :size                 (.-size file)
-     :last-modified        (.-lastModified file)
-     :last-modified-date   (.-lastModifiedDate file)
-     :webkit-relative-path (.-webkitRelativePath file)
-     :file                 file}))
+   {:name                 (.-name file)
+    :type                 (.-type file)
+    :size                 (.-size file)
+    :last-modified        (.-lastModified file)
+    :last-modified-date   (.-lastModifiedDate file)
+    :webkit-relative-path (.-webkitRelativePath file)
+    :file                 file}))
 (defn e-files [e]
   (->> (or (some->> e .-dataTransfer .-files)
            (some->> e .-target .-files)
@@ -416,10 +412,10 @@
   ([f deps] (use-effect f nil deps))
   ([f cleanup deps]
    (js/React.useEffect
-     (fn []
-       (f)
-       (or cleanup js/undefined))
-     (when deps (to-array deps)))))
+    (fn []
+      (f)
+      (or cleanup js/undefined))
+    (when deps (to-array deps)))))
 
 (defn scroll-into-view
   ([thing] (scroll-into-view thing {:behavior "smooth"}))

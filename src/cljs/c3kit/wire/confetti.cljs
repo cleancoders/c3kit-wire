@@ -40,7 +40,7 @@
 (defn x-accel [transform] (-> transform :acceleration :x))
 (defn y-accel [transform] (-> transform :acceleration :y))
 
-(defn- draw-sparkle! [context {:keys [diameter transform tilt colors] :as sparkle}]
+(defn- draw-sparkle! [context {:keys [diameter transform tilt colors]}]
   (let [x     (x-pos transform)
         y     (y-pos transform)
         r     (/ diameter 2)
@@ -100,7 +100,7 @@
 
 ;yf = yi -vi*t + 1/2a*t^2
 (defn calculate-flight-y [y initial-y-vel gravity extended-time]
-  (+ y (* -1 initial-y-vel extended-time) (* 0.5 gravity (* extended-time extended-time))))
+  (+ y (* -1 initial-y-vel extended-time) (* 0.5 gravity extended-time extended-time)))
 
 (defn calculate-y-position [{:keys [wave-angle transform diameter] :as _sparkle} dropping? elapsed extended-time y-vel]
   (if dropping?
@@ -129,7 +129,7 @@
 
 (defmulti -calculate-new-transform (fn [sparkle & _] (:kind sparkle)))
 
-(defmethod -calculate-new-transform :drop [{:keys [transform wave-angle diameter] :as sparkle} elapsed]
+(defmethod -calculate-new-transform :drop [{:keys [transform wave-angle diameter]} elapsed]
   (let [wave-angle (rand-between (- wave-angle) wave-angle)
         x-pos      (+ (x-pos transform) (Math/sin wave-angle))
         y-pos      (calculate-drop-y (y-pos transform) wave-angle diameter elapsed)]
@@ -143,8 +143,8 @@
         y-pos         (calculate-y-position sparkle dropping? elapsed extended-time y-vel)
         x-pos         (calculate-x-position sparkle dropping? elapsed extended-time x-vel)]
     (assoc transform :position {:x x-pos :y y-pos}
-                     :velocity {:x x-vel :y y-vel}
-                     :drop? dropping?)))
+           :velocity {:x x-vel :y y-vel}
+           :drop? dropping?)))
 
 (defmethod -calculate-new-transform :bomb [{:keys [transform] :as _sparkle}]
   (let [x-pos   (x-pos transform)
@@ -154,8 +154,8 @@
         x-accel (x-accel transform)
         y-accel (y-accel transform)]
     (assoc transform :position {:x (+ x-pos x-vel) :y (+ y-pos y-vel)}
-                     :velocity {:x x-vel :y (+ y-vel y-accel)}
-                     :acceleration {:x x-accel :y y-accel})))
+           :velocity {:x x-vel :y (+ y-vel y-accel)}
+           :acceleration {:x x-accel :y y-accel})))
 
 (defmethod -calculate-new-transform :fireworks [{:keys [transform] :as _sparkle}]
   (let [x-pos   (x-pos transform)
@@ -165,8 +165,8 @@
         x-accel (x-accel transform)
         y-accel (y-accel transform)]
     (assoc transform :position {:x (+ x-pos x-vel) :y (+ y-pos y-vel)}
-                     :velocity {:x x-vel :y (+ y-vel y-accel)}
-                     :acceleration {:x x-accel :y y-accel})))
+           :velocity {:x x-vel :y (+ y-vel y-accel)}
+           :acceleration {:x x-accel :y y-accel})))
 
 (defmethod -calculate-new-transform :fountain [{:keys [transform] :as sparkle} delta-t t]
   (let [x-vel          (+ (x-vel transform) (x-accel transform))
@@ -178,7 +178,7 @@
         starting-pos   (* -50 (- 1 (/ (/ (:window-w sparkle) 2) (:x-pos-init sparkle))))
         x-pos          (+ (:x-pos-init sparkle) (* 0.3 sign (square (- (* t curve-modifier) starting-pos))))]
     (assoc transform :position {:x x-pos :y y-pos}
-                     :velocity {:x x-vel :y y-vel})))
+           :velocity {:x x-vel :y y-vel})))
 
 (defmulti -update-sparkle :kind)
 
@@ -187,10 +187,10 @@
     (let [now     (performance-now)
           elapsed (- now last-time)]
       (assoc sparkle :last-time now
-                     :wave-angle (calculate-new-wave-angle wave-angle elapsed)
-                     :tilt-angle (calculate-new-tilt-angle tilt-angle tilt-angle-inc elapsed)
-                     :transform (-calculate-new-transform sparkle elapsed)
-                     :tilt (* 15 (Math/sin tilt-angle))))))
+             :wave-angle (calculate-new-wave-angle wave-angle elapsed)
+             :tilt-angle (calculate-new-tilt-angle tilt-angle tilt-angle-inc elapsed)
+             :transform (-calculate-new-transform sparkle elapsed)
+             :tilt (* 15 (Math/sin tilt-angle))))))
 
 (defmethod -update-sparkle :cannon [{:keys [wave-angle tilt-angle tilt-angle-inc last-time] :as sparkle}]
   (when-not (sparkle-has-landed? sparkle)
@@ -199,10 +199,10 @@
       (if (zero? elapsed)
         sparkle
         (assoc sparkle :last-time now
-                       :wave-angle (calculate-new-wave-angle wave-angle elapsed)
-                       :tilt-angle (calculate-new-tilt-angle tilt-angle tilt-angle-inc elapsed)
-                       :transform (-calculate-new-transform sparkle elapsed)
-                       :tilt (* 15 (Math/sin tilt-angle)))))))
+               :wave-angle (calculate-new-wave-angle wave-angle elapsed)
+               :tilt-angle (calculate-new-tilt-angle tilt-angle tilt-angle-inc elapsed)
+               :transform (-calculate-new-transform sparkle elapsed)
+               :tilt (* 15 (Math/sin tilt-angle)))))))
 
 (defmethod -update-sparkle :bomb [{:keys [invisible? ball-radius max-ball-radius start-time
                                           wave-angle tilt-angle tilt-angle-inc last-time] :as sparkle}]
@@ -226,11 +226,11 @@
     (let [now     (performance-now)
           elapsed (- now last-time)]
       (assoc sparkle
-        :last-time now
-        :transform (-calculate-new-transform sparkle)
-        :wave-angle (calculate-new-wave-angle wave-angle elapsed)
-        :tilt-angle (calculate-new-tilt-angle tilt-angle tilt-angle-inc elapsed)
-        :tilt (* 6 (Math/sin tilt-angle))))))
+             :last-time now
+             :transform (-calculate-new-transform sparkle)
+             :wave-angle (calculate-new-wave-angle wave-angle elapsed)
+             :tilt-angle (calculate-new-tilt-angle tilt-angle tilt-angle-inc elapsed)
+             :tilt (* 6 (Math/sin tilt-angle))))))
 
 (defmethod -update-sparkle :fountain [{:keys [wave-angle tilt-angle tilt-angle-inc last-time start-time] :as sparkle}]
   (when-not (sparkle-has-landed? sparkle)
@@ -240,10 +240,10 @@
       (if (zero? delta-t)
         sparkle
         (assoc sparkle :last-time now
-                       :wave-angle (calculate-new-wave-angle wave-angle delta-t)
-                       :tilt-angle (calculate-new-tilt-angle tilt-angle tilt-angle-inc delta-t)
-                       :transform (-calculate-new-transform sparkle delta-t t)
-                       :tilt (* 15 (Math/sin tilt-angle)))))))
+               :wave-angle (calculate-new-wave-angle wave-angle delta-t)
+               :tilt-angle (calculate-new-tilt-angle tilt-angle tilt-angle-inc delta-t)
+               :transform (-calculate-new-transform sparkle delta-t t)
+               :tilt (* 15 (Math/sin tilt-angle)))))))
 
 (defn -update-sparkles [sparkles]
   (keep -update-sparkle sparkles))
@@ -267,13 +267,13 @@
 (defn merge-sparkle [& maps]
   (apply merge
          (concat
-           [(base-sparkle)
-            {:diameter       (rand-between 5 15)
-             :colors         (repeatedly 2 -pick-a-color)
-             :tilt           (rand-between -10 0)
-             :tilt-angle-inc (rand-between 0.05 0.12)
-             :tilt-angle     (* (-rand 1) Math/PI)}]
-           maps)))
+          [(base-sparkle)
+           {:diameter       (rand-between 5 15)
+            :colors         (repeatedly 2 -pick-a-color)
+            :tilt           (rand-between -10 0)
+            :tilt-angle-inc (rand-between 0.05 0.12)
+            :tilt-angle     (* (-rand 1) Math/PI)}]
+          maps)))
 
 (defn -create-drop-sparkle [w h]
   (merge-sparkle {:last-time (performance-now)
@@ -316,19 +316,17 @@
         radius     (rand-between 0 max-radius)
         angle      (rand-between 0 (* 2 Math/PI))
         delta-x    (* radius (Math/cos angle))
-        delta-y    (* radius (Math/sin angle))
-        ]
+        delta-y    (* radius (Math/sin angle))]
     (merge-sparkle
-      {:start-time      now
-       :last-time       now
-       :kind            :fireworks
-       :transform       {:position     {:x (+ center-x delta-x) :y (+ center-y delta-y)}
-                         :velocity     {:x (/ delta-x 2.5) :y (/ delta-y 2.5)}
-                         :acceleration {:x 0 :y 0.1}}
-       :invisible?      false
-       :max-ball-radius max-radius
-       :ball-radius     radius
-       })))
+     {:start-time      now
+      :last-time       now
+      :kind            :fireworks
+      :transform       {:position     {:x (+ center-x delta-x) :y (+ center-y delta-y)}
+                        :velocity     {:x (/ delta-x 2.5) :y (/ delta-y 2.5)}
+                        :acceleration {:x 0 :y 0.1}}
+      :invisible?      false
+      :max-ball-radius max-radius
+      :ball-radius     radius})))
 
 (defn -create-fountain-sparkle [x-pos-init h]
   (let [y-normalize   (/ h 1028)
@@ -343,7 +341,6 @@
                                  :acceleration {:x 0 :y (* y-normalize (rand-between 3 4))}}})))
 
 (defmulti -create-sparkle (fn [& [kind]] kind))
-
 
 (defn random-position [w h]
   (let [w-limit (/ w 6)

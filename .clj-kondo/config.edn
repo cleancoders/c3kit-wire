@@ -1,0 +1,66 @@
+;; Merged from the clojure-security plugin's baseline (security-tuned linter
+;; levels + Speclj/c3kit DSL resolution) with this project's specifics:
+;;   - keeps the project's redis analyze-call hooks
+;;   - :refer-all tolerates speclj.core (specs use [speclj.core :refer :all])
+;;     instead of the plugin's blanket :error
+;;   - lint-as speclj.core/around as fn so `(around [it] (it))` resolves
+{:hooks
+ {:analyze-call {c3kit.wire.redis/borrow-from  hooks.redis/borrow-from
+                 c3kit.wire.redis/wait-for-all hooks.redis/wait-for-all}}
+
+ :lint-as
+ {;; c3kit's `for-all` is a comprehension macro shaped like `for`.
+  c3kit.apron.corec/for-all clojure.core/for
+  ;; garden's `defstyles` defines the stylesheet var; treat like `def`.
+  garden.def/defstyles      clojure.core/def
+  ;; Speclj `with` / `with-all` rebind a value used via deref (`@name`).
+  speclj.core/with          clojure.core/def
+  speclj.core/with-all      clojure.core/def
+  ;; Speclj `around` binds the wrapped test fn (conventionally `it`) and calls
+  ;; it as `(it)`; treat like `fn` so the binding resolves under :refer :all.
+  speclj.core/around        clojure.core/fn}
+
+ :linters
+ {;; --- security posture: escalate ----------------------------------------
+  :type-mismatch      {:level :error}
+  ;; specs use [speclj.core :refer :all]; tolerate rather than the plugin's :error.
+  :refer-all          {:exclude [speclj.core]}
+  ;; the sloppy code where bugs hide — surface, don't block.
+  :unused-binding     {:level :warning}
+  :unused-private-var {:level :warning}
+  ;; NB: the plugin baseline escalates :shadowed-var to :warning. Left at
+  ;; default here — this codebase idiomatically binds core names (key, val,
+  ;; type, name, atom, ...), so escalating produces ~140 noise warnings.
+
+  ;; org.httpkit.client defines get/post/put/delete via a macro clj-kondo
+  ;; can't resolve; exclude rather than false-flag every call site.
+  :unresolved-var     {:exclude [org.httpkit.client]}
+
+  ;; --- Speclj / c3kit.wire DSL: symbol-resolution only -------------------
+  :unresolved-symbol
+  {:exclude [;; structure
+             describe context it xit
+             before before-all after after-all around around-all with with-all
+             focus-describe focus-context focus-it
+             tags pending
+             ;; assertions
+             should should-not should= should-not= should== should-not==
+             should-be should-not-be should-be-a should-not-be-a
+             should-be-nil should-not-be-nil should-fail
+             should-contain should-not-contain
+             should-start-with should-not-start-with
+             should-end-with should-not-end-with
+             should-throw should-not-throw
+             should-have-invoked should-not-have-invoked
+             should-invoke should-not-invoke
+             should-be-same should-not-be-same
+             should< should<= should> should>=
+             ;; stubs / fixtures
+             stub with-stubs redefs-around -fail -to-s
+             ;; c3kit.apron.log macro
+             capture-logs
+             ;; c3kit.wire test helpers
+             should-be-ajax-ok should-be-ajax-fail
+             should-have-invoked-ajax-get should-have-invoked-ajax-post
+             should-have-invoked-ws
+             should-select should-not-select]}}}
