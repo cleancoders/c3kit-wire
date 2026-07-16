@@ -1,0 +1,7 @@
+# Test fixtures flagged by semgrep — not real vulnerabilities.
+# ws:// literals: mock/unit WebSocket tests can't use wss:// (no TLS in-process).
+# JWT token: hardcoded sample token used only to exercise decoding in tests.
+spec/cljs-react/c3kit/wire/websocket_spec.cljs
+spec/cljs-react/c3kit/wire/mock/memory_websocket_spec.cljs
+spec/cljs-react/c3kit/wire/mock/memory_server_spec.cljs
+spec/cljc/c3kit/wire/jwtc_spec.cljc
