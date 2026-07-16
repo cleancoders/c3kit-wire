@@ -1,3 +1,6 @@
+### 4.2.0
+ * Bumps `com.cleancoders.c3kit/apron` 2.5.0 → 3.0.1 (a major upgrade, patching jackson-core CVE-2025-52999 / GHSA-72hv-8253-57qq via apron's own pin). Apron 3.0.0 restructured the schema ref/registry into a `*lexicon*` and removed deprecated fns; wire's only affected call was `schema/messages`, now `schema/message-seq` in `c3kit.wire.apic`. Wire's own public API is unchanged, but consumers get apron 3.x transitively — if you use `c3kit.apron.schema` directly, review apron's 3.0.0 changelog for breaking changes (e.g. `messages` → `message-seq`, `*ref-registry*` → `*lexicon*`).
+
 ### 4.1.1
  * Security: patched vulnerable transitive dependencies flagged by clj-watson (1 critical, 6 high, 2 medium). Declares patched versions at the top level (top-level wins over transitive, no exclusions): `org.eclipse.jetty/jetty-server` 12.1.11 (via ring), `io.netty/netty-*` 4.1.135.Final (via redisson), `com.fasterxml.jackson.core/jackson-core` 2.22.1 (via redisson), and `org.bouncycastle/bc*-jdk18on` 1.84 (via buddy-sign); bumps `ring/ring` 1.15.3 → 1.15.5. No public API changes. `:local/root` / `:git/url` consumers inherit the new pins; Maven consumers get them via the published pom.
  * CI now runs security scanning (clj-watson + semgrep, both blocking) alongside the build in a single parallel workflow, with GitHub Action refs pinned to commit SHAs.

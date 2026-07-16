@@ -13,15 +13,15 @@
 
 (defn- conform-error-response [response]
   (log/error "Failed to conform response.")
-  (doseq [message (schema/messages response)]
+  (doseq [message (schema/message-seq response)]
     (log/error message))
   {:status :error})
 
 (defn conform-response [response]
   (let [response (schema/conform response-schema response)]
     (cond-> response
-            (schema/error? response)
-            conform-error-response)))
+      (schema/error? response)
+      conform-error-response)))
 
 (defn flash-success [response msg] (update response :flash corec/conjv (flashc/success msg)))
 (defn flash-warn [response msg] (update response :flash corec/conjv (flashc/warn msg)))
