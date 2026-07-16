@@ -1,4 +1,4 @@
-name: Wire Build
+name: Build
 
 on:
   push:
@@ -6,12 +6,12 @@ on:
   pull_request:
     branches: [ master ]
 
-env:
-  C3_ENV: ci
-
 jobs:
   test:
     runs-on: ubuntu-latest
+
+    env:
+      C3_ENV: ci
 
     services:
       redis:
@@ -54,3 +54,11 @@ jobs:
 
       - name: Run wire ClojureScript Tests
         run: clojure -M:test:react:cljs once
+
+  # Runs in parallel with `test` (no `needs:` dependency).
+  security:
+    uses: cleancoders/github-actions/.github/workflows/security.yml@v1
+    with:
+      src-paths: "src"
+      clj-watson-blocking: true
+      semgrep-blocking: true
