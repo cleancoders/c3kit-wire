@@ -66,7 +66,6 @@
   (act (fn []))
   (core-reset! render-roots {}))
 
-
 ;region Document/Window listener tracking
 ; Monkey-patches addEventListener/removeEventListener on document and window to track all
 ; registered listeners. This allows bulk cleanup between tests via remove-all-tracked-listeners!
@@ -136,8 +135,9 @@
         orig-fn   (.-setToken proto)]
     (ccc/oset proto "setToken"
               (fn [token opt-title]
-                (try (.call orig-fn (js-this) token opt-title)
-                     (catch :default _))))))
+                (this-as this
+                         (try (.call orig-fn this token opt-title)
+                              (catch :default _)))))))
 
 (defn select
   ([selector] (select js/document selector))
@@ -194,9 +194,9 @@
                           root))]
      (try
        (react-dom/flushSync
-         (fn []
-           (.render react-root (reagent/as-element component))
-           (reagent/flush)))
+        (fn []
+          (.render react-root (reagent/as-element component))
+          (reagent/flush)))
        (batch/flush-after-render)
        (act (fn []))
        (catch :default e (throw (ex-info "Render Error" {:message e})))))))
@@ -252,8 +252,7 @@
         wjs/DIGIT6 "6"
         wjs/DIGIT7 "7"
         wjs/DIGIT8 "8"
-        wjs/DIGIT9 "9"
-        }
+        wjs/DIGIT9 "9"}
        (reduce-kv assoc-key-event {})))
 
 ;region Private Event Helpers
@@ -750,7 +749,6 @@
   ([root selector]
    (some-> (select root selector) wjs/node-text)))
 
-
 (defn html!
   "Throws exception if the node doesn't exist."
   ([thing]
@@ -869,7 +867,6 @@
 
 (defn invoke-last-ajax-post-handler [payload] (some-> (last-ajax-post-handler) (ccc/invoke payload)))
 (defn invoke-last-ajax-get-handler [payload] (some-> (last-ajax-get-handler) (ccc/invoke payload)))
-
 
 (defn stub-ws [] (redefs-around [ws/call! (stub :ws/call!)]))
 (defn last-ws-call-id [] (when-let [args (stub/last-invocation-of :ws/call!)] (first args)))
