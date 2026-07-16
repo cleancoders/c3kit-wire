@@ -3,8 +3,7 @@
             [c3kit.wire.api :as api]
             [c3kit.wire.restc :as restc]
             [cljs-http.client :as client]
-            [cljs.core.async :refer-macros [go]]
-            [cljs.core.async :as async]))
+            [cljs.core.async :as async :refer-macros [go]]))
 
 (defn make-state
   ([] (make-state cljs.core/atom))
@@ -39,10 +38,10 @@
 
 (defn wrap-response-codes [spec handler]
   (reduce-kv
-    (fn [acc k v]
-      (wrap-response-code k v acc))
-    handler
-    spec))
+   (fn [acc k v]
+     (wrap-response-code k v acc))
+   handler
+   spec))
 
 (defn wrap-user-handlers [handler]
   (fn [opts response]

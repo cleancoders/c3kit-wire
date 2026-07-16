@@ -32,6 +32,10 @@
   ;; default here — this codebase idiomatically binds core names (key, val,
   ;; type, name, atom, ...), so escalating produces ~140 noise warnings.
 
+  ;; org.httpkit.client defines get/post/put/delete via a macro clj-kondo
+  ;; can't resolve; exclude rather than false-flag every call site.
+  :unresolved-var     {:exclude [org.httpkit.client]}
+
   ;; --- Speclj / c3kit.wire DSL: symbol-resolution only -------------------
   :unresolved-symbol
   {:exclude [;; structure

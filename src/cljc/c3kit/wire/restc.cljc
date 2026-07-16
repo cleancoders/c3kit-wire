@@ -1,6 +1,5 @@
 (ns c3kit.wire.restc
-  (:require [c3kit.apron.corec :as ccc]
-            [c3kit.apron.utilc :as utilc]
+  (:require [c3kit.apron.utilc :as utilc]
             [clojure.string :as str]))
 
 (defn response
@@ -95,7 +94,7 @@
 
 (defn -maybe-update-body [{:keys [body] :as request} f]
   (cond-> request
-          body (update :body f)))
+    body (update :body f)))
 
 (defn ->cookies-str [cookies]
   (->> cookies
@@ -105,13 +104,13 @@
 ; TODO - append cookies if present already
 (defn maybe-attach-cookies [{:keys [cookies] :as request}]
   (cond-> request
-          (seq cookies) (-> (assoc-in [:headers "Cookie"] (->cookies-str cookies))
-                            (dissoc :cookies))))
+    (seq cookies) (-> (assoc-in [:headers "Cookie"] (->cookies-str cookies))
+                      (dissoc :cookies))))
 
 (defn -maybe-update-content-type [{:keys [headers body] :as request}]
   (cond-> request
-          (and body (not (get headers "Content-Type")))
-          (assoc-in [:headers "Content-Type"] "application/json")))
+    (and body (not (get headers "Content-Type")))
+    (assoc-in [:headers "Content-Type"] "application/json")))
 
 (defn -maybe-update-req [req]
   (-> req

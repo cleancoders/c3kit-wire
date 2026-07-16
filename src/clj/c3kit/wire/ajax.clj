@@ -48,7 +48,7 @@
 
 (defn api-not-found-handler [request] (fail (:uri request) (str "API not found: " (:uri request))))
 
-(defn default-ajax-ex-handler [request ex]
+(defn default-ajax-ex-handler [_request ex]
   (log/error ex)
   ;(errors/send-error-email request e)
   (error nil api/default-error-message))
@@ -85,8 +85,8 @@
     (when-let [{:keys [body headers] :as response} (handler request)]
       (if (map? body)
         (cond-> (update response :body utilc/->transit)
-                (not (get headers "Content-Type"))
-                (response/content-type "application/transit+json; charset=utf-8"))
+          (not (get headers "Content-Type"))
+          (response/content-type "application/transit+json; charset=utf-8"))
         response))))
 
 (defn wrap-add-api-version [handler]

@@ -1,5 +1,4 @@
 (ns c3kit.wire.flashc
-  #?(:clj (:import (java.util UUID)))
   (:require [c3kit.apron.corec :as ccc]
             [c3kit.apron.schema :as schema]))
 

@@ -1,3 +1,6 @@
+;; The referred macros and log/stub requires are used only inside the
+;; #?(:clj (defmacro ...)) bodies below; clj-kondo's :cljs pass reports them unused.
+#_{:clj-kondo/ignore [:unused-namespace :unused-referred-var]}
 (ns c3kit.wire.spec-helperc
   #?(:cljs (:require-macros [speclj.core :refer [-fail -to-s around]]))
   (:require [c3kit.apron.log :as log]
@@ -7,13 +10,13 @@
 
 #?(:clj (defmacro stub-now [time]
           `(around [it#]
-             (with-redefs [c3kit.apron.time/now (stub :now {:return ~time})]
-               (it#)))))
+                   (with-redefs [c3kit.apron.time/now (stub :now {:return ~time})]
+                     (it#)))))
 
 #?(:clj (defmacro with-utc-offset [millis]
           `(around [it#]
-             (with-redefs [c3kit.apron.time/utc-offset (constantly ~millis)]
-               (it#)))))
+                   (with-redefs [c3kit.apron.time/utc-offset (constantly ~millis)]
+                     (it#)))))
 
 #?(:clj (defmacro should-select
           "Asserts the selector finds a node"
@@ -88,5 +91,5 @@
 
 #?(:clj (defmacro redefs-around-logs [bindings]
           `(around [it#]
-             (with-redefs ~bindings
-               (log/capture-logs (it#))))))
+                   (with-redefs ~bindings
+                     (log/capture-logs (it#))))))

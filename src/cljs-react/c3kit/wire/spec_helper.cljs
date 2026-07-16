@@ -1,6 +1,6 @@
 (ns c3kit.wire.spec-helper
   (:refer-clojure :exclude [flush reset! swap!])
-  (:require-macros [speclj.core :refer [after before redefs-around should-have-invoked should= stub with-stubs]])
+  (:require-macros [speclj.core :refer [after before redefs-around stub]])
   (:require [c3kit.apron.corec :as ccc]
             [c3kit.wire.ajax :as ajax]
             [c3kit.wire.js :as wjs]
@@ -670,15 +670,6 @@
       (.call setter node value)
       (set! (.-value node) value))))
 
-(defn- set-native-checked!
-  "Sets the checked property using the native setter to bypass React's internal tracker."
-  [node value]
-  (let [proto      (js/Object.getPrototypeOf node)
-        descriptor (js/Object.getOwnPropertyDescriptor proto "checked")]
-    (if-let [setter (and descriptor (.-set descriptor))]
-      (.call setter node value)
-      (set! (.-checked node) value))))
-
 (defn- checkbox-or-radio? [node]
   (let [type (.-type node)]
     (or (= "checkbox" type) (= "radio" type))))
@@ -700,8 +691,8 @@
            (dispatch-event node (base-event "change" {})))
 
        (checkbox-or-radio? node)
-       (do (when (not= (boolean value) (.-checked node))
-             (dispatch-event node (mouse-event "click" {}))))
+       (when (not= (boolean value) (.-checked node))
+         (dispatch-event node (mouse-event "click" {})))
 
        (select-element? node)
        (do (set-native-value! node value)

@@ -1,6 +1,5 @@
 (ns c3kit.wire.websocket
-  (:require [c3kit.apron.log :as log]
-            [c3kit.wire.core.websocket :as core]
+  (:require [c3kit.wire.core.websocket :as core]
             [c3kit.wire.flash]
             [c3kit.wire.js :as wjs]
             [reagent.core :as reagent]))

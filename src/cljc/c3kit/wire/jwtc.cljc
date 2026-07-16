@@ -1,3 +1,6 @@
+;; corec/utilc are used only in the :cljs branches below; clj-kondo's :clj pass
+;; reports them unused.
+#_{:clj-kondo/ignore [:unused-namespace]}
 (ns c3kit.wire.jwtc
   (:require [c3kit.apron.corec :as ccc]
             [c3kit.apron.utilc :as utilc]
@@ -8,10 +11,10 @@
 #?(:cljs
    (defn- uri-encode [v]
      (as-> v $
-           (ccc/first-char-code $)
-           (utilc/->hex $)
-           (ccc/pad-left! $ 2 0)
-           (str "%" $))))
+       (ccc/first-char-code $)
+       (utilc/->hex $)
+       (ccc/pad-left! $ 2 0)
+       (str "%" $))))
 
 #?(:cljs
    (defn- ->uri-component [s]

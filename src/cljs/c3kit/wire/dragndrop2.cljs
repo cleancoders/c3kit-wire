@@ -6,8 +6,7 @@
             [clojure.string :as str]
             [goog.events.EventHandler]
             [goog.fx.DragDrop]
-            [goog.fx.DragDropGroup])
-  (:import (goog History)))
+            [goog.fx.DragDropGroup]))
 
 (def drag-threshold 5)
 
@@ -39,9 +38,7 @@
                  :offset       "[x y] offset between cursor and drag-node"
                  :document     "document dom node"
                  :end-listener "a js event handler"
-                 :drop-target  ["group key" "member key"]
-                 }}
-  )
+                 :drop-target  ["group key" "member key"]}})
 
 (defn- drag-event
   ([source-group source-key source-node event]
@@ -51,9 +48,9 @@
     :browser-event (wjs/nod event)})
   ([source-group source-key source-node target-group target-key target-node event]
    (assoc (drag-event source-group source-key source-node event)
-     :target-group target-group
-     :target-key target-key
-     :target-node target-node)))
+          :target-group target-group
+          :target-key target-key
+          :target-node target-node)))
 
 (defn -dispatch-event [dnd group type event]
   (loop [listeners (get-in @dnd [:groups group :listeners type])]
@@ -135,8 +132,7 @@
                         :offset        offset
                         :document      doc
                         :drag-listener drag-handler
-                        :end-listener  end-handler
-                        }]
+                        :end-listener  end-handler}]
 
       (append-dragger doc drag-node drag-class drag-style)
       (add-doc-listeners doc drag-handler end-handler)
@@ -159,8 +155,8 @@
         above-threshold? (> distance drag-threshold)
         mouse-out?       (and (= "mouseout" (wjs/e-type js-event)) (= (-> @dnd :maybe-drag :node) (wjs/e-target js-event)))]
     (when (or above-threshold? mouse-out?)
-      (do (-start-drag dnd group member node js-event)
-          (end-maybe-drag dnd nil))
+      (-start-drag dnd group member node js-event)
+      (end-maybe-drag dnd nil)
       (wjs/nod js-event))))
 
 (defn- draggable-mouse-down [dnd group member node js-event]

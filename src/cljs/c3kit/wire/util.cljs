@@ -8,9 +8,9 @@
 
 (defn errors->strings [errors]
   (map
-    (fn [[field error]]
-      (str (name field) " " error))
-    errors))
+   (fn [[field error]]
+     (str (name field) " " error))
+   errors))
 
 (defn +class-if
   ([condition class-name] (+class-if {} condition class-name))
@@ -33,14 +33,14 @@
 
 (defn with-react-keys [col]
   (ccc/map-all
-    (fn [[n i]]
-      (if (satisfies? IWithMeta n)
-        (let [m (meta n)]
-          (if (:key m)
-            n
-            (with-meta n (assoc m :key i))))
-        (with-meta [:span n] {:key i})))
-    (partition 2 (interleave col (range)))))
+   (fn [[n i]]
+     (if (satisfies? IWithMeta n)
+       (let [m (meta n)]
+         (if (:key m)
+           n
+           (with-meta n (assoc m :key i))))
+       (with-meta [:span n] {:key i})))
+   (partition 2 (interleave col (range)))))
 
 (defn keyed-list [& args] (with-react-keys args))
 
@@ -50,11 +50,11 @@
 
 (defn with-nested-react-keys [tree]
   (walk/postwalk
-    (fn [node]
-      (if (vector? node)
-        (with-meta node (assoc (meta node) :key (next-key)))
-        node))
-    tree))
+   (fn [node]
+     (if (vector? node)
+       (with-meta node (assoc (meta node) :key (next-key)))
+       node))
+   tree))
 
 (defn atom-observer
   "Used to keep track of cursor state.
@@ -67,17 +67,17 @@
      (swap! state assoc-in path value))))
 
 (defn watch-atom [key atom]
-  (add-watch atom key (fn [k r o n] (log/debug (str "updating atom " key ": " n)))))
+  (add-watch atom key (fn [_k _r _o n] (log/debug (str "updating atom " key ": " n)))))
 
 (defn form-data
   "Given an if of a form element, loads all the inputs and returns a map {:keyword value}."
   [form]
   (let [form-map (form/getFormDataMap (dom/getElement (name form)))]
     (reduce
-      (fn [result key]
-        (let [value (.get form-map key)]
-          (if (and value (= 1 (count value)))
-            (assoc result (keyword key) (first value))
-            (assoc result (keyword key) value))))
-      {}
-      (.getKeys form-map))))
+     (fn [result key]
+       (let [value (.get form-map key)]
+         (if (and value (= 1 (count value)))
+           (assoc result (keyword key) (first value))
+           (assoc result (keyword key) value))))
+     {}
+     (.getKeys form-map))))

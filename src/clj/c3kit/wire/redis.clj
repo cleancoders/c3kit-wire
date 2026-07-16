@@ -17,8 +17,7 @@
    :min-connections 1
    :max-connections 3
    :max-age-ms      (time/seconds 5)
-   :block-ms        (time/seconds 1)
-   })
+   :block-ms        (time/seconds 1)})
 
 (defn- ->redis-uri [{:keys [host port tls?]}]
   (let [protocol (str "redis" (when tls? "s"))]
@@ -39,15 +38,15 @@
        ~@body
        (finally (.close ^AutoCloseable borrowed#)))))
 
-(defn- ^RedisClient -client [this] (.-client this))
-(defn- ^GenericObjectPool -pool [this] (.-pool this))
+(defn- -client ^RedisClient [this] (.-client this))
+(defn- -pool ^GenericObjectPool [this] (.-pool this))
 (defn- running? [this] @(.-is-running this))
 
 (defn- do-enqueue [this messages]
   (borrow-from [^StatefulRedisConnection conn (-pool this)]
-    (let [commands (.async conn)]
-      (wait-for-all [{:keys [qname message]} messages]
-        (.xadd commands qname {"body" message})))))
+               (let [commands (.async conn)]
+                 (wait-for-all [{:keys [qname message]} messages]
+                               (.xadd commands qname {"body" message})))))
 
 (def ^:private key-scan-args (.type (KeyScanArgs.) "stream"))
 (defn- all-keys [connection]
@@ -75,7 +74,7 @@
         offsets (into-array [offset])
         args    (XReadArgs$Builder/block ^Long (:block-ms (.-config this)))]
     (borrow-from [^StatefulRedisConnection conn (-pool this)]
-      (xread (.sync conn) args offsets))))
+                 (xread (.sync conn) args offsets))))
 
 (defn- flush-message [handler last-id payload]
   (reset! last-id (:id payload))
@@ -91,8 +90,8 @@
 (defn- ->handler-thread [this qname handler]
   (let [last-id (atom (-> (time/now) time/millis-since-epoch dec str))]
     (thread-spawn
-      (while (running? this)
-        (flush-messages this qname handler last-id)))))
+     (while (running? this)
+       (flush-messages this qname handler last-id)))))
 
 (defn- do-on-message [this qname handler]
   (->> (->handler-thread this qname handler)
@@ -102,9 +101,9 @@
   (let [min-id (-> millis time/ago time/millis-since-epoch inc str)
         args   (.minId (XTrimArgs.) min-id)]
     (borrow-from [^StatefulRedisConnection conn pool]
-      (let [commands (.async conn)]
-        (wait-for-all [queue (all-keys conn)]
-          (xtrim commands queue args))))))
+                 (let [commands (.async conn)]
+                   (wait-for-all [queue (all-keys conn)]
+                                 (xtrim commands queue args))))))
 
 (defn- do-clear [this]
   (trim-older-than (-pool this) 0))
@@ -125,14 +124,14 @@
 
 (defn- do-read-queue-messages [this qname]
   (sorted-messages
-    (borrow-from [^StatefulRedisConnection conn (-pool this)]
-      (unbound-range (.sync conn) qname))))
+   (borrow-from [^StatefulRedisConnection conn (-pool this)]
+                (unbound-range (.sync conn) qname))))
 
 (defn- collect-message-seqs [this]
   (borrow-from [^StatefulRedisConnection conn (-pool this)]
-    (let [commands (.async conn)]
-      (wait-for-all [queue (all-keys conn)]
-        (unbound-range commands queue)))))
+               (let [commands (.async conn)]
+                 (wait-for-all [queue (all-keys conn)]
+                               (unbound-range commands queue)))))
 
 (defn- do-read-all-messages [this]
   (->> (collect-message-seqs this)
@@ -150,11 +149,11 @@
 
 (defn- ->trim-task [is-running pool {:keys [max-age-ms block-ms]}]
   (thread-spawn
-    (while @is-running
-      (mq/with-error-handling
-        (trim-older-than pool max-age-ms)
-        (when (and @is-running (pos? block-ms))
-          (Thread/sleep ^Long block-ms))))))
+   (while @is-running
+     (mq/with-error-handling
+       (trim-older-than pool max-age-ms)
+       (when (and @is-running (pos? block-ms))
+         (Thread/sleep ^Long block-ms))))))
 
 (defn- with-trim-task [is-running pool threads config]
   (when (pos? (:max-age-ms config))
@@ -166,11 +165,14 @@
 
 (defn- ->RedisConnectionPool [{:keys [client min-connections max-connections]}]
   (ConnectionPoolSupport/createGenericObjectPool
-    #(.connect client)
-    (doto (GenericObjectPoolConfig.)
-      (.setMinIdle min-connections)
-      (.setMaxTotal max-connections))))
+   #(.connect client)
+   (doto (GenericObjectPoolConfig.)
+     (.setMinIdle min-connections)
+     (.setMaxTotal max-connections))))
 
+;; Intentionally shadows the deftype-generated positional ctor with a
+;; spec-based one — this is the public constructor.
+#_{:clj-kondo/ignore [:redefined-var]}
 (defn ->RedisMessageQueue
   "Creates a MessageQueue utilizing Redis
 
@@ -213,6 +215,9 @@
     (-> config .useSingleServer (.setAddress uri))
     (Redisson/create config)))
 
+;; Intentionally shadows the deftype-generated positional ctor with a
+;; spec-based one — this is the public constructor.
+#_{:clj-kondo/ignore [:redefined-var]}
 (defn ->RedisLock
   "Creates a Lock utilizing Redis
 
