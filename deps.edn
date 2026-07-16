@@ -9,8 +9,19 @@
            org.clojure/clojure              {:mvn/version "1.12.4"}
            org.clojure/core.async           {:mvn/version "1.8.741"}
            org.redisson/redisson            {:mvn/version "3.52.0"} ; Used for Redis Locks
-           ring/ring                        {:mvn/version "1.15.3"}
-           ring/ring-anti-forgery           {:mvn/version "1.4.0"}}
+           ring/ring                        {:mvn/version "1.15.5"}
+           ring/ring-anti-forgery           {:mvn/version "1.4.0"}
+
+           ;; Security pins: patched versions of vulnerable transitive deps (clj-watson).
+           ;; Top-level declaration wins over transitive, so no exclusions needed.
+           org.eclipse.jetty/jetty-server          {:mvn/version "12.1.11"}     ; via ring; CVE-2026-1605, CVE-2026-2332
+           io.netty/netty-codec                    {:mvn/version "4.1.135.Final"} ; via redisson; CVE-2026-42583
+           io.netty/netty-handler                  {:mvn/version "4.1.135.Final"} ; via redisson; CVE-2026-44249, -45416, -50010
+           io.netty/netty-codec-dns                {:mvn/version "4.1.135.Final"} ; via redisson; CVE-2026-42579
+           io.netty/netty-resolver-dns             {:mvn/version "4.1.135.Final"} ; via redisson; CVE-2026-45673, -45674, -47691
+           com.fasterxml.jackson.core/jackson-core {:mvn/version "2.22.1"}      ; via redisson; GHSA-72hv-8253-57qq
+           org.bouncycastle/bcprov-jdk18on         {:mvn/version "1.84"}        ; via buddy-sign; CVE-2025-14813 (CRITICAL)
+           org.bouncycastle/bcpkix-jdk18on         {:mvn/version "1.84"}}       ; via buddy-sign; CVE-2026-5588
  :aliases {           ;; React layer — adds the Reagent wrappers, their deps, the React-flavored specs,
            ;; and the React scaffold cljs config. Chain this in to build/test/develop the wire jar.
            ;; dev-react/ comes before dev-core/ in classpath order (it appears earlier in the
