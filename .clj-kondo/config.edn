@@ -1,2 +1,8 @@
-{:hooks {:analyze-call {c3kit.wire.redis/borrow-from   hooks.redis/borrow-from
-                        c3kit.wire.redis/wait-for-all hooks.redis/wait-for-all}}}
+{:hooks   {:analyze-call {c3kit.wire.redis/borrow-from   hooks.redis/borrow-from
+                          c3kit.wire.redis/wait-for-all hooks.redis/wait-for-all}}
+ ;; speclj's `around` binds the wrapped test fn (conventionally named `it`) and
+ ;; invokes it as `(it)`; without this clj-kondo reads that as a 0-arg call to
+ ;; speclj.core/it. Lint it as `fn` so the binding resolves.
+ :lint-as {speclj.core/around clojure.core/fn}
+ ;; `[speclj.core :refer :all]` is the idiomatic spec-ns require in this project.
+ :linters {:refer-all {:exclude [speclj.core]}}}
