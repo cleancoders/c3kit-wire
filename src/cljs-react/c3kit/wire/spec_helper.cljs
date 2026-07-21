@@ -884,9 +884,9 @@
 
 (defn- memory-storage-storage [js-store]
   (before
-   (let [store (mem-store/->MemStorage)]
-     (doseq [attr ["getItem" "setItem" "removeItem" "clear"]]
-       (ccc/oset js-store attr (ccc/oget store attr))))))
+    (let [store (mem-store/->MemStorage)]
+      (doseq [attr ["getItem" "setItem" "removeItem" "clear"]]
+        (ccc/oset js-store attr (ccc/oget store attr))))))
 
 (defn with-memory-local-storage []
   (memory-storage-storage js/localStorage))

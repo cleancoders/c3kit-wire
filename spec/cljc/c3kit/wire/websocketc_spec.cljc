@@ -35,8 +35,8 @@
   (stub-now @now)
   (with state (sut/create (stub :message-handler {:invoke (fn [_] @message-handler-result)})
                           #?@(:clj [:transport {:open  (stub :httpkit/as-channel {:return :channel})
-                                               :send! (stub :socket/send! {:invoke (fn [& _] @send!-result)})
-                                               :close (stub :httpkit/close)}])))
+                                                :send! (stub :socket/send! {:invoke (fn [& _] @send!-result)})
+                                                :close (stub :httpkit/close)}])))
   #?(:clj (with request {:params {:connection-id "client-123" :ws-csrf-token "csrf-blah"} :session/key "csrf-blah"}))
   (around [it]
     (with-redefs [sut/-create-timeout!                           (stub :sut/create-timeout {:return :fake-timeout})
@@ -77,9 +77,7 @@
         (should= true (sut/request? request))
         (should= true (sut/response? response))
         (should= false (sut/request? response))
-        (should= false (sut/response? request))))
-
-    )
+        (should= false (sut/response? request)))))
 
   (context "connection"
 
@@ -112,8 +110,7 @@
           (should= 1 (:request-counter @conn-atom))
           (let [[responder-fn timeout] (get-in @conn-atom [:responders 1])]
             (should= :a-responder responder-fn)
-            (should-not= nil timeout))))
-      )
+            (should-not= nil timeout)))))
 
     (context "connection-responder!"
 
@@ -129,10 +126,7 @@
         (sut/connection-responder! {} 1)
         (let [[log] (log/parse-captured-logs)]
           (should= :warn (:level log))
-          (should= "connection MISSING; maybe OFFLINE" (:message log))))
-      )
-
-    )
+          (should= "connection MISSING; maybe OFFLINE" (:message log))))))
 
   (context "creation"
 
@@ -172,10 +166,7 @@
     (it "nil ping-interval"
       (let [state (sut/create :blah :ping-interval nil)]
         (should= nil (:ping-interval @state))
-        (should-not-contain :ping-task @state)))
-
-    )
-
+        (should-not-contain :ping-task @state))))
 
   (context "receive message -"
 
@@ -285,17 +276,13 @@
               response (sut/response (:request-id message) "a payload")]
           #?(:clj  (sut/-data-received @state "conn-abc" "a-socket" response)
              :cljs (sut/-data-received @state (clj->js {:data (utilc/->edn response)})))
-          (should-have-invoked :sut/cancel-timeout {:with [:fake-timeout]})))
-
-      )
+          (should-have-invoked :sut/cancel-timeout {:with [:fake-timeout]}))))
 
     (it "records activity"
       #?(:clj  (sut/-data-received @state "conn-abc" "a-socket" "blah")
          :cljs (sut/-data-received @state (clj->js {:data "blah"})))
       (should= @now (get-in @@state #?(:clj  [:connections "conn-abc" :last-active-at]
-                                       :cljs [:connection :last-active-at]))))
-
-    )
+                                       :cljs [:connection :last-active-at])))))
 
   (context "call! -"
 
@@ -366,9 +353,7 @@
     (it "sent message activity time"
       (sut/call! @state #?(:clj "conn-abc") :test)
       (should= @now (get-in @@state #?(:clj  [:connections "conn-abc" :last-active-at]
-                                       :cljs [:connection :last-active-at]))))
-
-    )
+                                       :cljs [:connection :last-active-at])))))
 
   (context "keep alive ping"
 
@@ -425,9 +410,7 @@
       (swap! @state assoc :ping-interval nil)
       (with-redefs [sut/-activity-since? (stub :activity-since? {:return true})]
         (sut/-ping-inactive-connections! @state)
-        (should-not-have-invoked :activity-since?)))
-
-    )
+        (should-not-have-invoked :activity-since?))))
 
   #?(:clj
      (context "server"
@@ -467,8 +450,7 @@
                               (assoc-in [:foo :bar] "custom-csrf")
                               (assoc-in [:params :ws-csrf-token] "custom-csrf"))
                  response (sut/handler @state request {:read-csrf (comp :bar :foo)})]
-             (should= :channel response)))
-         )
+             (should= :channel response))))
 
        (context "on-open"
 
@@ -491,9 +473,7 @@
            (let [[socket message-str] (stub/last-invocation-of :socket/send!)
                  message (sut/unpack message-str)]
              (should= "a-socket" socket)
-             (should= :ws/hello (:kind message))))
-
-         )
+             (should= :ws/hello (:kind message)))))
 
        (context "on-close"
 
@@ -506,9 +486,7 @@
            (sut/-open-connection! @state @request "conn-abc" "a-socket")
            (sut/-channel-on-close @state "conn-abc" "a-socket" "a status")
            (should= [{:request-id nil :kind :ws/close :params nil :connection-id "conn-abc" :request @request}]
-                    (stub/last-invocation-of :message-handler)))
-
-         )
+                    (stub/last-invocation-of :message-handler))))
 
        (context "close"
 
@@ -519,11 +497,7 @@
          (it "with socket"
            (sut/-open-connection! @state @request "conn-abc" "a-socket")
            (sut/close! @state "conn-abc")
-           (should-have-invoked :httpkit/close {:with ["a-socket"]}))
-
-         )
-
-       )
+           (should-have-invoked :httpkit/close {:with ["a-socket"]}))))
 
      :cljs
      (context "client"
@@ -541,9 +515,7 @@
          (it "sends internal :ws/open"
            (sut/-handle-open @state (clj->js {}))
            (should= [{:request-id nil :kind :ws/open :params nil :connection-id nil}]
-                    (stub/last-invocation-of :message-handler)))
-
-         )
+                    (stub/last-invocation-of :message-handler))))
 
        (context "on-close"
 
@@ -555,21 +527,16 @@
          (it "sends internal :ws/close"
            (sut/-handle-close @state (clj->js {}))
            (should= [{:request-id nil :kind :ws/close :params nil :connection-id nil}]
-                    (stub/last-invocation-of :message-handler)))
-
-         )
+                    (stub/last-invocation-of :message-handler))))
 
        (context "on-error"
 
          (it "sends to handler"
            (sut/-handle-error @state (clj->js {:error "blah"}))
            (should= [{:request-id nil :kind :ws/error :params {:error "blah"} :connection-id nil}]
-                    (stub/last-invocation-of :message-handler)))
+                    (stub/last-invocation-of :message-handler))))
 
-         )
-
-
-       ;(context "connect!"
+;(context "connect!"
        ;
        ;  (with state (sut/create-client "path" "csrf-123" :test))
        ;  (around [it] (with-redefs [sut/-create-socket (stub :-create-socket {:return (clj->js {:socket true})})] (it)))
@@ -583,7 +550,4 @@
        ;    )
        ;
        ;  )
-
-       )
-     )
-  )
+       )))

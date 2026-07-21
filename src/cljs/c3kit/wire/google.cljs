@@ -22,8 +22,8 @@
                        (fn [node] (ref-fn node) (user-ref node))
                        ref-fn)
         options      (cond->> {:ref ref-option}
-                              has-options?
-                              (merge maybe-options))
+                       has-options?
+                       (merge maybe-options))
         body         (if has-options?
                        (drop 2 body)
                        (rest body))]

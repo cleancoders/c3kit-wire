@@ -80,7 +80,4 @@
           (wjs/add-listener @sock "error" listener)
           (wjs/dispatch-event @sock event)
           (should= event @error-event)
-          (should= "error" (ccc/oget event "type"))))
-      )
-    )
-  )
+          (should= "error" (ccc/oget event "type")))))))

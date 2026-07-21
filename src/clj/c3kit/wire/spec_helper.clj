@@ -64,14 +64,14 @@
 
 (defmacro test-route [path method route-handler handler & body]
   `(it ~path
-       (check-route ~path ~method ~route-handler ~handler)
-       ~@body))
+     (check-route ~path ~method ~route-handler ~handler)
+     ~@body))
 
 (defmacro test-webs [id sym]
   `(it (str "remote " ~id " -> " '~sym)
-       (let [action# (ws/resolve-handler ~id)]
-         (should-not-be-nil action#)
-         (should= '~sym (.toSymbol action#)))))
+     (let [action# (ws/resolve-handler ~id)]
+       (should-not-be-nil action#)
+       (should= '~sym (.toSymbol action#)))))
 
 (defn with-memory-lock []
   (list

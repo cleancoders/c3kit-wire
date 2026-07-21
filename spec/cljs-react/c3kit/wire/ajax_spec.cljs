@@ -61,8 +61,7 @@
       (with-redefs [api/config (delay {:ajax-on-unsuccessful-response (stub :custom-handler)})]
         (sut/triage-response {:error-code :no-error :status 123} {})
         (should-have-invoked :custom-handler)
-        (should-not-have-invoked :handle-unknown)))
-    )
+        (should-not-have-invoked :handle-unknown))))
 
   (context "handle server-down"
 
@@ -72,8 +71,7 @@
       (should= true (:persist api/server-down-flash))
       (should= false (flash/active? api/server-down-flash))
       (sut/handle-server-down {})
-      (should= true (flash/active? api/server-down-flash))
-      )
+      (should= true (flash/active? api/server-down-flash)))
 
     (it "timeout"
       (sut/handle-server-down {})
@@ -125,8 +123,7 @@
         (should= "method" (:method req))
         (should= "oauth-token" (:oauth-token req))
         (should= "with-credentials?" (:with-credentials? req))
-        (should= "transit-opts" (:transit-opts req))))
-    )
+        (should= "transit-opts" (:transit-opts req)))))
 
   (it "on-http-error"
     (let [ajax-call (sut/build-ajax-call "POST" ccc/noop "/some/url" {} ccc/noop
@@ -154,12 +151,9 @@
     (it "request!"
       (sut/request! :foo "/endpoint" {:foo "bar"} ccc/noop)
       (let [[_state call] (stub/last-invocation-of :-do-ajax-request)]
-        (should= "FOO" (:method call))))
-
-    )
+        (should= "FOO" (:method call)))))
 
   (it "wrap-csrf"
     (with-redefs [api/config (delay {:ajax-prep-fn (sut/prep-csrf "X-CSRF-Token" "foobar")})]
       (let [request (sut/request-map (sut/build-ajax-call "GET" ccc/noop "/endpoint" {} ccc/noop []))]
-        (should= "foobar" (get-in request [:headers "X-CSRF-Token"])))))
-  )
+        (should= "foobar" (get-in request [:headers "X-CSRF-Token"]))))))

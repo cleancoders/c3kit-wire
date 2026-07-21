@@ -48,9 +48,7 @@
 
       (it "merges into API"
         (sut/configure! :foo :bar)
-        (should= :bar (:foo @api/config)))
-
-      )
+        (should= :bar (:foo @api/config))))
 
     (redefs-around [core/-request! (stub :request {:invoke (fn [_state _channel callback] (callback @response))})])
     (around [it] (let [saved @api/config] (reset! api/config {}) (it) (reset! api/config saved)))
@@ -75,8 +73,7 @@
 
         (it "invokes with response body"
           (let [handler (sut/wrap-success-handler (fn [_opts body] (+ 2 body)))]
-            (should= 3 (handler {:rest/unwrap-body? true} @response))))
-        )
+            (should= 3 (handler {:rest/unwrap-body? true} @response)))))
 
       (context "wrap-response-code"
 
@@ -95,15 +92,14 @@
         (it "passes through opts"
           (let [middleware (partial sut/wrap-response-code 200 (comp plus-2 :body))]
             (sut/configure! :rest/response-middleware middleware)
-            (should= 3 (sut/get! url request callback :rest/unwrap-body? false))))
-        )
+            (should= 3 (sut/get! url request callback :rest/unwrap-body? false)))))
 
       (context "wrap-response-handlers"
 
         (with handler (sut/wrap-response-codes
-                        {400 (comp plus-2 :body)
-                         401 (comp plus-3 :body)}
-                        midware-callback))
+                       {400 (comp plus-2 :body)
+                        401 (comp plus-3 :body)}
+                       midware-callback))
 
         (it "does not invoke middleware"
           (should= 2 (@handler {} @response)))
@@ -119,8 +115,7 @@
         (it "passes through opts"
           (let [middleware (partial sut/wrap-response-codes {200 (comp plus-2 :body)})]
             (sut/configure! :rest/response-middleware middleware)
-            (should= 3 (sut/get! url request callback :rest/unwrap-body? false))))
-        )
+            (should= 3 (sut/get! url request callback :rest/unwrap-body? false)))))
 
       (context "wrap-user-handlers"
 
@@ -137,12 +132,10 @@
 
         (it "prefers user handlers to configured handlers"
           (sut/configure! :rest/response-middleware (comp
-                                                       sut/wrap-user-handlers
-                                                       (partial sut/wrap-response-codes {200 plus-2})))
+                                                     sut/wrap-user-handlers
+                                                     (partial sut/wrap-response-codes {200 plus-2})))
 
-
-          (should= 4 (sut/get! url request callback (sut/with-handlers 200 plus-3) :rest/unwrap-body? true)))
-        )
+          (should= 4 (sut/get! url request callback (sut/with-handlers 200 plus-3) :rest/unwrap-body? true))))
 
       (context "wrap-form-errors"
 
@@ -158,8 +151,7 @@
             (let [ratom   (reagent/atom {})
                   handler (sut/wrap-form-errors @handler)]
               (should= :baz (:bar (handler {:rest/form-ratom ratom} @response)))
-              (should= {} @ratom)))
-          )
+              (should= {} @ratom))))
 
         (context "with errors"
 
@@ -173,9 +165,4 @@
                   response (assoc @response :body {:errors {:foo "beyond all recognition"}})]
               (should= :baz (:bar (handler {:rest/form-ratom ratom} response)))
               (should= {:foo "beyond all recognition"} (:errors @ratom))
-              (should (:display-errors? @ratom))))
-          )
-        )
-      )
-    )
-  )
+              (should (:display-errors? @ratom)))))))))

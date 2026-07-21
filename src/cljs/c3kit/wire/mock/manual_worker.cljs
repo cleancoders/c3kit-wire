@@ -37,7 +37,7 @@
     (if (string? executable)
       (assoc interval :code executable)
       (cond-> (assoc interval :handler executable)
-              (seq args) (assoc :args args)))))
+        (seq args) (assoc :args args)))))
 
 (defn- create-kind! [kind executable timeout args]
   (let [id        (swap! id-pool inc)

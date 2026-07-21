@@ -10,7 +10,10 @@
 
 (def handle-transit-params (sut/wrap-transit-params identity))
 (def handle-transit-response (sut/wrap-api-transit-response identity))
-(def handle-add-api-version (sut/wrap-add-api-version identity))
+;; wrap-add-api-version is deprecated and warns on call; capture the load-time
+;; warning so it doesn't leak into test output (the deprecation itself is
+;; asserted in the "is deprecated" example below).
+(def handle-add-api-version (log/capture-logs (sut/wrap-add-api-version identity)))
 
 (describe "Ajax"
 
@@ -18,9 +21,9 @@
     (it "is deprecated"
       (log/set-level! :report)
       (log/capture-logs
-        (sut/wrap-add-api-version identity)
-        (should= "c3kit.wire.ajax/wrap-add-api-version is deprecated. Use c3kit.wire.api/wrap-add-api-version instead."
-                 (log/captured-logs-str))))
+       (sut/wrap-add-api-version identity)
+       (should= "c3kit.wire.ajax/wrap-add-api-version is deprecated. Use c3kit.wire.api/wrap-add-api-version instead."
+                (log/captured-logs-str))))
 
     (it "missing body"
       (should= {} (handle-add-api-version {})))
@@ -37,8 +40,7 @@
 
     (it "vector body"
       (let [request {:body [:hello :world]}]
-        (should= request (handle-add-api-version request))))
-    )
+        (should= request (handle-add-api-version request)))))
 
   (context "wrap-api-transit-response"
     (it "empty request"
@@ -69,8 +71,7 @@
       (let [request  {:body    :unmodified
                       :headers {"Content-Type" :foo}}
             response (handle-transit-response request)]
-        (should= request response)))
-    )
+        (should= request response))))
 
   (context "wrap-transit-params"
     (it "empty request"
@@ -98,8 +99,7 @@
             in       (io/input-stream (.getBytes (utilc/->transit params)))
             request  {:headers {"content-type" "application/transit+json"} :body in}
             response (handle-transit-params request)]
-        (should= (assoc request :params params) response)))
-    )
+        (should= (assoc request :params params) response))))
 
   (context "middleware"
 
@@ -116,8 +116,7 @@
       (let [handler  #(sut/ok %)
             wrapped  (sut/wrap-add-api-version handler)
             response (wrapped :foo)]
-        (should= "123" (-> response :body :version))))
-    )
+        (should= "123" (-> response :body :version)))))
 
   (context "on-error"
 
@@ -133,20 +132,19 @@
     (it "default handler"
       (api/configure! :ajax-on-ex 'c3kit.wire.ajax/default-ajax-ex-handler)
       (log/capture-logs
-        (let [wrapped  (sut/wrap-catch-ajax-errors (fn [r] (throw (Exception. "test"))))
-              response (wrapped {:method :test})]
-          (should= 200 (:status response))
-          (should= :error (sut/status response))
-          (should= spec-helperc/default-error-message (-> response :body :flash first :text))
-          (should= :error (-> response :body :flash first :level))))
+       (let [wrapped  (sut/wrap-catch-ajax-errors (fn [r] (throw (Exception. "test"))))
+             response (wrapped {:method :test})]
+         (should= 200 (:status response))
+         (should= :error (sut/status response))
+         (should= spec-helperc/default-error-message (-> response :body :flash first :text))
+         (should= :error (-> response :body :flash first :level))))
       (should= "java.lang.Exception: test" (log/captured-logs-str)))
 
     (it "customer handler fn"
       (api/configure! :ajax-on-ex (stub :custom-ex-handler))
       (let [wrapped (sut/wrap-catch-ajax-errors (fn [r] (throw (Exception. "test"))))]
         (wrapped {:method :test}))
-      (should-have-invoked :custom-ex-handler))
-    )
+      (should-have-invoked :custom-ex-handler)))
 
   (context "helpers"
 
@@ -170,8 +168,7 @@
         (should= :error (-> response :body :flash first flashc/level))
         (should= "Oh Noez!" (-> response :body :flash first flashc/text))
         (should= :fail (-> response sut/status))
-        (should= :fuzz-balz (-> response sut/payload))))
-    )
+        (should= :fuzz-balz (-> response sut/payload)))))
 
   (context "flash"
 
@@ -191,6 +188,4 @@
       (let [response (sut/flash-error (sut/ok) "hello")
             flash    (-> response :body :flash first)]
         (should= "hello" (flashc/text flash))
-        (should= :error (flashc/level flash))))
-    )
-  )
+        (should= :error (flashc/level flash))))))

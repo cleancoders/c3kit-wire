@@ -1,9 +1,8 @@
 (ns c3kit.wire.util-spec
   (:require-macros [speclj.core :refer [describe context it should= should-not= after before should-contain around with]])
   (:require
-    [c3kit.wire.util :as sut]
-    [speclj.core]
-    ))
+   [c3kit.wire.util :as sut]
+   [speclj.core]))
 
 (describe "Util"
 
@@ -28,9 +27,7 @@
     (it "adds additional class"
       (should= {:class "one two"} (sut/+class-if {:class "one"} true "two"))
       (should= {:class "one two" :fizz "bang"}
-               (sut/+class-if {:class "one" :fizz "bang"} true "two")))
-
-    )
+               (sut/+class-if {:class "one" :fizz "bang"} true "two"))))
 
   (context "uid"
 
@@ -49,13 +46,10 @@
             after (sut/with-react-keys before)
             keys (map #(-> % meta :key) after)]
         (should= [[:span "date"]] after)
-        (should= [0] keys)))
-    )
+        (should= [0] keys))))
 
   (it "->css-class"
     (should= "" (sut/->css-class))
     (should= "foo" (sut/->css-class "foo"))
     (should= "foo bar" (sut/->css-class "foo" "bar"))
-    (should= "foo bar" (sut/->css-class ["foo" "bar"])))
-
-  )
+    (should= "foo bar" (sut/->css-class ["foo" "bar"]))))

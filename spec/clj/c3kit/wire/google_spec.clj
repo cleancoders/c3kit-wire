@@ -4,7 +4,6 @@
   (:import (com.google.api.client.googleapis.auth.oauth2 GoogleIdToken$Payload)
            (com.google.api.client.json.webtoken JsonWebToken JsonWebToken$Header)))
 
-
 (describe "Google OAuth"
   (with-stubs)
 
@@ -36,8 +35,7 @@
                          (.set "name" "Fluffy")
                          (.set "picture" "woof.jpg"))
               id-token (new JsonWebToken (new JsonWebToken$Header) payload)]
-          (should-be-nil (sut/verify-token->payload "client-id" id-token)))))
-    )
+          (should-be-nil (sut/verify-token->payload "client-id" id-token))))))
 
   (context "oauth verification"
     (it "missing token"
@@ -53,9 +51,8 @@
       (with-redefs [sut/verify (stub :verify {:invoke (fn [_verifier token] token)})]
         (should= "some-token" (sut/oauth-verification "client-id" "some-token"))
         (should-have-invoked :->GoogleIdTokenVerifier {:with ["client-id"]})
-        (should-have-invoked :verify {:with [:verifier "some-token"]})))
-    )
-  
+        (should-have-invoked :verify {:with [:verifier "some-token"]}))))
+
   (context "decoding a token"
 
     (it "email not verified"
@@ -82,8 +79,7 @@
         (should= "kitty@cat.com" (:email decoded))
         (should= "Kitty" (:name decoded))
         (should= "mew.jpg" (:picture decoded))
-        (should= true (:email-verified? decoded))))
-    )
+        (should= true (:email-verified? decoded)))))
 
   (context "verifies and decodes the token"
     (it "missing token"
@@ -99,7 +95,4 @@
       (with-redefs [sut/verify (stub :verify {:invoke (fn [_verifier token] token)})]
         (should= "some-token" (sut/oauth-verification "client-id" "some-token"))
         (should-have-invoked :->GoogleIdTokenVerifier {:with ["client-id"]})
-        (should-have-invoked :verify {:with [:verifier "some-token"]})))
-    )
-
-  )
+        (should-have-invoked :verify {:with [:verifier "some-token"]})))))

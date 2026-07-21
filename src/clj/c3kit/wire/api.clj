@@ -7,12 +7,10 @@
 
 (def default-error-message "Our apologies. An error occurred and we have been notified.")
 
-(def default-config {
-                     :ajax-on-ex   'c3kit.wire.ajax/default-ajax-ex-handler ;; (fn [request e])
+(def default-config {:ajax-on-ex   'c3kit.wire.ajax/default-ajax-ex-handler ;; (fn [request e])
                      :version      "undefined"
                      :ws-handlers  nil
-                     :ws-transport nil
-                     })
+                     :ws-transport nil})
 
 (def config (atom default-config))
 (defn configure! [& options] (swap! config merge (ccc/->options options)))

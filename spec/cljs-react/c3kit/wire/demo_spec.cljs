@@ -47,8 +47,7 @@
 
     (for [truck @sut/monster-trucks]
       (it (str "monster trucks shows: " (:name truck))
-        (should-select (str "#-truck-" (-> (:name truck) string/lower-case (string/replace #"\s" "-"))))))
-    )
+        (should-select (str "#-truck-" (-> (:name truck) string/lower-case (string/replace #"\s" "-")))))))
 
   (context "golf"
 
@@ -81,8 +80,7 @@
       (should= :ball-1 (:dragging @sut/golf-state))
       (swap! sut/golf-dnd assoc :target-key :hole-1)
       (sut/drag-over @sut/golf-dnd)
-      (should= :hole-1 (:drop-hole @sut/golf-state))
-      )
+      (should= :hole-1 (:drop-hole @sut/golf-state)))
 
     (it "drags ball to hole then out of hole"
       (swap! sut/golf-dnd assoc :source-key :ball-1)
@@ -117,9 +115,7 @@
         (sut/golf-drag-end)
         (should-not= golf-locations [(:ball-location @sut/golf-state) (:hole-location @sut/golf-state)])
         (should= 1 (:score @sut/golf-state))
-        (map #(should-be-nil (% @sut/golf-state)) [:dragging :hover :drop-hole])))
-    )
-
+        (map #(should-be-nil (% @sut/golf-state)) [:dragging :hover :drop-hole]))))
 
   (context "lists"
     (context "Monster Jam - multiple lists"
@@ -209,8 +205,7 @@
             (sut/update-order {:source-key :dragon :target-key :son-uva-digger} sut/monster-jam-state sut/monster-trucks)
             (should= :megalodon (get-in @sut/monster-jam-state [:trucks :first-item]))
             (let [items (sut/get-items-order @sut/monster-trucks :trucks (sut/get-first-element sut/monster-jam-state @sut/monster-trucks :trucks))]
-              (should= ["Megalodon" "Dragon" "Son-Uva-Digger" "Grave Digger"] (map :name items))))
-          )
+              (should= ["Megalodon" "Dragon" "Son-Uva-Digger" "Grave Digger"] (map :name items)))))
 
         (context "moves to a different list"
           (it "moves two as first element of second list"
@@ -287,10 +282,7 @@
                                         {:id :dragon :name "Dragon" :owner :team :next :monster-mutt-rottweiler}
                                         {:id :monster-mutt-rottweiler :name "Monster Mutt Rottweiler" :owner :team :next :grave-digger}
                                         {:id :grave-digger :name "Grave Digger" :owner :team}])
-            (swap! sut/monster-jam-state assoc-in [:team :first-item] :earth-shaker))
-
-          )
-        )
+            (swap! sut/monster-jam-state assoc-in [:team :first-item] :earth-shaker))))
 
       (context "dragon drop"
 
@@ -324,8 +316,7 @@
           (should= :megalodon (:dragging @sut/monster-jam-state))
           (swap! sut/monster-jam-dnd assoc :target-key :monster-mutt-rottweiler)
           (sut/drag-over-truck @sut/monster-jam-dnd)
-          (should= :monster-mutt-rottweiler (:drop-truck @sut/monster-jam-state))
-          )
+          (should= :monster-mutt-rottweiler (:drop-truck @sut/monster-jam-state)))
 
         (it "drags megalodon to monster-mutt-rottweiler then out of monster-mutt-rottweiler"
           (swap! sut/monster-jam-dnd assoc :source-key :megalodon)
@@ -351,9 +342,7 @@
           (should= :son-uva-digger (:drop-truck @sut/monster-jam-state))
           (sut/truck-drop @sut/monster-jam-dnd)
           (sut/truck-drag-end @sut/monster-jam-dnd)
-          (map #(should-be-nil (% @sut/monster-jam-state)) [:dragging :hover :drop-truck]))
-        )
-      )
+          (map #(should-be-nil (% @sut/monster-jam-state)) [:dragging :hover :drop-truck]))))
 
     (context "Rainbow - single list"
       (before (reset! sut/colors colors)
@@ -417,8 +406,7 @@
           (sut/update-order {:source-key :indigo :target-key :orange} sut/rainbow-state sut/colors)
           (should= :red (get-in @sut/rainbow-state [:colors :first-item]))
           (let [colors (sut/get-items-order @sut/colors :colors (sut/get-first-element sut/rainbow-state @sut/colors :colors))]
-            (should= ["red" "indigo" "orange" "yellow" "green" "blue" "violet"] (map :name colors))))
-        )
+            (should= ["red" "indigo" "orange" "yellow" "green" "blue" "violet"] (map :name colors)))))
 
       (context "dragon drop"
 
@@ -430,8 +418,7 @@
           (helper/mouse-leave! "#-color-wrapper-red")
           (helper/flush)
           (should-be-nil (:hover @sut/rainbow-state))
-          (should= "-color-wrapper" (helper/class-name "#-color-wrapper-red"))
-          )
+          (should= "-color-wrapper" (helper/class-name "#-color-wrapper-red")))
 
         (it "colors are draggable"
           (let [draggables [:node :draggable-mousedown :droppable-mouseenter :droppable-mouseleave]]
@@ -452,8 +439,7 @@
           (should= :red (:dragging @sut/rainbow-state))
           (swap! sut/rainbow-dnd assoc :target-key :indigo)
           (sut/drag-over-color @sut/rainbow-dnd)
-          (should= :indigo (:drop-color @sut/rainbow-state))
-          )
+          (should= :indigo (:drop-color @sut/rainbow-state)))
 
         (it "drags red to indigo then out of indigo"
           (swap! sut/rainbow-dnd assoc :source-key :red)
@@ -479,8 +465,4 @@
           (should= :orange (:drop-color @sut/rainbow-state))
           (sut/color-drop @sut/rainbow-dnd)
           (sut/color-drag-end @sut/rainbow-dnd)
-          (map #(should-be-nil (% @sut/rainbow-state)) [:dragging :hover :drop-color])))
-
-      )
-    )
-  )
+          (map #(should-be-nil (% @sut/rainbow-state)) [:dragging :hover :drop-color]))))))

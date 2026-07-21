@@ -45,9 +45,9 @@
   code changes get reloaded with each request.  Be sure to set reload? to true in development."
   [table]
   `(routes
-     ~@(for [[[path method] handler-sym] table]
-         (let [method (if (= :any method) nil method)]
-           (compojure/compile-route method path 'req `((lazy-handle '~handler-sym ~'req)))))))
+    ~@(for [[[path method] handler-sym] table]
+        (let [method (if (= :any method) nil method)]
+          (compojure/compile-route method path 'req `((lazy-handle '~handler-sym ~'req)))))))
 
 (defn redirect-handler
   "Creates a handler that will respond with a redirect to the specified path.  If the path contains bindings, the
@@ -65,6 +65,6 @@
   "Creates a handler that will redirect the table of routes.
   e.g. (redirect-routes {[\"/old/path\" :any] \"/new/path\" ...})"
   `(routes
-     ~@(for [[[path method] dest] table]
-         (let [method (if (= :any method) nil method)]
-           (compojure/compile-route method path 'req `((redirect-handler ~dest)))))))
+    ~@(for [[[path method] dest] table]
+        (let [method (if (= :any method) nil method)]
+          (compojure/compile-route method path 'req `((redirect-handler ~dest)))))))

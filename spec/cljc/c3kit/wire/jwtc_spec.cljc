@@ -32,7 +32,4 @@
     (it "has underscores in the payload"
       (let [token "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyI_IjoiYWE_In0.y88bwJcmo-S3xoYBPEARz3oJkeDaHN9TbvAiOABYoxQ"
             payload {:? "aa?"}]
-        (should= payload (sut/->payload token))))
-
-    )
-  )
+        (should= payload (sut/->payload token))))))

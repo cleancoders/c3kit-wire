@@ -96,8 +96,8 @@
 (defn- maybe-set-accept [request]
   (let [accept (get-in request [:headers "accept"])]
     (cond-> request
-            (nil? accept) (assoc-in [:headers "accept"] "application/json")
-            (= "*/*" accept) (assoc-in [:headers "accept"] "application/json"))))
+      (nil? accept) (assoc-in [:headers "accept"] "application/json")
+      (= "*/*" accept) (assoc-in [:headers "accept"] "application/json"))))
 
 (defn wrap-accept-header [handler]
   (fn [request]

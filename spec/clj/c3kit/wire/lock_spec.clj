@@ -72,9 +72,7 @@
          (let [executed?# (atom nil)]
            (sut/with-lock nil
              (reset! executed?# true))
-           (should= true @executed?#)))
-
-       )))
+           (should= true @executed?#))))))
 
 (describe "Lock"
 
@@ -84,7 +82,4 @@
 
     (tags :slow)
 
-    (test-lock {:impl :redis})
-
-    )
-  )
+    (test-lock {:impl :redis})))

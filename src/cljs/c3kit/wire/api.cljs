@@ -5,8 +5,7 @@
             [c3kit.wire.flashc :as flashc]
             [c3kit.wire.js :as cc]))
 
-(def config (atom {
-                   :version                       "undefined"
+(def config (atom {:version                       "undefined"
                    :redirect-fn                   cc/redirect!
                    :ajax-prep-fn                  nil ;; (fn [ajax-call] modified-ajax-call)
                    :ajax-on-unsuccessful-response nil ;; (fn [response ajax-call] ...)
@@ -16,8 +15,7 @@
                    :ws-uri-path                   "/user/websocket"
                    :flash-add!                    (constantly nil)
                    :flash-add-error!              (constantly nil)
-                   :flash-remove!                 (constantly nil)
-                   }))
+                   :flash-remove!                 (constantly nil)}))
 
 (defn configure! [& options] (swap! config merge (ccc/->options options)))
 

@@ -99,8 +99,7 @@
       (it "clears an interval by its id"
         (let [id (sut/set-interval ccc/noop 1000)]
           (should-be-nil (sut/clear-interval id))
-          (should-be empty? (sut/intervals))))
-      )
+          (should-be empty? (sut/intervals)))))
 
     (context "ticking"
 
@@ -140,10 +139,7 @@
           (sut/tick! id)
           (should= 6 @atm)
           (sut/tick! id)
-          (should= 12 @atm)))
-
-      )
-    )
+          (should= 12 @atm)))))
 
   (context "Timeouts"
 
@@ -240,9 +236,7 @@
       (it "clears a timeout by its id"
         (let [id (sut/set-timeout ccc/noop 1000)]
           (should-be-nil (sut/clear-timeout id))
-          (should-be empty? (sut/timeouts))))
-
-      )
+          (should-be empty? (sut/timeouts)))))
 
     (context "ticking"
 
@@ -279,9 +273,7 @@
       (it "removes the timeout after it has been invoked"
         (let [id (sut/set-timeout ccc/noop 1000)]
           (sut/tick! id)
-          (should-be empty? (sut/timeouts))))
-      )
-    )
+          (should-be empty? (sut/timeouts))))))
 
   (context "Spec Helper"
 
@@ -295,7 +287,4 @@
       (should-be empty? (sut/timeouts))
       (should-be empty? (sut/intervals))
       (js/setTimeout ccc/noop 1000)
-      (should= 1 (count (sut/timeouts))))
-    )
-
-  )
+      (should= 1 (count (sut/timeouts))))))

@@ -51,8 +51,8 @@
 
     (it "uses ws-uri-path with an http host"
       (let [js-location (js-obj
-                          "host" "the-host"
-                          "protocol" "http:")
+                         "host" "the-host"
+                         "protocol" "http:")
             uri         (str "ws://the-host/the-ws-path"
                              "?connection-id=" dummy-uuid
                              "&ws-csrf-token=the-csrf-token")]
@@ -63,8 +63,8 @@
 
     (it "uses ws-uri-path with a https host"
       (let [js-location (js-obj
-                          "host" "the-host"
-                          "protocol" "https:")
+                         "host" "the-host"
+                         "protocol" "https:")
             uri         (str "wss://the-host/the-ws-path"
                              "?connection-id=" dummy-uuid
                              "&ws-csrf-token=the-csrf-token")]
@@ -83,9 +83,7 @@
         (it "secure"
           (let [location (clj->js {:host "site.com:443" :protocol "https:"})]
             (should= "wss://site.com:443/path2?connection-id=conn-xyz&ws-csrf-token=csrf-987"
-                     (sut/build-local-uri location "/path2" "conn-xyz" "csrf-987"))))
-
-        )
+                     (sut/build-local-uri location "/path2" "conn-xyz" "csrf-987")))))
 
     (it "reconnects on close"
       (reset! sut/open? true)
@@ -105,7 +103,4 @@
       (reset! sut/reconnection? false)
       (sut/push-handler {:kind :ws/close})
       (sut/push-handler {:kind :ws/open})
-      (should-have-invoked :reconnected!))
-
-    )
-  )
+      (should-have-invoked :reconnected!))))

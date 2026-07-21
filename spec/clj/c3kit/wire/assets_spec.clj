@@ -1,9 +1,8 @@
 (ns c3kit.wire.assets-spec
   (:require
-    [c3kit.apron.app :as app]
-    [c3kit.wire.assets :refer :all]
-    [speclj.core :refer :all]
-    ))
+   [c3kit.apron.app :as app]
+   [c3kit.wire.assets :refer :all]
+   [speclj.core :refer :all]))
 
 (describe "asset fingerprint"
 
@@ -38,7 +37,6 @@
       (should-contain ".fp" result)
       (should= path (remove-fingerprint result))))
 
-
   (it "fingerprinting is disabled in development environment"
     (with-redefs [app/development? (constantly true)]
       (let [path "/assets-spec.clj"
@@ -67,15 +65,15 @@
     (let [fingerprint "fpabcdefghijklmnopqrstuvwxyz123456"
           request {:stuff :blah :uri (str "/path/with/fingerprint." fingerprint ".abc")}]
       (should=
-        (assoc request :path-info "/path/with/fingerprint.abc")
-        (remove-fingerprint-in request))))
+       (assoc request :path-info "/path/with/fingerprint.abc")
+       (remove-fingerprint-in request))))
 
   (it "resolves fingerprinted assets in request (path-info)"
     (let [fingerprint "fpabcdefghijklmnopqrstuvwxyz123456"
           request {:stuff :blah :path-info (str "/path/with/fingerprint." fingerprint ".abc")}]
       (should=
-        (assoc request :path-info "/path/with/fingerprint.abc")
-        (remove-fingerprint-in request))))
+       (assoc request :path-info "/path/with/fingerprint.abc")
+       (remove-fingerprint-in request))))
 
   (it "middleware passes resolved requests"
     (let [uri (atom nil)
@@ -84,5 +82,4 @@
           fingerprint "fpabcdefghijklmnopqrstuvwxyz123456"
           request {:uri (str "/path/with/fingerprint." fingerprint ".abc")}]
       (wrapped-handler request)
-      (should= "/path/with/fingerprint.abc" @uri)))
-  )
+      (should= "/path/with/fingerprint.abc" @uri))))
