@@ -1,6 +1,7 @@
 (ns c3kit.wire.service-worker.register-spec
-  (:require-macros [speclj.core :refer [describe it should should= should-be-nil should-not should-contain]])
-  (:require [c3kit.wire.service-worker.fake :as fake]
+  (:require-macros [speclj.core :refer [around describe it should should= should-be-nil should-not should-contain]])
+  (:require [c3kit.apron.log :as log :refer-macros [capture-logs]]
+            [c3kit.wire.service-worker.fake :as fake]
             [c3kit.wire.service-worker.register :as sut]
             [speclj.core]))
 
@@ -24,6 +25,8 @@
             "__calls" calls)))
 
 (describe "service worker registration"
+  (around [it] (capture-logs (it)))
+
   (it "no-ops when not in a secure context"
     (let [container (->container (->registration nil))]
       (sut/register-with {:container container :secure? false :url "/sw.js"})
