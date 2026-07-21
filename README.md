@@ -110,6 +110,85 @@ CLOJARS_PASSWORD=<your deploy key>
 `clj -T:build deploy` cleans, builds both jars, and pushes them to Clojars.
 `clj -T:build jar` builds without deploying. Both jars share the same VERSION.
 
+## Service Worker (offline caching)
+
+Two namespaces: `c3kit.wire.service-worker.core` runs inside the service worker
+(`ServiceWorkerGlobalScope`); `c3kit.wire.service-worker.register` runs on the page.
+Caching is secure by default: same-origin, `ok`, non-opaque, GET-only, with hard
+blocks on `Cache-Control: no-store/no-cache/private` and `Vary: */Cookie/Authorization`.
+Credentials are detected via `Authorization` header or `credentials: "include"` and are
+blocked by default.
+
+**Security note — threat-model limitations (read before caching anything private):**
+The hard blocks reliably cover `Authorization`-header and `credentials: "include"` auth
+and, on same-origin responses, `Cache-Control: private/no-cache/no-store` and `Vary`.
+Two guards **cannot fire in a live browser** — do not rely on them:
+
+- **`Set-Cookie`** is a forbidden response-header name, so `headers.get("Set-Cookie")`
+  returns `nil` inside the service worker. A `Set-Cookie` response is *not* detected and
+  will be cached if nothing else blocks it.
+- **`Vary`** is not a CORS-safelisted response header, so on a **cross-origin** `cors`
+  response `headers.get("Vary")` is `nil` and the `Vary` guard is silently skipped. It
+  works only same-origin.
+- **Same-origin cookie-session auth** is invisible: cookie headers are stripped from
+  `Request` objects in `ServiceWorkerGlobalScope`.
+
+For any private, per-user, session-cookie, or `Set-Cookie` endpoint, route it explicitly
+to `network-only` (or omit caching) — the secure-by-default gate alone is not sufficient.
+
+Strategies available inside the service worker: `cache-first`, `network-first`,
+`stale-while-revalidate`, `cache-only`, `network-only`. Each is a factory — call
+it with an opts map, register the result as a route handler.
+
+Your service worker entry (compiled to `/service-worker.js`):
+
+```clojure
+(ns my-app.service-worker
+  (:require [c3kit.wire.service-worker.core :as sw]))
+
+(defn -main []
+  (sw/precache! ["/" "/css/app.css" "/img/logo.png"] (str "shell-" my-app/version))
+  (sw/register-route! #"/img/"  (sw/cache-first {:cache "images"}))
+  (sw/register-route! #"/api/"  (sw/network-first {:cache "api"}))
+  (sw/register-route! "/"       (sw/stale-while-revalidate {:cache "pages"}))
+  (sw/register-route! #"/static/" (sw/cache-only {:cache "static"}))
+  (sw/set-default!              (sw/network-only {}))
+  (sw/start!))
+```
+
+On the page:
+
+```clojure
+(ns my-app.main
+  (:require [c3kit.wire.service-worker.register :as swr]))
+
+(swr/register! {:url "/service-worker.js"
+                :on-update (fn [_] (js/console.log "update available"))})
+
+;; To remove the service worker (e.g. when rolling back):
+(swr/unregister!)
+```
+
+Embed your app version in cache names (e.g. `(str "shell-" version)`) to get
+automatic purge of prior-deploy caches on `activate`.
+
+**stale-while-revalidate caveat:** background revalidation is fire-and-forget and is
+not wrapped in `event.waitUntil`, so a browser may terminate the service worker before
+the refresh completes. The next request still serves the prior cached value and
+re-triggers revalidation. For must-refresh resources prefer `network-first`.
+
+**precache! atomicity:** URLs passed to `precache!` are handed to `cache.addAll`, which
+is atomic — if any single URL returns a 4xx/5xx or network-fails, the entire install
+fails and the service worker never activates. Every URL must be an absolute or
+same-origin path that resolves successfully at install time.
+
+**Security footguns — `:allow-cross-origin` and `:cache-credentialed`:** these opts
+are explicit opt-outs of the secure-by-default caching gate. Use them only with a
+tight matcher (exact host + path, narrow regexp) that covers exactly the resources
+you intend to cache. A broad matcher (e.g. `(fn [_] true)`) with either opt enabled
+can cause the cache to store attacker-influenced cross-origin responses or per-user
+credentialed responses, potentially leaking private data across sessions.
+
 # License
 
 [MIT](LICENSE) © Clean Coders.
