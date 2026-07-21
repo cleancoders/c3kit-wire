@@ -74,18 +74,17 @@
       (it "default handler"
         (api/configure! :rest-on-ex nil)
         (log/capture-logs
-          (let [wrapped (sut/wrap-catch-rest-errors (fn [_] (throw (Exception. "test"))))]
-            (should= (restc/internal-error {:message spec-helperc/default-error-message})
-              (wrapped {:method :test}))
-            (should= "java.lang.Exception: test" (log/captured-logs-str)))))
+         (let [wrapped (sut/wrap-catch-rest-errors (fn [_] (throw (Exception. "test"))))]
+           (should= (restc/internal-error {:message spec-helperc/default-error-message})
+                    (wrapped {:method :test}))
+           (should= "java.lang.Exception: test" (log/captured-logs-str)))))
 
       (it "custom handler fn"
         (api/configure! :rest-on-ex (stub :custom-ex-handler {:return :custom-handler-response}))
         (let [e       (Exception. "test")
               wrapped (sut/wrap-catch-rest-errors (fn [_] (throw e)))]
           (should= :custom-handler-response (wrapped {:method :test}))
-          (should-have-invoked :custom-ex-handler {:with [{:method :test} e]})))
-      )
+          (should-have-invoked :custom-ex-handler {:with [{:method :test} e]}))))
 
     (context "wrap-api-json-request"
       (it "empty request change nothing"
@@ -99,10 +98,10 @@
 
       (it "logs errors if invalid json"
         (log/capture-logs
-          (let [body     "{bleh"
-                response (handle-json-request {:body (io/input-stream (.getBytes body))})]
-            (should= (restc/bad-request) response)
-            (should= "Couldn't parse as JSON: {bleh" (log/captured-logs-str)))))
+         (let [body     "{bleh"
+               response (handle-json-request {:body (io/input-stream (.getBytes body))})]
+           (should= (restc/bad-request) response)
+           (should= "Couldn't parse as JSON: {bleh" (log/captured-logs-str)))))
 
       (context "with keywords"
         (it "empty request changes nothing"
@@ -116,10 +115,10 @@
 
         (it "logs errors if invalid json"
           (log/capture-logs
-            (let [body     "{bleh"
-                  response (handle-json-kw-request {:body (io/input-stream (.getBytes body))})]
-              (should= (restc/bad-request) response)
-              (should= "Couldn't parse as JSON: {bleh" (log/captured-logs-str)))))))
+           (let [body     "{bleh"
+                 response (handle-json-kw-request {:body (io/input-stream (.getBytes body))})]
+             (should= (restc/bad-request) response)
+             (should= "Couldn't parse as JSON: {bleh" (log/captured-logs-str)))))))
 
     (context "wrap-api-json-response"
       (it "empty request changes nothing"
@@ -179,7 +178,7 @@
         (let [response               {:body {:hello :world}}
               handle-add-api-version (handle-wrap-rest response)]
           (should= (utilc/->json {:hello :world :version "123"})
-            (:body (handle-add-api-version {:headers {"accept" "application/json"}})))))
+                   (:body (handle-add-api-version {:headers {"accept" "application/json"}})))))
 
       (it "converts request from json"
         (let [body                (utilc/->json {:my-data 123})
@@ -189,11 +188,11 @@
 
       (it "logs errors if invalid json"
         (log/capture-logs
-          (let [body                "{bleh"
-                handle-json-request (handle-wrap-rest nil)
-                response            (handle-json-request {:body (io/input-stream (.getBytes body))})]
-            (should= (restc/bad-request) response)
-            (should= "Couldn't parse as JSON: {bleh" (log/captured-logs-str)))))
+         (let [body                "{bleh"
+               handle-json-request (handle-wrap-rest nil)
+               response            (handle-json-request {:body (io/input-stream (.getBytes body))})]
+           (should= (restc/bad-request) response)
+           (should= "Couldn't parse as JSON: {bleh" (log/captured-logs-str)))))
 
       (it "converts request from json with keywords"
         (let [body                (utilc/->json {:my-data 123})

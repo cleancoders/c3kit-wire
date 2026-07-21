@@ -136,8 +136,7 @@
     (it "pause"
       (let [audio (js-obj "pause" (stub :pause))]
         (sut/pause-audio audio)
-        (should-have-invoked :pause)))
-    )
+        (should-have-invoked :pause))))
 
   (it "stringify-json"
     (should= "null" (sut/stringify-json nil))
@@ -241,8 +240,7 @@
 
     (it "three cookies"
       (with-redefs [sut/doc-cookie (constantly "foo=bar; hello=world; cheese=whiz; ")]
-        (should= {"hello" "world" "foo" "bar" "cheese" "whiz"} (sut/cookies))))
-    )
+        (should= {"hello" "world" "foo" "bar" "cheese" "whiz"} (sut/cookies)))))
 
   (context "e-files"
     (it "no target"
@@ -276,12 +274,12 @@
     (it "full attribute list"
       (let [now      (time/now)
             js-file  (clj->js
-                       {:name               "foo.txt"
-                        :size               555
-                        :type               "text"
-                        :lastModified       (time/millis-since-epoch now)
-                        :lastModifiedDate   now
-                        :webkitRelativePath "blah"})
+                      {:name               "foo.txt"
+                       :size               555
+                       :type               "text"
+                       :lastModified       (time/millis-since-epoch now)
+                       :lastModifiedDate   now
+                       :webkitRelativePath "blah"})
             clj-file {:name                 "foo.txt"
                       :size                 555
                       :type                 "text"
@@ -289,8 +287,7 @@
                       :last-modified-date   now
                       :webkit-relative-path "blah"}]
         (should= [(assoc clj-file :file js-file)]
-                 (sut/e-files (clj->js {:target {:files [js-file]}})))))
-    )
+                 (sut/e-files (clj->js {:target {:files [js-file]}}))))))
 
   (context "clicks"
     (wire/with-root-dom)
@@ -311,8 +308,7 @@
 
     (it "by node"
       (sut/click! (sut/element-by-id "-some-id"))
-      (should-have-invoked :noop))
-    )
+      (should-have-invoked :noop)))
 
   (it "keys"
     (should= "Backspace" sut/BACKSPACE)
@@ -392,7 +388,7 @@
 
     (it "safely handles effect fn that returns a non-function value"
       (should-not-throw
-        (wire/render [:f> (fn [] (sut/use-effect (fn [] (+ 1 2))) [:div])])))
+       (wire/render [:f> (fn [] (sut/use-effect (fn [] (+ 1 2))) [:div])])))
 
     (it "uses provided cleanup fn"
       (let [cleaned-up (atom false)]
@@ -409,6 +405,4 @@
         (should= 0 @cleanup-count)
         (reset! state 1)
         (wire/flush)
-        (should= 1 @cleanup-count)))
-    )
-  )
+        (should= 1 @cleanup-count)))))

@@ -67,8 +67,7 @@
             exp     (time/seconds-since-epoch (time/after now (time/minutes 5)))
             payload (assoc sid-payload :exp exp)
             token   (buddy-jwt/sign payload secret)]
-        (should= payload (sut/unsign! token secret))))
-    )
+        (should= payload (sut/unsign! token secret)))))
 
   (context "ensuring client ids in requests"
     (it "missing token"
@@ -159,8 +158,7 @@
         (should-be string? (:value cookie))
         (should= false (:secure cookie))
         (should= "/" (:path cookie))
-        (should-not-contain :domain cookie)))
-    )
+        (should-not-contain :domain cookie))))
 
   (context "get-token"
     (it "retrieves the client id from the JWT payload"
@@ -198,5 +196,4 @@
     (it "does not overwrite the jwt payload if it already exists"
       (let [request  {:jwt/payload {:user-id 123 :client-id "123abc"}}
             response (write-token request {:jwt/payload {:user-id 1}} "abc123")]
-        (should= {:jwt/payload {:user-id 1 :client-id "abc123"}} response))))
-  )
+        (should= {:jwt/payload {:user-id 1 :client-id "abc123"}} response)))))

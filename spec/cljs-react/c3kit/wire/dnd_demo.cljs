@@ -1,12 +1,12 @@
 (ns c3kit.wire.dnd-demo
   (:require
-    [c3kit.apron.corec :as ccc]
-    [c3kit.apron.log :as log]
-    [c3kit.wire.dragndrop2 :as dnd]
-    [c3kit.wire.js :as wjs]
-    [clojure.string :as string]
-    [reagent.core :as reagent]
-    [reagent.dom :as dom]))
+   [c3kit.apron.corec :as ccc]
+   [c3kit.apron.log :as log]
+   [c3kit.wire.dragndrop2 :as dnd]
+   [c3kit.wire.js :as wjs]
+   [clojure.string :as string]
+   [reagent.core :as reagent]
+   [reagent.dom :as dom]))
 
 (defn get-element-by-id [id items] (ccc/ffilter #(or (= id (keyword (:id %))) (= id (:id %))) items))
 (defn get-first-element-id [state owner] (get-in @state [owner :first-item]))
@@ -28,7 +28,6 @@
   (if-not element
     elements
     (-> (remove-element elements element) (conj (update-fn)))))
-
 
 (def monster-jam-state (reagent/atom {:trucks {:first-item :megalodon} :team {:first-item nil}}))
 (def monster-trucks (reagent/atom [{:id :megalodon :name "Megalodon" :owner :trucks :next :el-toro-loco}
@@ -77,8 +76,7 @@
 (defn update-order [{:keys [source-key target-key]} state-atom items-atom]
   (let [source-element (:dragged-element @state-atom)
         target-element (get-element-by-id target-key @items-atom)
-        after-key      (keyword (str "after-" (apply str (rest (str (:owner source-element))))))
-        ]
+        after-key      (keyword (str "after-" (apply str (rest (str (:owner source-element))))))]
     (cond (or (= :after target-key) (= after-key target-key)) (move-element-to-last source-key source-element state-atom items-atom)
           (not= (:owner source-element) (:owner target-element)) (move-to-new-owner source-key target-key source-element target-element state-atom)
           :else (move-element-in-list source-key source-element target-element state-atom items-atom))))
@@ -125,8 +123,7 @@
         [:span.color {:class "-color" :style {:background-color (:color color)}}
          (:name color)]]]
     [:div.-truck-wrapper {:id "dragged-truck" :style {:width width}}
-     (:name truck)]
-    ))
+     (:name truck)]))
 
 (def monster-jam-dnd (-> (dnd/context)
                          (dnd/add-group :truck)
@@ -164,8 +161,7 @@
                           :on-mouse-enter #(when-not (:dragging @monster-jam-state) (swap! monster-jam-state assoc :hover (:id truck)))
                           :on-mouse-leave #(swap! monster-jam-state dissoc :hover)
                           :class          (when (= truck-id (:hover @monster-jam-state)) "grab")
-                          :ref            (dnd/register monster-jam-dnd :truck truck-id)
-                          }
+                          :ref            (dnd/register monster-jam-dnd :truck truck-id)}
      (when (= (:id truck) (:drop-truck @monster-jam-state))
        [:div {:id "-placeholder" :style {:height "50px" :background-color "white"}}])
      [truck-content truck]]))
@@ -187,8 +183,7 @@
     [:div.-placeholder-wrapper {:id    "-wrapper-end"
                                 :key   "-wrapper-end"
                                 :style {:height "500px" :background-color "white"}
-                                :ref   (dnd/register monster-jam-dnd :truck-drop :team)
-                                }
+                                :ref   (dnd/register monster-jam-dnd :truck-drop :team)}
      (when (= :team (:drop-truck @monster-jam-state))
        [:div {:id "-placeholder" :style {:height "50px" :background-color "white"}}])
      [:li.truck {:id "-truck" :style {:background-color "white"}}
@@ -217,9 +212,6 @@
     [:div#-trucks.team-container
      [:h3 "Monster Trucks"]
      [list-items]]]])
-
-
-
 
 (def rainbow-state (reagent/atom {:colors {:first-item :red}}))
 (def colors (reagent/atom [{:id :red :name "red" :color "red" :owner :colors :next :orange} {:id :orange :name "orange" :color "orange" :owner :colors :next :yellow} {:id :yellow :name "yellow" :color "yellow" :owner :colors :next :green} {:id :green :name "green" :color "green" :owner :colors :next :blue} {:id :blue :name "blue" :color "blue" :owner :colors :next :indigo} {:id :indigo :name "indigo" :color "indigo" :owner :colors :next :violet} {:id :violet :name "violet" :color "blueviolet" :owner :colors}]))
@@ -254,8 +246,7 @@
     [:div.-color-wrapper {:id "dragged-color"}
      [:<>
       [:span.color {:class "-color" :style {:background-color (:color color)}}
-       (:name color)]]]
-    ))
+       (:name color)]]]))
 
 (def rainbow-dnd (-> (dnd/context)
                      (dnd/add-group :color)
@@ -285,12 +276,10 @@
                           :on-mouse-enter #(when-not (:dragging @rainbow-state) (swap! rainbow-state assoc :hover (:id color)))
                           :on-mouse-leave #(swap! rainbow-state dissoc :hover)
                           :class          (when (= (:id color) (:hover @rainbow-state)) "grab")
-                          :ref            (dnd/register rainbow-dnd :color (:id color))
-                          }
+                          :ref            (dnd/register rainbow-dnd :color (:id color))}
      (when (= (:id color) (:drop-color @rainbow-state))
        [:div {:id "-placeholder" :style {:height "50px" :background-color "white"}}])
      [color-content color]]))
-
 
 (defn rainbow-demo []
   [:div#rainbow-demo.demo-container
@@ -303,9 +292,7 @@
        [:ol#-colors.colors
         (ccc/map-all color-wrapper colors)
         [:div#-after
-         {:style {:height "100px"} :ref (dnd/register rainbow-dnd :color :after)}]
-        ])]]])
-
+         {:style {:height "100px"} :ref (dnd/register rainbow-dnd :color :after)}]])]]])
 
 (defn random-golf-position [] {:left (rand-int 450) :top (rand-int 450)})
 
@@ -327,8 +314,7 @@
   (let [width (.-clientWidth node)]
     (println "HICCUP!!!!")
     (println "(.-id node): " (.-id node))
-    [:div {:id "dragging-ball" :style {:width width :background-color "blueviolet"}}]
-    ))
+    [:div {:id "dragging-ball" :style {:width width :background-color "blueviolet"}}]))
 
 (def golf-dnd (-> (dnd/context)
                   (dnd/add-group :ball)

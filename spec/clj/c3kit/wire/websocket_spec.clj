@@ -1,14 +1,13 @@
 (ns c3kit.wire.websocket-spec
   (:require
-    [c3kit.apron.app :as app]
-    [c3kit.apron.log :as log]
-    [c3kit.wire.api :as api]
-    [c3kit.wire.flashc :as flashc]
-    [c3kit.wire.websocket :as sut]
-    [c3kit.wire.websocketc :as wsc]
-    [speclj.core :refer :all]
-    [speclj.stub :as stub]
-    ))
+   [c3kit.apron.app :as app]
+   [c3kit.apron.log :as log]
+   [c3kit.wire.api :as api]
+   [c3kit.wire.flashc :as flashc]
+   [c3kit.wire.websocket :as sut]
+   [c3kit.wire.websocketc :as wsc]
+   [speclj.core :refer :all]
+   [speclj.stub :as stub]))
 
 (defn on-close-foo [{:keys [connection-id]}] {:foo connection-id})
 (def foo-handlers {:ws/close 'c3kit.wire.websocket-spec/on-close-foo})
@@ -50,12 +49,10 @@
     (let [response (sut/message-handler {:id :chsk/ws-ping})]
       (should= "123" (:version response))))
 
-
-
   (context "service"
 
     (around [it] (with-redefs [app/development? (stub :development? {:return false})
-                              wsc/create        (stub :wsc/create {:return :a-server})]
+                               wsc/create        (stub :wsc/create {:return :a-server})]
                    (it)))
 
     (it "start with default transport"

@@ -77,6 +77,4 @@
     (should-be sut/redirect? (sut/redirect "/path"))
     (should-not-be sut/redirect? (sut/fail))
     (should-not-be sut/redirect? (sut/ok))
-    (should-not-be sut/redirect? (sut/error)))
-
-  )
+    (should-not-be sut/redirect? (sut/error))))

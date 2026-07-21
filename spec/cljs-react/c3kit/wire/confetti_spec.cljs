@@ -283,7 +283,6 @@
             updated-sparkle (sut/-update-sparkle sparkle)]
         (should-be-nil updated-sparkle)))
 
-
     (it "fountaining"
       (let [sparkle         (sut/-create-fountain-sparkle 50 100)
             updated-sparkle (sut/-update-sparkle sparkle)
@@ -306,14 +305,12 @@
                  (sut/y-pos (:transform updated-sparkle)) 0.001)
         (should= 0 (sut/x-vel (:transform updated-sparkle)))
         (should= (- (sut/y-vel transform) (* (sut/y-accel transform) (/ 1 50)))
-                 (sut/y-vel (:transform updated-sparkle)) 0.0001))
-      )
-    )
+                 (sut/y-vel (:transform updated-sparkle)) 0.0001))))
 
   (it "destroys a sparkles when it hits the floor"
     (should-be-nil (sut/-update-sparkle
                     (assoc (sut/-create-cannon-sparkle 0 0 0)
-                      :transform {:position {:y 9999}}))))
+                           :transform {:position {:y 9999}}))))
 
   (it "eliminates dead sparkles on floor"
     (let [sparkles [{:kind :cannon :window-h 300 :transform {:position {:y 1000}}}
@@ -360,10 +357,10 @@
   (context "calls fireworks"
     (it "8 times"
       (let [sparkles    (atom (sut/create-fireworks-sparkles (/ 10 2) [2 1]))]
-       (with-redefs [wjs/timeout (stub :timeout)]
-        (sut/simulate-fireworks!)
-        (sut/schedule-fireworks sparkles 10 2)
-        (should-have-invoked :timeout {:times 8}))))
+        (with-redefs [wjs/timeout (stub :timeout)]
+          (sut/simulate-fireworks!)
+          (sut/schedule-fireworks sparkles 10 2)
+          (should-have-invoked :timeout {:times 8}))))
 
     (it "with sparkles"
       (reset! rand-ratom 1)

@@ -29,8 +29,7 @@
     (it "messages"
       (let [messages (js-invoke sut/repl-options "messages" :ws)]
         (should-be-a js/Array messages)
-        (should-be empty? messages)))
-    )
+        (should-be empty? messages))))
 
   (context "default"
     (before (reset! sut/impl nil))
@@ -63,7 +62,4 @@
       (should-be-nil (sut/shutdown)))
 
     (it "initiate"
-      (should-be-nil (sut/initiate sock)))
-
-    )
-  )
+      (should-be-nil (sut/initiate sock)))))

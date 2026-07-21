@@ -52,15 +52,15 @@
 
     (it "throws when socket is already open"
       (should-throw js/Error "Socket is not CONNECTING"
-        (server/initiate (->Socket 1))))
+                    (server/initiate (->Socket 1))))
 
     (it "throws when socket is closing"
       (should-throw js/Error "Socket is not CONNECTING"
-        (server/initiate (->Socket 2))))
+                    (server/initiate (->Socket 2))))
 
     (it "throws when socket is closing"
       (should-throw js/Error "Socket is not CONNECTING"
-        (server/initiate (->Socket 2))))
+                    (server/initiate (->Socket 2))))
 
     (it "stores socket in-memory"
       (let [socket (->Socket 0)]
@@ -70,8 +70,7 @@
     (it "throws when socket has already been initiated"
       (let [socket (->Socket 0)]
         (server/initiate socket)
-        (should-throw js/Error "Socket has already been initiated" (server/initiate socket))))
-    )
+        (should-throw js/Error "Socket has already been initiated" (server/initiate socket)))))
 
   (context "open"
 
@@ -114,9 +113,7 @@
       (let [[event] (stub/last-invocation-of :open)]
         (should= @sock (ccc/oget event "currentTarget"))
         (should= @sock (ccc/oget event "srcElement"))
-        (should= @sock (ccc/oget event "target"))))
-
-    )
+        (should= @sock (ccc/oget event "target")))))
 
   (context "close"
 
@@ -165,8 +162,7 @@
       (let [[event] (stub/last-invocation-of :close)]
         (should= @sock (ccc/oget event "currentTarget"))
         (should= @sock (ccc/oget event "srcElement"))
-        (should= @sock (ccc/oget event "target"))))
-    )
+        (should= @sock (ccc/oget event "target")))))
 
   (context "send"
 
@@ -220,9 +216,7 @@
       (wjs/add-listener @sock "message" (stub :message))
       (server/send @sock "the message")
       (let [[event] (stub/last-invocation-of :message)]
-        (should= "ws://localhost:1234" (ccc/oget event "origin"))))
-
-    )
+        (should= "ws://localhost:1234" (ccc/oget event "origin")))))
 
   (context "reject"
 
@@ -293,8 +287,7 @@
         (should= @sock (ccc/oget event "currentTarget"))
         (should= "blah" (ccc/oget event "reason"))
         (should= @sock (ccc/oget event "srcElement"))
-        (should= @sock (ccc/oget event "target"))))
-    )
+        (should= @sock (ccc/oget event "target")))))
 
   (context "shutdown"
 
@@ -404,6 +397,4 @@
       (server/shutdown)
       (should-not-have-invoked :close)
       (should-not-have-invoked :error)
-      (should (sock/closed? @sock)))
-    )
-  )
+      (should (sock/closed? @sock)))))

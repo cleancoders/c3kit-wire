@@ -42,9 +42,9 @@
 
 (defn create-dom-node [[tag :as hiccup]]
   (dom/createDom
-    (->tag-name tag)
-    (-> hiccup hiccup-options clj->js)
-    (->> hiccup child-elements (map ->dom) flatten clj->js)))
+   (->tag-name tag)
+   (-> hiccup hiccup-options clj->js)
+   (->> hiccup child-elements (map ->dom) flatten clj->js)))
 
 (defn component->html [[tag & children]]
   (let [component (apply tag children)]

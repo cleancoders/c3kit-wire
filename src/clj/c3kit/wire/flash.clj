@@ -1,8 +1,8 @@
 (ns c3kit.wire.flash
   (:require
-    [c3kit.apron.corec :refer [conjv]]
-    [c3kit.wire.flashc :as flashc]
-    [hiccup.element :as elem]))
+   [c3kit.apron.corec :refer [conjv]]
+   [c3kit.wire.flashc :as flashc]
+   [hiccup.element :as elem]))
 
 (defn include [request flash] (update-in request [:flash :messages] conjv flash))
 
@@ -15,7 +15,6 @@
 (defn error [request text] (include request (flashc/error text)))
 (defn error* [response col msg-fn] (reduce #(error %1 (msg-fn %2)) response col))
 
-
 (defn clear-messages [response] (update response :flash dissoc :messages))
 
 (defn copy [response request] (assoc response :flash (:flash request)))
@@ -25,7 +24,6 @@
 (defn first-msg-text [response] (-> response :flash :messages first flashc/text))
 (defn first-msg-level [response] (-> response :flash :messages first flashc/level))
 (defn all-msg-text [response] (map flashc/text (-> response :flash :messages)))
-
 
 (defn- flash-class [flash] (if (flashc/error? flash) "error" "success"))
 

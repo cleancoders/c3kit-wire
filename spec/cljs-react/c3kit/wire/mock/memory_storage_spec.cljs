@@ -8,15 +8,13 @@
   {:get-item    (ccc/oget js/localStorage "getItem")
    :set-item    (ccc/oget js/localStorage "setItem")
    :remove-item (ccc/oget js/localStorage "removeItem")
-   :clear       (ccc/oget js/localStorage "clear")
-   })
+   :clear       (ccc/oget js/localStorage "clear")})
 
 (def js-session-storage
   {:get-item    (ccc/oget js/sessionStorage "getItem")
    :set-item    (ccc/oget js/sessionStorage "setItem")
    :remove-item (ccc/oget js/sessionStorage "removeItem")
-   :clear       (ccc/oget js/sessionStorage "clear")
-   })
+   :clear       (ccc/oget js/sessionStorage "clear")})
 
 (declare store)
 (defn repeat-str [s n] (js-invoke s "repeat" n))
@@ -152,7 +150,7 @@
 
     (it "exceeds quota size"
       (should-not-throw
-        (sut/set-item @store (repeat-str "x" (/ sut/default-quota 2)) ""))
+       (sut/set-item @store (repeat-str "x" (/ sut/default-quota 2)) ""))
       (try
         (sut/set-item @store "x" "")
         (should-fail "expected DOMException to be thrown")
@@ -171,8 +169,7 @@
             (should-be-a js/DOMException e)
             (should= "QuotaExceededError" (ccc/oget e "name"))
             (should= "MemStorage quota has been exceeded. Quota: 2, Size: 4" (ccc/oget e "message"))))
-        (should= "" (sut/get-item store "x"))))
-    )
+        (should= "" (sut/get-item store "x")))))
 
   (context "Spec Helper"
 
@@ -190,8 +187,7 @@
         (should-be-nil (sut/get-item js/localStorage "foo"))
         (sut/set-item js/localStorage "foo" "bar")
         (sut/clear js/localStorage)
-        (should-be-nil (sut/get-item js/localStorage "foo")))
-      )
+        (should-be-nil (sut/get-item js/localStorage "foo"))))
 
     (context "with memory session storage"
       (spec-helper/with-memory-session-storage)
@@ -207,7 +203,4 @@
         (should-be-nil (sut/get-item js/sessionStorage "foo"))
         (sut/set-item js/sessionStorage "foo" "bar")
         (sut/clear js/sessionStorage)
-        (should-be-nil (sut/get-item js/sessionStorage "foo")))
-      )
-    )
-  )
+        (should-be-nil (sut/get-item js/sessionStorage "foo"))))))

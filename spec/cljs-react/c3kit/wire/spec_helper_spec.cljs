@@ -1,8 +1,8 @@
 (ns c3kit.wire.spec-helper-spec
   (:require-macros
-    [speclj.core :refer [after around before before-all context describe it
-                         redefs-around should focus-context should-be-nil should-contain should-have-invoked should-not should-not-be-nil should-not-contain should-not-throw
-                         should-not= should= stub with with-stubs]])
+   [speclj.core :refer [after around before before-all context describe it
+                        redefs-around should focus-context should-be-nil should-contain should-have-invoked should-not should-not-be-nil should-not-contain should-not-throw
+                        should-not= should= stub with with-stubs]])
   (:require [c3kit.apron.corec :as ccc]
             [c3kit.wire.ajax :as ajax]
             [c3kit.wire.js :as wjs]
@@ -54,9 +54,7 @@
 
     (it "simulates a key press event"
       (sut/key-press! "#-text-input" wjs/ENTER)
-      (should= wjs/ENTER (:key-press @ratom)))
-
-    )
+      (should= wjs/ENTER (:key-press @ratom))))
 
   (context "changes"
     (it "text"
@@ -69,8 +67,7 @@
       (sut/change! "input" [{:name "kittens.png" :type "png" :size 123}])
       (let [[event] (stub/last-invocation-of :on-change)
             file (-> event .-target .-files first js->clj)]
-        (should= {"name" "kittens.png" "type" "png" "size" 123} file)))
-    )
+        (should= {"name" "kittens.png" "type" "png" "size" 123} file))))
 
   (context "drag events"
     (it "drag" (should-invoke-drag-event sut/drag! :on-drag))
@@ -122,8 +119,7 @@
     (it "dispatches scroll event on element"
       (sut/render [:div#-scrollable {:on-scroll (stub :on-scroll)}])
       (sut/scroll! "#-scrollable")
-      (should-have-invoked :on-scroll))
-    )
+      (should-have-invoked :on-scroll)))
 
   (context "act-wrapped atom operations"
 
@@ -149,6 +145,4 @@
         (sut/render [component])
         (should-contain "0" (sut/text))
         (sut/swap! a assoc :count 5)
-        (should-contain "5" (sut/text))))
-    )
-  )
+        (should-contain "5" (sut/text))))))

@@ -82,11 +82,11 @@
 
     (it "throws when a protocol is specified more than once"
       (should-throw js/SyntaxError "Protocols may not contain duplicates: [\"foo\" \"bar\" \"foo\"]"
-        (sut/->MemSocket "ws://example.com/foo" (clj->js ["foo" "bar" "foo"]))))
+                    (sut/->MemSocket "ws://example.com/foo" (clj->js ["foo" "bar" "foo"]))))
 
     (it "throws when protocol is not ws:// or wss://"
       (should-throw js/SyntaxError "URL is invalid: http://example.com/foo"
-        (sut/->MemSocket "http://example.com/foo"))
+                    (sut/->MemSocket "http://example.com/foo"))
       (should-throw js/SyntaxError (sut/->MemSocket "https://example.com/foo"))
       (should-throw js/SyntaxError (sut/->MemSocket "ws:/example.com/foo"))
       (should-throw js/SyntaxError (sut/->MemSocket "wss:/example.com/foo"))
@@ -96,10 +96,9 @@
 
     (it "throws when a fragment exists in the url"
       (should-throw js/SyntaxError "URL is invalid: ws://example.com/foo#"
-        (sut/->MemSocket "ws://example.com/foo#"))
+                    (sut/->MemSocket "ws://example.com/foo#"))
       (should-throw js/SyntaxError (sut/->MemSocket "ws://example.com/foo#blah"))
-      (should-throw js/SyntaxError (sut/->MemSocket "ws://example.c#om/middle")))
-    )
+      (should-throw js/SyntaxError (sut/->MemSocket "ws://example.c#om/middle"))))
 
   (context "send"
 
@@ -124,9 +123,7 @@
     (it "sends a message to the server"
       (ccc/oset @sock "readyState" 1)
       (sock/send! @sock "data")
-      (should= ["data"] (server/messages @sock)))
-
-    )
+      (should= ["data"] (server/messages @sock))))
 
   (context "on open"
 
@@ -156,8 +153,7 @@
         (should-have-invoked :on-open-1 {:with [event]})
         (should-have-invoked :on-open-2 {:with [event]})
         (should-have-invoked :on-open-3 {:with [event]})
-        (should-contain "Error occurred in MemSocket open open error" (log/captured-logs-str))))
-    )
+        (should-contain "Error occurred in MemSocket open open error" (log/captured-logs-str)))))
 
   (context "on message"
     (it "no handler set"
@@ -229,9 +225,7 @@
         (let [event (event/->MessageEvent @sock "blah")]
           (wjs/dispatch-event @sock event)
           (should-have-invoked :listener-1 {:times 1})
-          (should= 3 @state))))
-
-    )
+          (should= 3 @state)))))
 
   (context "on error"
     (it "no handler set"
@@ -274,8 +268,7 @@
           (wjs/dispatch-event @sock event)
           (should-have-invoked :listener-1 {:with [event]})
           (should-not-have-invoked :listener-2)
-          (should-have-invoked :listener-3 {:with [event]}))))
-    )
+          (should-have-invoked :listener-3 {:with [event]})))))
 
   (context "close"
     (before (ccc/oset @sock "readyState" 1))
@@ -373,7 +366,4 @@
         (should-have-invoked-close-event :handler-1 @sock 3000 "another reason" false)
         (should-have-invoked-close-event :handler-2 @sock 3000 "another reason" false)
         (should-have-invoked-close-event :handler-3 @sock 3000 "another reason" false)
-        (should-contain "Error occurred in MemSocket close the error" (log/captured-logs-str)))
-      )
-    )
-  )
+        (should-contain "Error occurred in MemSocket close the error" (log/captured-logs-str))))))

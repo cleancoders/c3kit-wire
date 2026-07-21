@@ -69,7 +69,7 @@
   (let [prep (or (:ajax-prep-fn @api/config) identity)
         {:keys [options params] :as ajax-call} (prep ajax-call)]
     (cond-> (select-keys options pass-through-keys)
-            params (assoc (params-key ajax-call) params))))
+      params (assoc (params-key ajax-call) params))))
 
 (defn -do-ajax-request [state {:keys [method method-fn url params] :as ajax-call}]
   (log/debug "<" method url params)

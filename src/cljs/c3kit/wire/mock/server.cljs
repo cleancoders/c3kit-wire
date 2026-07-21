@@ -62,16 +62,16 @@
 (def repl-options
   "Browser access with (set! js/Server repl-options)"
   (js-obj
-    "connections" (comp into-array connections)
-    "initiate" initiate
-    "open" open
-    "reject" reject
-    "close" close
-    "send" send
-    "receive" receive
-    "messages" (comp into-array messages)
-    "flush" flush
-    "shutdown" shutdown))
+   "connections" (comp into-array connections)
+   "initiate" initiate
+   "open" open
+   "reject" reject
+   "close" close
+   "send" send
+   "receive" receive
+   "messages" (comp into-array messages)
+   "flush" flush
+   "shutdown" shutdown))
 
 ;region default
 

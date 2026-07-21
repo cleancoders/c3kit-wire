@@ -6,7 +6,6 @@
             [ring.util.response :as response]
             [speclj.core :refer :all]))
 
-
 (def prefix-handler (-> (compojure/routes (compojure/ANY "/bar" [] "bar")
                                           (compojure/ANY "/fizz" [] "fizz"))
                         (sut/wrap-prefix "/foo" (fn [_] (response/not-found "nope")))))
@@ -28,10 +27,7 @@
 
   (it "respects path-info"
     (should= "bar" (-> (prefix-handler {:uri "/blah" :path-info "/foo/bar"}) :body))
-    (should= "nope" (-> (prefix-handler {:uri "/blah" :path-info "/foo/blah"}) :body)))
-
-  )
-
+    (should= "nope" (-> (prefix-handler {:uri "/blah" :path-info "/foo/blah"}) :body))))
 
 (defn fizz-bang [_] "fizz-bang")
 (defn zig-zag [_] "zig-zag")
@@ -59,9 +55,7 @@
     (reset! sut/reload? true)
     (lazy-handler {:uri "/fizz/bang"})
     (lazy-handler {:uri "/fizz/bang"})
-    (should-have-invoked :resolve-var {:times 2}))
-
-  )
+    (should-have-invoked :resolve-var {:times 2})))
 
 (def redirect-handler (sut/redirect-routes {["/old/one" :any]        "/new/one"
                                             ["/old/:thing/two" :any] "/new/:thing/two"}))
@@ -74,6 +68,4 @@
 
   (it "routes with bounded parameters"
     (let [response (redirect-handler {:uri "/old/blah/two"})]
-      (helper/should-redirect-to response "/new/blah/two")))
-
-  )
+      (helper/should-redirect-to response "/new/blah/two"))))

@@ -108,8 +108,7 @@
         (sut/add! f1)
         (should (sut/active? f1))
         (should= 1 (count @sut/state))
-        (should= [f1] @sut/state)))
-    )
+        (should= [f1] @sut/state))))
 
   (context "timeout"
 
@@ -122,13 +121,10 @@
 
     (it "is not added when persist is true"
       (sut/add! (flashc/create :success "Hello" true))
-      (should-not-have-invoked :timeout))
-
-    )
+      (should-not-have-invoked :timeout)))
 
   (it "registers itself with c3kit.wire.api on load"
     (let [c @c3kit.wire.api/config]
       (should= sut/add!       (:flash-add!       c))
       (should= sut/add-error! (:flash-add-error! c))
-      (should= sut/remove!    (:flash-remove!    c))))
-  )
+      (should= sut/remove!    (:flash-remove!    c)))))
