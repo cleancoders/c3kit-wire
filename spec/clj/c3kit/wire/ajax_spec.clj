@@ -10,7 +10,10 @@
 
 (def handle-transit-params (sut/wrap-transit-params identity))
 (def handle-transit-response (sut/wrap-api-transit-response identity))
-(def handle-add-api-version (sut/wrap-add-api-version identity))
+;; wrap-add-api-version is deprecated and warns on call; capture the load-time
+;; warning so it doesn't leak into test output (the deprecation itself is
+;; asserted in the "is deprecated" example below).
+(def handle-add-api-version (log/capture-logs (sut/wrap-add-api-version identity)))
 
 (describe "Ajax"
 
