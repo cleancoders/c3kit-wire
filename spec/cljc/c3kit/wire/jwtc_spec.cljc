@@ -12,7 +12,7 @@
       (should-be-nil (sut/->payload "")))
 
     (it "malformed token"
-      (let [token "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmSI6IkpvaG4gRG9lIiwiaWF0IjoxNTEMjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"]
+      (let [token "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmSI6IkpvaG4gRG9lIiwiaWF0IjoxNTEMjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"] ; gitleaks:allow — canonical jwt.io example token, not a real secret
         (should-be-nil (sut/->payload token))))
 
     (it "has only one part"
@@ -25,11 +25,11 @@
         (should= payload (sut/->payload token))))
 
     (it "has all three parts"
-      (let [token   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
+      (let [token   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c" ; gitleaks:allow — canonical jwt.io example token, not a real secret
             payload {:sub "1234567890" :name "John Doe" :iat 1516239022}]
         (should= payload (sut/->payload token))))
 
     (it "has underscores in the payload"
-      (let [token "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyI_IjoiYWE_In0.y88bwJcmo-S3xoYBPEARz3oJkeDaHN9TbvAiOABYoxQ"
+      (let [token "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyI_IjoiYWE_In0.y88bwJcmo-S3xoYBPEARz3oJkeDaHN9TbvAiOABYoxQ" ; gitleaks:allow — canonical jwt.io example token, not a real secret
             payload {:? "aa?"}]
         (should= payload (sut/->payload token))))))
