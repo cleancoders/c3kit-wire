@@ -15,11 +15,14 @@
            ;; Security pins: patched versions of vulnerable transitive deps (clj-watson).
            ;; Top-level declaration wins over transitive, so no exclusions needed.
            org.eclipse.jetty/jetty-server          {:mvn/version "12.1.11"}     ; via ring; CVE-2026-1605, CVE-2026-2332
-           io.netty/netty-codec                    {:mvn/version "4.1.135.Final"} ; via redisson; CVE-2026-42583
-           io.netty/netty-handler                  {:mvn/version "4.1.135.Final"} ; via redisson; CVE-2026-44249, -45416, -50010
-           io.netty/netty-codec-dns                {:mvn/version "4.1.135.Final"} ; via redisson; CVE-2026-42579
-           io.netty/netty-resolver-dns             {:mvn/version "4.1.135.Final"} ; via redisson; CVE-2026-45673, -45674, -47691
+           org.eclipse.jetty/jetty-unixdomain-server {:mvn/version "12.1.11"}   ; via ring; CVE-2026-10051, -6790, -8384
+           org.eclipse.jetty.ee9.websocket/jetty-ee9-websocket-jetty-server {:mvn/version "12.1.11"} ; via ring; CVE-2026-10051, -6790, -8384
+           io.netty/netty-codec                    {:mvn/version "4.1.136.Final"} ; via redisson; CVE-2026-42583, -44891, -55831, -55833
+           io.netty/netty-handler                  {:mvn/version "4.1.136.Final"} ; via redisson; CVE-2026-44249, -45416, -50010
+           io.netty/netty-codec-dns                {:mvn/version "4.1.136.Final"} ; via redisson; CVE-2026-42579
+           io.netty/netty-resolver-dns             {:mvn/version "4.1.136.Final"} ; via redisson; CVE-2026-45673, -45674, -47691
            com.fasterxml.jackson.core/jackson-core {:mvn/version "2.22.1"}      ; via redisson; GHSA-72hv-8253-57qq
+           com.fasterxml.jackson.core/jackson-databind {:mvn/version "2.22.1"} ; via redisson; CVE-2026-54512, -54513, -54514, -54515
            org.bouncycastle/bcprov-jdk18on         {:mvn/version "1.84"}        ; via buddy-sign; CVE-2025-14813 (CRITICAL)
            org.bouncycastle/bcpkix-jdk18on         {:mvn/version "1.84"}}       ; via buddy-sign; CVE-2026-5588
  :aliases {           ;; React layer — adds the Reagent wrappers, their deps, the React-flavored specs,

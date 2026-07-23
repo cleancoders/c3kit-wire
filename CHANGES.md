@@ -1,3 +1,6 @@
+### 4.2.1
+ * Security: patched newly-flagged vulnerable transitive dependencies (clj-watson, 4 High). Bumps the existing top-level pins `io.netty/netty-*` 4.1.135.Final → 4.1.136.Final (CVE-2026-44891, -55831, -55833 via redisson's netty-codec), and adds pins `com.fasterxml.jackson.core/jackson-databind` 2.22.1 (CVE-2026-54512, -54513 via redisson), `org.eclipse.jetty/jetty-unixdomain-server` 12.1.11 and `org.eclipse.jetty.ee9.websocket/jetty-ee9-websocket-jetty-server` 12.1.11 (CVE-2026-10051, -6790, -8384 via ring). Top-level wins over transitive, no exclusions. No public API changes. clj-watson now reports 0 vulnerable dependencies.
+
 ### 4.2.0
  * Bumps `com.cleancoders.c3kit/apron` 2.5.0 → 3.0.1 (a major upgrade, patching jackson-core CVE-2025-52999 / GHSA-72hv-8253-57qq via apron's own pin). Apron 3.0.0 restructured the schema ref/registry into a `*lexicon*` and removed deprecated fns; wire's only affected call was `schema/messages`, now `schema/message-seq` in `c3kit.wire.apic`. Wire's own public API is unchanged, but consumers get apron 3.x transitively — if you use `c3kit.apron.schema` directly, review apron's 3.0.0 changelog for breaking changes (e.g. `messages` → `message-seq`, `*ref-registry*` → `*lexicon*`).
 
