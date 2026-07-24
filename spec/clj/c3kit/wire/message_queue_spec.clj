@@ -198,8 +198,7 @@
               (sut/on-message "foo" ccc/noop)
               (sut/enqueue "foo" "blah")
               @thrown?
-              (wait-until #(= 1 (ccc/count-where interrupted? @(.-threads @sut/impl))))
-              (should= 1 (ccc/count-where interrupted? @(.-threads @sut/impl)))))))
+              (should (wait-until #(= 1 (ccc/count-where interrupted? @(.-threads @sut/impl)))))))))
 
       (it "automatically removes messages older than max-age"
         (sut/enqueue "foo" "blah")
@@ -240,5 +239,4 @@
             (with-redefs [redis/xtrim mock-xtrim]
               (sut/enqueue "foo" "blah")
               @thrown?
-              (wait-until #(= 1 (ccc/count-where interrupted? @(.-threads @sut/impl))))
-              (should= 1 (ccc/count-where interrupted? @(.-threads @sut/impl))))))))))
+              (should (wait-until #(= 1 (ccc/count-where interrupted? @(.-threads @sut/impl))))))))))))

@@ -89,6 +89,9 @@
 (defn connect! [config]
   (let [connection-id (str (ccc/new-uuid))
         uri           (build-connection-uri config connection-id)]
+    ;; `client` is (def ... nil) and reset via set! in start!; clj-kondo infers
+    ;; it as nil and flags wsc/connect!'s atom arg. False positive — suppress it.
+    #_{:clj-kondo/ignore [:type-mismatch]}
     (wsc/connect! client uri (:ws-csrf-token config) connection-id)))
 
 (defn start! [state atom-fn]
