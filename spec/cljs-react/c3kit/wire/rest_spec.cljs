@@ -97,9 +97,9 @@
       (context "wrap-response-handlers"
 
         (with handler (sut/wrap-response-codes
-                       {400 (comp plus-2 :body)
-                        401 (comp plus-3 :body)}
-                       midware-callback))
+                        {400 (comp plus-2 :body)
+                         401 (comp plus-3 :body)}
+                        midware-callback))
 
         (it "does not invoke middleware"
           (should= 2 (@handler {} @response)))
@@ -132,8 +132,8 @@
 
         (it "prefers user handlers to configured handlers"
           (sut/configure! :rest/response-middleware (comp
-                                                     sut/wrap-user-handlers
-                                                     (partial sut/wrap-response-codes {200 plus-2})))
+                                                      sut/wrap-user-handlers
+                                                      (partial sut/wrap-response-codes {200 plus-2})))
 
           (should= 4 (sut/get! url request callback (sut/with-handlers 200 plus-3) :rest/unwrap-body? true))))
 

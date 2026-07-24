@@ -42,12 +42,12 @@
 
       (let [response (sut/no-content {:my-header 123})]
         (list
-         (it "returns status code 204"
-           (should= 204 (:status response)))
+          (it "returns status code 204"
+            (should= 204 (:status response)))
 
-         (it "returns headers"
-           (let [response (sut/no-content {:my-header 123})]
-             (should= {:my-header 123} (:headers response))))))))
+          (it "returns headers"
+            (let [response (sut/no-content {:my-header 123})]
+              (should= {:my-header 123} (:headers response))))))))
 
   (context "Not Modified"
     (test-rest-no-params sut/not-modified 304))
@@ -61,15 +61,15 @@
     (context "with WWW-Authenticate"
       (let [response (sut/unauthorized {:data "hi"} {:authorization "def"} "Basic")]
         (list
-         (it "returns status code 401"
-           (should= 401 (:status response)))
+          (it "returns status code 401"
+            (should= 401 (:status response)))
 
-         (it "returns body"
-           (should= {:data "hi"} (:body response)))
+          (it "returns body"
+            (should= {:data "hi"} (:body response)))
 
-         (it "includes WWW-Authenticate in headers"
-           (should= {:authorization "def"
-                     "WWW-Authenticate" "Basic"} (:headers response)))))))
+          (it "includes WWW-Authenticate in headers"
+            (should= {:authorization "def"
+                      "WWW-Authenticate" "Basic"} (:headers response)))))))
 
   (context "Payment Required"
     (test-rest sut/payment-required 402))

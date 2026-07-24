@@ -1,12 +1,12 @@
 (ns c3kit.wire.dnd-demo
   (:require
-   [c3kit.apron.corec :as ccc]
-   [c3kit.apron.log :as log]
-   [c3kit.wire.dragndrop2 :as dnd]
-   [c3kit.wire.js :as wjs]
-   [clojure.string :as string]
-   [reagent.core :as reagent]
-   [reagent.dom :as dom]))
+    [c3kit.apron.corec :as ccc]
+    [c3kit.apron.log :as log]
+    [c3kit.wire.dragndrop2 :as dnd]
+    [c3kit.wire.js :as wjs]
+    [clojure.string :as string]
+    [reagent.core :as reagent]
+    [reagent.dom :as dom]))
 
 (defn get-element-by-id [id items] (ccc/ffilter #(or (= id (keyword (:id %))) (= id (:id %))) items))
 (defn get-first-element-id [state owner] (get-in @state [owner :first-item]))

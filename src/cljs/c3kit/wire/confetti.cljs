@@ -267,13 +267,13 @@
 (defn merge-sparkle [& maps]
   (apply merge
          (concat
-          [(base-sparkle)
-           {:diameter       (rand-between 5 15)
-            :colors         (repeatedly 2 -pick-a-color)
-            :tilt           (rand-between -10 0)
-            :tilt-angle-inc (rand-between 0.05 0.12)
-            :tilt-angle     (* (-rand 1) Math/PI)}]
-          maps)))
+           [(base-sparkle)
+            {:diameter       (rand-between 5 15)
+             :colors         (repeatedly 2 -pick-a-color)
+             :tilt           (rand-between -10 0)
+             :tilt-angle-inc (rand-between 0.05 0.12)
+             :tilt-angle     (* (-rand 1) Math/PI)}]
+           maps)))
 
 (defn -create-drop-sparkle [w h]
   (merge-sparkle {:last-time (performance-now)
@@ -318,15 +318,15 @@
         delta-x    (* radius (Math/cos angle))
         delta-y    (* radius (Math/sin angle))]
     (merge-sparkle
-     {:start-time      now
-      :last-time       now
-      :kind            :fireworks
-      :transform       {:position     {:x (+ center-x delta-x) :y (+ center-y delta-y)}
-                        :velocity     {:x (/ delta-x 2.5) :y (/ delta-y 2.5)}
-                        :acceleration {:x 0 :y 0.1}}
-      :invisible?      false
-      :max-ball-radius max-radius
-      :ball-radius     radius})))
+      {:start-time      now
+       :last-time       now
+       :kind            :fireworks
+       :transform       {:position     {:x (+ center-x delta-x) :y (+ center-y delta-y)}
+                         :velocity     {:x (/ delta-x 2.5) :y (/ delta-y 2.5)}
+                         :acceleration {:x 0 :y 0.1}}
+       :invisible?      false
+       :max-ball-radius max-radius
+       :ball-radius     radius})))
 
 (defn -create-fountain-sparkle [x-pos-init h]
   (let [y-normalize   (/ h 1028)

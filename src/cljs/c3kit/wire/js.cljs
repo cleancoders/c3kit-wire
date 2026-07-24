@@ -173,13 +173,13 @@
 (defn e-type [e] (.-type e))
 (defn- file->clj [file]
   (ccc/remove-nils
-   {:name                 (.-name file)
-    :type                 (.-type file)
-    :size                 (.-size file)
-    :last-modified        (.-lastModified file)
-    :last-modified-date   (.-lastModifiedDate file)
-    :webkit-relative-path (.-webkitRelativePath file)
-    :file                 file}))
+    {:name                 (.-name file)
+     :type                 (.-type file)
+     :size                 (.-size file)
+     :last-modified        (.-lastModified file)
+     :last-modified-date   (.-lastModifiedDate file)
+     :webkit-relative-path (.-webkitRelativePath file)
+     :file                 file}))
 (defn e-files [e]
   (->> (or (some->> e .-dataTransfer .-files)
            (some->> e .-target .-files)
@@ -412,10 +412,10 @@
   ([f deps] (use-effect f nil deps))
   ([f cleanup deps]
    (js/React.useEffect
-    (fn []
-      (f)
-      (or cleanup js/undefined))
-    (when deps (to-array deps)))))
+     (fn []
+       (f)
+       (or cleanup js/undefined))
+     (when deps (to-array deps)))))
 
 (defn scroll-into-view
   ([thing] (scroll-into-view thing {:behavior "smooth"}))

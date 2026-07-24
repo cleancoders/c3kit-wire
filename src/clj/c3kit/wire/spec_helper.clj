@@ -75,8 +75,8 @@
 
 (defn with-memory-lock []
   (list
-   (before (lock/configure! {:impl :memory}))
-   (after (lock/shutdown!))))
+    (before (lock/configure! {:impl :memory}))
+    (after (lock/shutdown!))))
 
 (defmacro should-have-locked [key]
   `(should-contain ~key @(.-locks @lock/impl)))

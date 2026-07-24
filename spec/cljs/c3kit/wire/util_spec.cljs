@@ -1,8 +1,8 @@
 (ns c3kit.wire.util-spec
   (:require-macros [speclj.core :refer [describe context it should= should-not= after before should-contain around with]])
   (:require
-   [c3kit.wire.util :as sut]
-   [speclj.core]))
+    [c3kit.wire.util :as sut]
+    [speclj.core]))
 
 (describe "Util"
 

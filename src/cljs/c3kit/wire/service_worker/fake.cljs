@@ -8,15 +8,15 @@
 
 (defn ->rejected [err]
   (js-obj
-   "then"  (fn [_] (->rejected err))
-   "catch" (fn [f] (->resolved (f err)))))
+    "then"  (fn [_] (->rejected err))
+    "catch" (fn [f] (->resolved (f err)))))
 
 (defn ->resolved [v]
   (if (and v (fn? (unchecked-get v "then")))
     v
     (js-obj
-     "then"  (fn [f] (try (->resolved (f v)) (catch :default e (->rejected e))))
-     "catch" (fn [_] (->resolved v)))))
+      "then"  (fn [f] (try (->resolved (f v)) (catch :default e (->rejected e))))
+      "catch" (fn [_] (->resolved v)))))
 
 (defn ->headers [m]
   (let [m (or m {})]
@@ -39,17 +39,17 @@
   [& [{:keys [reject-put?]}]]
   (let [store (atom {})]
     (js-obj
-     "match"  (fn [request] (->resolved (get @store (req-url request))))
-     "put"    (fn [request response]
-                (if reject-put?
-                  (->rejected (js/Error. "QuotaExceededError"))
-                  (do (swap! store assoc (req-url request) response) (->resolved nil))))
-     "addAll" (fn [urls] (doseq [u (js->clj urls)] (swap! store assoc u :precached)) (->resolved nil))
-     "keys"   (fn [] (->resolved (clj->js (vec (keys @store)))))
-     "delete" (fn [request]
-                (let [k (req-url request) had (contains? @store k)]
-                  (swap! store dissoc k) (->resolved had)))
-     "__store" store)))
+      "match"  (fn [request] (->resolved (get @store (req-url request))))
+      "put"    (fn [request response]
+                 (if reject-put?
+                   (->rejected (js/Error. "QuotaExceededError"))
+                   (do (swap! store assoc (req-url request) response) (->resolved nil))))
+      "addAll" (fn [urls] (doseq [u (js->clj urls)] (swap! store assoc u :precached)) (->resolved nil))
+      "keys"   (fn [] (->resolved (clj->js (vec (keys @store)))))
+      "delete" (fn [request]
+                 (let [k (req-url request) had (contains? @store k)]
+                   (swap! store dissoc k) (->resolved had)))
+      "__store" store)))
 
 (defn ->caches
   "Creates a fake CacheStorage. Options:
@@ -58,18 +58,18 @@
   [& [{:keys [reject-delete reject-put] :or {reject-delete #{} reject-put #{}}}]]
   (let [caches (atom {})]
     (js-obj
-     "open"   (fn [name]
-                (when-not (contains? @caches name)
-                  (swap! caches assoc name (->cache {:reject-put? (contains? reject-put name)})))
-                (->resolved (get @caches name)))
-     "keys"   (fn [] (->resolved (clj->js (vec (keys @caches)))))
-     "has"    (fn [name] (->resolved (contains? @caches name)))
-     "delete" (fn [name]
-                (if (contains? reject-delete name)
-                  (->rejected (js/Error. (str "delete rejected for " name)))
-                  (let [had (contains? @caches name)]
-                    (swap! caches dissoc name) (->resolved had))))
-     "__caches" caches)))
+      "open"   (fn [name]
+                 (when-not (contains? @caches name)
+                   (swap! caches assoc name (->cache {:reject-put? (contains? reject-put name)})))
+                 (->resolved (get @caches name)))
+      "keys"   (fn [] (->resolved (clj->js (vec (keys @caches)))))
+      "has"    (fn [name] (->resolved (contains? @caches name)))
+      "delete" (fn [name]
+                 (if (contains? reject-delete name)
+                   (->rejected (js/Error. (str "delete rejected for " name)))
+                   (let [had (contains? @caches name)]
+                     (swap! caches dissoc name) (->resolved had))))
+      "__caches" caches)))
 
 (defn ->scope
   "Creates a fake ServiceWorkerGlobalScope. Options:
@@ -78,11 +78,11 @@
   [& [{:keys [origin] :or {origin "https://app.test"}}]]
   (let [claimed (atom false)]
     (js-obj
-     "location"         (js-obj "origin" origin)
-     "skipWaiting"      (fn [] (->resolved nil))
-     "clients"          (js-obj "claim" (fn [] (reset! claimed true) (->resolved nil)))
-     "addEventListener" (fn [_ _])
-     "__claimed_atom"   claimed)))
+      "location"         (js-obj "origin" origin)
+      "skipWaiting"      (fn [] (->resolved nil))
+      "clients"          (js-obj "claim" (fn [] (reset! claimed true) (->resolved nil)))
+      "addEventListener" (fn [_ _])
+      "__claimed_atom"   claimed)))
 
 (defn fake-fetch [resp-or-fn]
   (fn [request]

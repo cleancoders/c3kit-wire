@@ -3,12 +3,12 @@
                                         should-contain should-have-invoked should-have-invoked should-not should-not-be-nil should-not-contain should-not-have-invoked
                                         should-not= should= stub with with-stubs]])
   (:require
-   [c3kit.apron.log :as log]
-   [c3kit.wire.api :as sut]
-   [c3kit.wire.flash :as flash]
-   [c3kit.wire.flashc :as flashc]
-   [c3kit.wire.js :as cc]
-   [speclj.core]))
+    [c3kit.apron.log :as log]
+    [c3kit.wire.api :as sut]
+    [c3kit.wire.flash :as flash]
+    [c3kit.wire.flashc :as flashc]
+    [c3kit.wire.js :as cc]
+    [speclj.core]))
 
 (def handler :undefined)
 (def call :undefined)
@@ -22,8 +22,8 @@
     (with call {:handler @handler :options {}})
     (around [it]
       (log/capture-logs
-       (with-redefs [sut/new-version! (stub :new-version!)]
-         (it))))
+        (with-redefs [sut/new-version! (stub :new-version!)]
+          (it))))
 
     (it "ok status invokes handler"
       (let [response {:status :ok :uri "/somewhere" :payload :payload}]

@@ -64,6 +64,6 @@
 ;; requiring any React-flavored namespace (which transitively requires this one) wires up
 ;; flash side effects in api and core.ajax. See docs/superpowers/specs/2026-04-27-wire-core-split-design.md.
 (api/configure!
- :flash-add!       add!
- :flash-add-error! add-error!
- :flash-remove!    remove!)
+  :flash-add!       add!
+  :flash-add-error! add-error!
+  :flash-remove!    remove!)

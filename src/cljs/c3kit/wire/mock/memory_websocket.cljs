@@ -87,20 +87,20 @@
   (assert-valid-url url)
   (let [event-queue (atom {})]
     (js-obj
-     "binaryType" "blob"
-     "bufferedAmount" 0
-     "extensions" ""
-     "protocol" (select-protocol protocols)
-     "readyState" 0
-     "url" (normalize-url url)
-     "addEventListener" (fn [event listener] (add-listener event-queue event listener))
-     "removeEventListener" (fn [event listener] (remove-listener event-queue event listener))
-     "dispatchEvent" (fn [event] (dispatch-event event-queue event))
-     "send" send
-     "close" (fn
-               ([] (this-as this (close this)))
-               ([code] (this-as this (close this code)))
-               ([code reason] (this-as this (close this code reason)))))))
+      "binaryType" "blob"
+      "bufferedAmount" 0
+      "extensions" ""
+      "protocol" (select-protocol protocols)
+      "readyState" 0
+      "url" (normalize-url url)
+      "addEventListener" (fn [event listener] (add-listener event-queue event listener))
+      "removeEventListener" (fn [event listener] (remove-listener event-queue event listener))
+      "dispatchEvent" (fn [event] (dispatch-event event-queue event))
+      "send" send
+      "close" (fn
+                ([] (this-as this (close this)))
+                ([code] (this-as this (close this code)))
+                ([code reason] (this-as this (close this code reason)))))))
 
 (defn ->MemSocket
   ([url] (->MemSocket url (clj->js [])))

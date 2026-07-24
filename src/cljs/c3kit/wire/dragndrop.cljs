@@ -1,10 +1,10 @@
 (ns c3kit.wire.dragndrop
   (:require
-   [c3kit.wire.dnd-mobile-patch]
-   [goog.fx.DragDropGroup]
-   [goog.fx.DragDrop]
-   [goog.events :as events]
-   [goog.dom :as dom]))
+    [c3kit.wire.dnd-mobile-patch]
+    [goog.fx.DragDropGroup]
+    [goog.fx.DragDrop]
+    [goog.events :as events]
+    [goog.dom :as dom]))
 
 (defn get-group [dnd group]
   (if-let [group (get @dnd group)]

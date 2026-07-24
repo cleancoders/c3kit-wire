@@ -74,10 +74,10 @@
       (it "default handler"
         (api/configure! :rest-on-ex nil)
         (log/capture-logs
-         (let [wrapped (sut/wrap-catch-rest-errors (fn [_] (throw (Exception. "test"))))]
-           (should= (restc/internal-error {:message spec-helperc/default-error-message})
-                    (wrapped {:method :test}))
-           (should= "java.lang.Exception: test" (log/captured-logs-str)))))
+          (let [wrapped (sut/wrap-catch-rest-errors (fn [_] (throw (Exception. "test"))))]
+            (should= (restc/internal-error {:message spec-helperc/default-error-message})
+                     (wrapped {:method :test}))
+            (should= "java.lang.Exception: test" (log/captured-logs-str)))))
 
       (it "custom handler fn"
         (api/configure! :rest-on-ex (stub :custom-ex-handler {:return :custom-handler-response}))
@@ -98,10 +98,10 @@
 
       (it "logs errors if invalid json"
         (log/capture-logs
-         (let [body     "{bleh"
-               response (handle-json-request {:body (io/input-stream (.getBytes body))})]
-           (should= (restc/bad-request) response)
-           (should= "Couldn't parse as JSON: {bleh" (log/captured-logs-str)))))
+          (let [body     "{bleh"
+                response (handle-json-request {:body (io/input-stream (.getBytes body))})]
+            (should= (restc/bad-request) response)
+            (should= "Couldn't parse as JSON: {bleh" (log/captured-logs-str)))))
 
       (context "with keywords"
         (it "empty request changes nothing"
@@ -115,10 +115,10 @@
 
         (it "logs errors if invalid json"
           (log/capture-logs
-           (let [body     "{bleh"
-                 response (handle-json-kw-request {:body (io/input-stream (.getBytes body))})]
-             (should= (restc/bad-request) response)
-             (should= "Couldn't parse as JSON: {bleh" (log/captured-logs-str)))))))
+            (let [body     "{bleh"
+                  response (handle-json-kw-request {:body (io/input-stream (.getBytes body))})]
+              (should= (restc/bad-request) response)
+              (should= "Couldn't parse as JSON: {bleh" (log/captured-logs-str)))))))
 
     (context "wrap-api-json-response"
       (it "empty request changes nothing"
@@ -188,11 +188,11 @@
 
       (it "logs errors if invalid json"
         (log/capture-logs
-         (let [body                "{bleh"
-               handle-json-request (handle-wrap-rest nil)
-               response            (handle-json-request {:body (io/input-stream (.getBytes body))})]
-           (should= (restc/bad-request) response)
-           (should= "Couldn't parse as JSON: {bleh" (log/captured-logs-str)))))
+          (let [body                "{bleh"
+                handle-json-request (handle-wrap-rest nil)
+                response            (handle-json-request {:body (io/input-stream (.getBytes body))})]
+            (should= (restc/bad-request) response)
+            (should= "Couldn't parse as JSON: {bleh" (log/captured-logs-str)))))
 
       (it "converts request from json with keywords"
         (let [body                (utilc/->json {:my-data 123})

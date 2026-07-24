@@ -6,19 +6,23 @@
 ;;   - lint-as speclj.core/around as fn so `(around [it] (it))` resolves
 {:hooks
  {:analyze-call {c3kit.wire.redis/borrow-from  hooks.redis/borrow-from
-                 c3kit.wire.redis/wait-for-all hooks.redis/wait-for-all}}
+                 c3kit.wire.redis/wait-for-all hooks.redis/wait-for-all
+                 ;; Speclj `with` family declares a deref-able `@name` binding;
+                 ;; the hook models it so `@name` type-checks under :type-mismatch.
+                 speclj.core/with              hooks.speclj-with/with-binding
+                 speclj.core/with!             hooks.speclj-with/with-binding
+                 speclj.core/with-all          hooks.speclj-with/with-binding
+                 speclj.core/with-all!         hooks.speclj-with/with-binding}}
 
  :lint-as
  {;; c3kit's `for-all` is a comprehension macro shaped like `for`.
   c3kit.apron.corec/for-all clojure.core/for
   ;; garden's `defstyles` defines the stylesheet var; treat like `def`.
   garden.def/defstyles      clojure.core/def
-  ;; Speclj `with` / `with-all` rebind a value used via deref (`@name`).
-  speclj.core/with          clojure.core/def
-  speclj.core/with-all      clojure.core/def
-  ;; Speclj `around` binds the wrapped test fn (conventionally `it`) and calls
-  ;; it as `(it)`; treat like `fn` so the binding resolves under :refer :all.
-  speclj.core/around        clojure.core/fn}
+  ;; Speclj `around` / `around-all` take a body fn invoked via its bound symbol
+  ;; (`(around [body] (body))`); treat like `fn` so the binding resolves.
+  speclj.core/around        clojure.core/fn
+  speclj.core/around-all    clojure.core/fn}
 
  :linters
  {;; --- security posture: escalate ----------------------------------------

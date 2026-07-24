@@ -20,10 +20,10 @@
 
 (defn with-impl [spec]
   (list
-   (before (sut/configure! spec)
-           (sut/clear!))
-   (after (sut/clear!)
-          (sut/shutdown!))))
+    (before (sut/configure! spec)
+            (sut/clear!))
+    (after (sut/clear!)
+           (sut/shutdown!))))
 
 (defmacro test-message-queue [spec]
   `(let [spec# ~spec]
@@ -76,9 +76,9 @@
                                      (when (= "buzz" message#)
                                        (deliver flushed?# nil)))))
            (sut/enqueue
-            [(sut/->message "foo" "baz")
-             (sut/->message "bar" "foo")
-             (sut/->message "foo" "buzz")])
+             [(sut/->message "foo" "baz")
+              (sut/->message "bar" "foo")
+              (sut/->message "foo" "buzz")])
            @flushed?#
            (should= "bazbuzz" @result#)))
 

@@ -4,14 +4,14 @@
                                         should-contain should-have-invoked should-not-be-nil should-not-contain should-not-have-invoked
                                         should-not= should= stub with-stubs]])
   (:require
-   [c3kit.apron.corec :as ccc]
-   [c3kit.apron.log :as log]
-   [c3kit.wire.dragndrop2 :as sut]
-   [c3kit.wire.fake-hiccup :as fake-hiccup]
-   [c3kit.wire.js :as wjs]
-   [c3kit.wire.spec-helper :as helper]
-   [reagent.core :as reagent]
-   [speclj.stub :as stub]))
+    [c3kit.apron.corec :as ccc]
+    [c3kit.apron.log :as log]
+    [c3kit.wire.dragndrop2 :as sut]
+    [c3kit.wire.fake-hiccup :as fake-hiccup]
+    [c3kit.wire.js :as wjs]
+    [c3kit.wire.spec-helper :as helper]
+    [reagent.core :as reagent]
+    [speclj.stub :as stub]))
 
 (def blank-dnd (sut/context))
 (def pets ["brusly" "cheddar"])

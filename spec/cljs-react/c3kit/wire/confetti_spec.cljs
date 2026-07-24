@@ -309,8 +309,8 @@
 
   (it "destroys a sparkles when it hits the floor"
     (should-be-nil (sut/-update-sparkle
-                    (assoc (sut/-create-cannon-sparkle 0 0 0)
-                           :transform {:position {:y 9999}}))))
+                     (assoc (sut/-create-cannon-sparkle 0 0 0)
+                            :transform {:position {:y 9999}}))))
 
   (it "eliminates dead sparkles on floor"
     (let [sparkles [{:kind :cannon :window-h 300 :transform {:position {:y 1000}}}

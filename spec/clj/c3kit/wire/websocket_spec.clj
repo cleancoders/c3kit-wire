@@ -1,13 +1,13 @@
 (ns c3kit.wire.websocket-spec
   (:require
-   [c3kit.apron.app :as app]
-   [c3kit.apron.log :as log]
-   [c3kit.wire.api :as api]
-   [c3kit.wire.flashc :as flashc]
-   [c3kit.wire.websocket :as sut]
-   [c3kit.wire.websocketc :as wsc]
-   [speclj.core :refer :all]
-   [speclj.stub :as stub]))
+    [c3kit.apron.app :as app]
+    [c3kit.apron.log :as log]
+    [c3kit.wire.api :as api]
+    [c3kit.wire.flashc :as flashc]
+    [c3kit.wire.websocket :as sut]
+    [c3kit.wire.websocketc :as wsc]
+    [speclj.core :refer :all]
+    [speclj.stub :as stub]))
 
 (defn on-close-foo [{:keys [connection-id]}] {:foo connection-id})
 (def foo-handlers {:ws/close 'c3kit.wire.websocket-spec/on-close-foo})

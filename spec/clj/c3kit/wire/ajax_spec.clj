@@ -21,9 +21,9 @@
     (it "is deprecated"
       (log/set-level! :report)
       (log/capture-logs
-       (sut/wrap-add-api-version identity)
-       (should= "c3kit.wire.ajax/wrap-add-api-version is deprecated. Use c3kit.wire.api/wrap-add-api-version instead."
-                (log/captured-logs-str))))
+        (sut/wrap-add-api-version identity)
+        (should= "c3kit.wire.ajax/wrap-add-api-version is deprecated. Use c3kit.wire.api/wrap-add-api-version instead."
+                 (log/captured-logs-str))))
 
     (it "missing body"
       (should= {} (handle-add-api-version {})))
@@ -132,12 +132,12 @@
     (it "default handler"
       (api/configure! :ajax-on-ex 'c3kit.wire.ajax/default-ajax-ex-handler)
       (log/capture-logs
-       (let [wrapped  (sut/wrap-catch-ajax-errors (fn [r] (throw (Exception. "test"))))
-             response (wrapped {:method :test})]
-         (should= 200 (:status response))
-         (should= :error (sut/status response))
-         (should= spec-helperc/default-error-message (-> response :body :flash first :text))
-         (should= :error (-> response :body :flash first :level))))
+        (let [wrapped  (sut/wrap-catch-ajax-errors (fn [r] (throw (Exception. "test"))))
+              response (wrapped {:method :test})]
+          (should= 200 (:status response))
+          (should= :error (sut/status response))
+          (should= spec-helperc/default-error-message (-> response :body :flash first :text))
+          (should= :error (-> response :body :flash first :level))))
       (should= "java.lang.Exception: test" (log/captured-logs-str)))
 
     (it "customer handler fn"

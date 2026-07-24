@@ -1,8 +1,8 @@
 (ns c3kit.wire.flash
   (:require
-   [c3kit.apron.corec :refer [conjv]]
-   [c3kit.wire.flashc :as flashc]
-   [hiccup.element :as elem]))
+    [c3kit.apron.corec :refer [conjv]]
+    [c3kit.wire.flashc :as flashc]
+    [hiccup.element :as elem]))
 
 (defn include [request flash] (update-in request [:flash :messages] conjv flash))
 

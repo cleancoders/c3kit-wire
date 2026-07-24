@@ -274,12 +274,12 @@
     (it "full attribute list"
       (let [now      (time/now)
             js-file  (clj->js
-                      {:name               "foo.txt"
-                       :size               555
-                       :type               "text"
-                       :lastModified       (time/millis-since-epoch now)
-                       :lastModifiedDate   now
-                       :webkitRelativePath "blah"})
+                       {:name               "foo.txt"
+                        :size               555
+                        :type               "text"
+                        :lastModified       (time/millis-since-epoch now)
+                        :lastModifiedDate   now
+                        :webkitRelativePath "blah"})
             clj-file {:name                 "foo.txt"
                       :size                 555
                       :type                 "text"
@@ -388,7 +388,7 @@
 
     (it "safely handles effect fn that returns a non-function value"
       (should-not-throw
-       (wire/render [:f> (fn [] (sut/use-effect (fn [] (+ 1 2))) [:div])])))
+        (wire/render [:f> (fn [] (sut/use-effect (fn [] (+ 1 2))) [:div])])))
 
     (it "uses provided cleanup fn"
       (let [cleaned-up (atom false)]

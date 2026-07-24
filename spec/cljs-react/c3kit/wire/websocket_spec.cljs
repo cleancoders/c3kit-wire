@@ -51,8 +51,8 @@
 
     (it "uses ws-uri-path with an http host"
       (let [js-location (js-obj
-                         "host" "the-host"
-                         "protocol" "http:")
+                          "host" "the-host"
+                          "protocol" "http:")
             uri         (str "ws://the-host/the-ws-path"
                              "?connection-id=" dummy-uuid
                              "&ws-csrf-token=the-csrf-token")]
@@ -63,8 +63,8 @@
 
     (it "uses ws-uri-path with a https host"
       (let [js-location (js-obj
-                         "host" "the-host"
-                         "protocol" "https:")
+                          "host" "the-host"
+                          "protocol" "https:")
             uri         (str "wss://the-host/the-ws-path"
                              "?connection-id=" dummy-uuid
                              "&ws-csrf-token=the-csrf-token")]

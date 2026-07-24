@@ -1,8 +1,8 @@
 (ns c3kit.wire.flash-spec
   (:require
-   [c3kit.wire.flash :as sut]
-   [c3kit.wire.flashc :as flashc]
-   [speclj.core :refer :all]))
+    [c3kit.wire.flash :as sut]
+    [c3kit.wire.flashc :as flashc]
+    [speclj.core :refer :all]))
 
 (describe "Flash"
 

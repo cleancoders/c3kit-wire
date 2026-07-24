@@ -44,18 +44,18 @@
 
 (defn- ->MemEvent [element]
   (js-obj
-   "isTrusted" true
-   "bubbles" false
-   "cancelBubble" false
-   "cancelable" false
-   "composed" false
-   "currentTarget" element
-   "defaultPrevented" false
-   "eventPhase" 0
-   "returnValue" true
-   "srcElement" element
-   "target" element
-   "timeStamp" (js-invoke js/performance "now")))
+    "isTrusted" true
+    "bubbles" false
+    "cancelBubble" false
+    "cancelable" false
+    "composed" false
+    "currentTarget" element
+    "defaultPrevented" false
+    "eventPhase" 0
+    "returnValue" true
+    "srcElement" element
+    "target" element
+    "timeStamp" (js-invoke js/performance "now")))
 
 (defmethod ->OpenEvent :default [sock]
   (doto (->MemEvent sock)

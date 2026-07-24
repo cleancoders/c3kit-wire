@@ -1,17 +1,21 @@
 ;; cljfmt config for c3kit-wire.
 ;;
-;; Based on the `clojure` plugin's baseline. This codebase indents wrapped
-;; function arguments and ns :require entries one space past the enclosing form
-;; (cljfmt's default :community style), so :function-arguments-indentation is
-;; left at the default here — unlike c3kit-bucket, which uses :cursive. Adding
-;; :cursive would reindent nearly every multi-line call in this repo.
+;; Based on the `clojure` plugin's baseline.
+;;
+;; :function-arguments-indentation :cursive — house standard across every repo
+;; here: wrap function args and ns :require entries two spaces past the
+;; enclosing form (Cursive's default), not cljfmt's :community
+;; one-space-past-symbol. This repo was previously left at :community; it has
+;; been reindented to :cursive to match the rest of the c3kit family.
 ;;
 ;; :extra-indents register block-style indentation so cljfmt does not align
 ;; bodies under the first argument. Speclj test macros (describe/context/it/...)
 ;; indent their bodies like defn; c3kit.apron.corec/for-all is shaped like for;
 ;; reagent.core/with-let is shaped like let. Both bare and fully-qualified forms
 ;; are registered so the rule fires regardless of how the caller aliases the ns.
-{:extra-indents
+{:function-arguments-indentation :cursive
+
+ :extra-indents
  {describe                  [[:block 1]]
   context                   [[:block 1]]
   it                        [[:block 1]]

@@ -150,7 +150,7 @@
 
     (it "exceeds quota size"
       (should-not-throw
-       (sut/set-item @store (repeat-str "x" (/ sut/default-quota 2)) ""))
+        (sut/set-item @store (repeat-str "x" (/ sut/default-quota 2)) ""))
       (try
         (sut/set-item @store "x" "")
         (should-fail "expected DOMException to be thrown")

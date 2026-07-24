@@ -90,8 +90,8 @@
 (defn- ->handler-thread [this qname handler]
   (let [last-id (atom (-> (time/now) time/millis-since-epoch dec str))]
     (thread-spawn
-     (while (running? this)
-       (flush-messages this qname handler last-id)))))
+      (while (running? this)
+        (flush-messages this qname handler last-id)))))
 
 (defn- do-on-message [this qname handler]
   (->> (->handler-thread this qname handler)
@@ -124,8 +124,8 @@
 
 (defn- do-read-queue-messages [this qname]
   (sorted-messages
-   (borrow-from [^StatefulRedisConnection conn (-pool this)]
-                (unbound-range (.sync conn) qname))))
+    (borrow-from [^StatefulRedisConnection conn (-pool this)]
+                 (unbound-range (.sync conn) qname))))
 
 (defn- collect-message-seqs [this]
   (borrow-from [^StatefulRedisConnection conn (-pool this)]
@@ -149,11 +149,11 @@
 
 (defn- ->trim-task [is-running pool {:keys [max-age-ms block-ms]}]
   (thread-spawn
-   (while @is-running
-     (mq/with-error-handling
-       (trim-older-than pool max-age-ms)
-       (when (and @is-running (pos? block-ms))
-         (Thread/sleep ^Long block-ms))))))
+    (while @is-running
+      (mq/with-error-handling
+        (trim-older-than pool max-age-ms)
+        (when (and @is-running (pos? block-ms))
+          (Thread/sleep ^Long block-ms))))))
 
 (defn- with-trim-task [is-running pool threads config]
   (when (pos? (:max-age-ms config))
@@ -165,10 +165,10 @@
 
 (defn- ->RedisConnectionPool [{:keys [client min-connections max-connections]}]
   (ConnectionPoolSupport/createGenericObjectPool
-   #(.connect client)
-   (doto (GenericObjectPoolConfig.)
-     (.setMinIdle min-connections)
-     (.setMaxTotal max-connections))))
+    #(.connect client)
+    (doto (GenericObjectPoolConfig.)
+      (.setMinIdle min-connections)
+      (.setMaxTotal max-connections))))
 
 ;; Intentionally shadows the deftype-generated positional ctor with a
 ;; spec-based one — this is the public constructor.

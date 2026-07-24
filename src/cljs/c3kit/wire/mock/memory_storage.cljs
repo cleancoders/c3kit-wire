@@ -28,17 +28,17 @@
   (let [size (utf16-size obj k v)]
     (when (> size quota)
       (throw
-       (js/DOMException. (str "MemStorage quota has been exceeded. Quota: " quota ", Size: " size) "QuotaExceededError")))))
+        (js/DOMException. (str "MemStorage quota has been exceeded. Quota: " quota ", Size: " size) "QuotaExceededError")))))
 
 (defn- define-property [obj name prop]
   (js-invoke js/Object "defineProperty" obj name prop))
 
 (defn- as-mutable [v]
   (js-obj
-   "value" v
-   "enumerable" true
-   "writable" true
-   "configurable" true))
+    "value" v
+    "enumerable" true
+    "writable" true
+    "configurable" true))
 
 (defn- as-immutable [v]
   (js-obj "value" v))

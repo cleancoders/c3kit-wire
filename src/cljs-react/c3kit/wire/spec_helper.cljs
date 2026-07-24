@@ -120,8 +120,8 @@
   ([] (with-clean-dom []))
   ([content]
    (list
-    (before (reset-dom! content))
-    (after (reset-dom! content)))))
+     (before (reset-dom! content))
+     (after (reset-dom! content)))))
 
 (defn with-root-dom [] (with-clean-dom "<div id='root'/>"))
 
@@ -194,9 +194,9 @@
                           root))]
      (try
        (react-dom/flushSync
-        (fn []
-          (.render react-root (reagent/as-element component))
-          (reagent/flush)))
+         (fn []
+           (.render react-root (reagent/as-element component))
+           (reagent/flush)))
        (batch/flush-after-render)
        (act (fn []))
        (catch :default e (throw (ex-info "Render Error" {:message e})))))))
@@ -871,10 +871,10 @@
 (defn with-websocket-impl [constructor]
   (let [js-websocket js/WebSocket]
     (list
-     (before (set! js/WebSocket constructor)
-             (core-reset! server/impl (mem-server/->MemServer)))
-     (after (set! js/WebSocket js-websocket)
-            (core-reset! server/impl nil)))))
+      (before (set! js/WebSocket constructor)
+              (core-reset! server/impl (mem-server/->MemServer)))
+      (after (set! js/WebSocket js-websocket)
+             (core-reset! server/impl nil)))))
 
 (defn with-memory-websockets []
   (with-websocket-impl mem-ws/->MemSocket))
