@@ -16,3 +16,7 @@ package-lock.json
 .clj-kondo/.cache
 .clj-kondo/imports
 .security-session-start-sha
+
+# Local process artifacts: agent ledgers, task briefs, archived planning docs.
+# Never publishable -- see PR #21 on keeping internal planning docs out of the repo.
+.superpowers/
