@@ -61,7 +61,7 @@ Both jars publish from a single `VERSION` file, so changes land in both at once.
 
 ## Deployment
 
-To deploy you must be a member of the Clojars group `com.cleancoders.c3kit`. See the README's "Deployment" section for the full flow. `clj -T:build deploy` cleans, builds both jars, and pushes them to Clojars from one `VERSION`.
+Releases run in CI — see the README's "Deployment" section. Publishing from a local checkout is refused; `clj -T:build deploy` aborts outside GitHub Actions.
 
 ## Reporting Bugs / Requesting Features
 

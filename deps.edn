@@ -52,8 +52,8 @@
                      :main-opts   ["-m" "c3kit.scaffold.cljs"]}
            :antq    {:deps      {com.github.liquidz/antq {:mvn/version "2.11.1276"}}
                      :main-opts ["-m" "antq.core"]}
-           :build   {:extra-deps  {io.github.clojure/tools.build {:mvn/version "0.10.11"}
-                                   clj-commons/pomegranate       {:mvn/version "1.2.25"}}
+           :build   {:extra-deps  {io.github.cleancoders/github-actions
+                                   {:git/sha "248b62b695cb0e10752988913a778395490936e2" :deps/root "clj"}}
                      :ns-default  build
                      :extra-paths ["dev"]}
            :clj-watson {:replace-deps {io.github.clj-holmes/clj-watson {:git/tag "v6.1.0"

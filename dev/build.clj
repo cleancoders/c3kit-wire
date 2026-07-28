@@ -1,6 +1,6 @@
 (ns build
-  (:require [cemerick.pomegranate.aether :as aether]
-            [clojure.java.shell :as shell]
+  (:require [cleancoders.build.release :as release]
+            [cemerick.pomegranate.aether :as aether]
             [clojure.string :as str]
             [clojure.tools.build.api :as b]))
 
@@ -79,15 +79,6 @@
   (jar-core nil)
   (jar-react nil))
 
-(defn tag [_]
-  (let [clean? (str/blank? (:out (shell/sh "git" "diff")))
-        tags   (delay (->> (shell/sh "git" "tag") :out str/split-lines set))]
-    (cond (not clean?) (do (println "ABORT: commit master before tagging") (System/exit 1))
-          (contains? @tags version) (println "tag already exists")
-          :else (do (println "pushing tag" version)
-                    (shell/sh "git" "tag" version)
-                    (shell/sh "git" "push" "--tags")))))
-
 (defn install [_]
   (jar nil)
   (println "installing wire-core" version)
@@ -95,10 +86,20 @@
   (println "installing wire" version)
   (aether/install (deploy-config react-lib react-jar-file react-class-dir)))
 
-(defn deploy [_]
-  (tag nil)
-  (jar nil)
+(defn- publish! []
   (println "deploying wire-core" version)
   (aether/deploy (deploy-config core-lib core-jar-file core-class-dir))
   (println "deploying wire" version)
   (aether/deploy (deploy-config react-lib react-jar-file react-class-dir)))
+
+(defn deploy [_]
+  (release/deploy! {:repo        "cleancoders/c3kit-wire"
+                    :ci-workflow "build.yml"
+                    :version     version
+                    :jar!        #(jar nil)
+                    :publish!    publish!}))
+
+(defn emergency-publish [_]
+  (release/emergency-deploy! {:version  version
+                              :jar!     #(jar nil)
+                              :publish! publish!}))

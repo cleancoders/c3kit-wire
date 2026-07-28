@@ -94,21 +94,41 @@ Security issues should be reported privately — see [SECURITY.md](SECURITY.md).
 
 # Deployment
 
-You must be a member of the Clojars group `com.cleancoders.c3kit`.
+Releases run in CI. `clj -T:build deploy` refuses to run outside GitHub Actions,
+so the sanctioned path always carries the CI check and leaves an audit trail.
 
-1. Generate a deploy token at https://clojars.org/tokens with the appropriate scope.
-2. Export credentials:
+1. Open a PR bumping `VERSION` and `CHANGES.md`.
+2. Merge to `master` and wait for **Build** to go green. The version bump is part
+   of the merged commit, so the commit CI validated is the commit that gets
+   released.
+3. Actions → **Release** → **Run workflow**.
+4. Approve the `clojars` deployment when prompted. Required reviewers are the
+   release maintainers.
+
+The workflow verifies **Build** succeeded for that exact commit, refuses a version
+that is already tagged, builds both jars, publishes them to Clojars, and only then
+pushes the version tag. A failed publish therefore leaves no tag.
+
+`clj -T:build jar` builds both jars without publishing. `clj -T:build install`
+installs them to `~/.m2` for local testing. Both jars share the same `VERSION`.
+
+## Break glass
+
+Only when the release workflow itself cannot run — Actions unavailable, or a broken
+workflow blocking an urgent patch. This **skips the CI check**, so note its use in
+`CHANGES.md` for that release.
 
 ```
-CLOJARS_USERNAME=<your username>
-CLOJARS_PASSWORD=<your deploy key>
+CLOJARS_USERNAME=<username> \
+CLOJARS_PASSWORD=<deploy token> \
+EMERGENCY_RELEASE=<the exact version in VERSION, e.g. 4.2.2> \
+  clj -T:build emergency-publish
 ```
 
-3. Update `VERSION`.
-4. `clj -T:build deploy`
-
-`clj -T:build deploy` cleans, builds both jars, and pushes them to Clojars.
-`clj -T:build jar` builds without deploying. Both jars share the same VERSION.
+`CLOJARS_PASSWORD` is a Clojars deploy token generated at https://clojars.org/tokens, not your account password.
+`EMERGENCY_RELEASE` must equal the version being released exactly; a
+mismatched or unset value aborts. It still refuses a dirty working tree and an
+already-tagged version.
 
 ## Service Worker (offline caching)
 
