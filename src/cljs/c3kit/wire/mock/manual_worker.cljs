@@ -27,7 +27,9 @@
   (let [{:keys [id kind code handler args]} (find-worker worker-or-id)]
     (when (= :timeout kind) (clear-worker! id))
     (if code
-      (js/eval code)
+      ;; SECURITY: manual-worker is a test mock of a Web Worker. `code` is
+      ;; test-authored worker source, never runtime user input; eval is the mock's purpose.
+      (js/eval code) ; nosemgrep: cc-cljs-eval
       (apply handler args))))
 
 ;endregion

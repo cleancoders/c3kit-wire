@@ -114,7 +114,9 @@
   (let [body (.-body js/document)]
     (unmount-render-roots)
     (remove-all-tracked-listeners!)
-    (set! (.-innerHTML body) content)))
+    ;; SECURITY: test-only DOM reset. `content` is test-authored markup, never
+    ;; runtime user input, so innerHTML poses no XSS risk here.
+    (set! (.-innerHTML body) content))) ; nosemgrep: cc-cljs-innerhtml
 
 (defn with-clean-dom
   ([] (with-clean-dom []))
