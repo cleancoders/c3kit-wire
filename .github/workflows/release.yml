@@ -13,6 +13,8 @@ on: workflow_dispatch
 permissions:
   contents: write   # push the release tag
   actions: read     # verify-ci! reads build.yml run history
+  id-token: write   # OIDC token the attestation is bound to
+  attestations: write  # write the provenance and SBOM attestations
 
 jobs:
   release:
@@ -43,3 +45,41 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CLOJARS_USERNAME: ${{ secrets.CLOJARS_USERNAME }}
           CLOJARS_PASSWORD: ${{ secrets.CLOJARS_PASSWORD }}
+
+      # Exact filenames, not globs. attest-sbom's sbom-path does not expand
+      # globs at all, and subject-path's globs are the wrong tool here anyway:
+      # `target/wire-*.jar` also matches wire-core-<v>.jar, so a globbed subject
+      # would attest that one artifact's SBOM describes the other one too.
+      - name: Locate the artifacts
+        id: paths
+        run: |
+          set -euo pipefail
+          V=$(tr -d '[:space:]' < VERSION)
+          {
+            echo "core-jar=target/wire-core-$V.jar"
+            echo "core-sbom=target/wire-core-$V-cyclonedx.json"
+            echo "react-jar=target/wire-$V.jar"
+            echo "react-sbom=target/wire-$V-cyclonedx.json"
+          } >> "$GITHUB_OUTPUT"
+
+      # One step covers both jars: provenance says which repo, workflow, and
+      # commit built them, which is equally true of each.
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a # v3.0.0
+        with:
+          subject-path: target/*.jar
+
+      # One step per artifact: the two SBOMs describe different dependency sets
+      # (wire-core is React-free, wire is the union), so each has to be bound to
+      # the jar it actually describes.
+      - name: Attest the wire-core SBOM
+        uses: actions/attest-sbom@4651f806c01d8637787e274ac3bdf724ef169f34 # v3
+        with:
+          subject-path: ${{ steps.paths.outputs.core-jar }}
+          sbom-path: ${{ steps.paths.outputs.core-sbom }}
+
+      - name: Attest the wire SBOM
+        uses: actions/attest-sbom@4651f806c01d8637787e274ac3bdf724ef169f34 # v3
+        with:
+          subject-path: ${{ steps.paths.outputs.react-jar }}
+          sbom-path: ${{ steps.paths.outputs.react-sbom }}
