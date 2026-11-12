@@ -85,19 +85,22 @@
     (write-sbom! react-lib basis react-jar-file react-sbom-file)))
 
 (defn- deploy-config
-  "The pomegranate deploy map for one artifact.
+  "The pomegranate deploy map for one artifact: the jar and the pom only.
 
-   :artifact-map carries the SBOM and nothing else. :jar-file and :pom-file
-   above already upload the jar and the pom, and aether honors both -- naming
-   the jar in the artifact-map as well would upload it twice."
-  [lib jar-file class-dir sbom-file]
+   Never uploads the SBOM. Clojars's deploy route only accepts a fixed list of
+   extensions (.pom/.jar/.sha1/.md5/.asc/.module/.sig), so a cyclonedx .json
+   is rejected with 400 Bad Request -- the 4.4.0 release run hit exactly that
+   (actions/runs/43315369122), as apron 3.2.0 did before the shared library
+   stopped uploading it (cleancoders/github-actions, jar.clj `artifact-map`).
+   The SBOM is still written to target/ by jar-core/jar-react, recorded in
+   `artifacts`, and attested by the release workflow from there."
+  [lib jar-file class-dir]
   {:coordinates       [lib version]
    :jar-file          jar-file
    :pom-file          (str/join "/" [class-dir "META-INF/maven" group-name (name lib) "pom.xml"])
    :repository        {"clojars" {:url      "https://clojars.org/repo"
                                   :username (System/getenv "CLOJARS_USERNAME")
                                   :password (System/getenv "CLOJARS_PASSWORD")}}
-   :artifact-map      {[:classifier "cyclonedx" :extension "json"] sbom-file}
    :transfer-listener :stdout})
 
 (defn jar [_]
@@ -108,15 +111,15 @@
 (defn install [_]
   (jar nil)
   (println "installing wire-core" version)
-  (aether/install (deploy-config core-lib core-jar-file core-class-dir core-sbom-file))
+  (aether/install (deploy-config core-lib core-jar-file core-class-dir))
   (println "installing wire" version)
-  (aether/install (deploy-config react-lib react-jar-file react-class-dir react-sbom-file)))
+  (aether/install (deploy-config react-lib react-jar-file react-class-dir)))
 
 (defn- publish! []
   (println "deploying wire-core" version)
-  (aether/deploy (deploy-config core-lib core-jar-file core-class-dir core-sbom-file))
+  (aether/deploy (deploy-config core-lib core-jar-file core-class-dir))
   (println "deploying wire" version)
-  (aether/deploy (deploy-config react-lib react-jar-file react-class-dir react-sbom-file)))
+  (aether/deploy (deploy-config react-lib react-jar-file react-class-dir)))
 
 (defn- pom-file [lib class-dir]
   (str/join "/" [class-dir "META-INF/maven" group-name (name lib) "pom.xml"]))
