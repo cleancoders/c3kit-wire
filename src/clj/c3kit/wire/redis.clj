@@ -1,6 +1,7 @@
 (ns c3kit.wire.redis
   (:require [c3kit.apron.corec :as ccc]
             [c3kit.apron.time :as time]
+            [clojure.string :as str]
             [c3kit.wire.lock :as lock]
             [c3kit.wire.message-queue :as mq])
   (:import (io.lettuce.core KeyScanArgs Range RedisClient RedisFuture ScanIterator StreamMessage XReadArgs$Builder XReadArgs$StreamOffset XTrimArgs)
@@ -23,6 +24,16 @@
   (let [protocol (str "redis" (when tls? "s"))]
     (str protocol "://" host ":" port)))
 
+(defn- escape-glob
+  "Escapes Redis glob metacharacters so s matches only itself in a SCAN/KEYS pattern."
+  [s]
+  (str/replace s #"[\\*?\[\]]" "\\\\$0"))
+
+(defn- prefix-pattern
+  "A glob pattern matching every key that begins with prefix."
+  [prefix]
+  (str (escape-glob (or prefix "")) "*"))
+
 ;region Message Queue
 
 (defn- future-get [^RedisFuture redis-future] (.get redis-future))
@@ -41,24 +52,46 @@
 (defn- -client ^RedisClient [this] (.-client this))
 (defn- -pool ^GenericObjectPool [this] (.-pool this))
 (defn- running? [this] @(.-is-running this))
+(defn- -prefix [this] (:prefix (.-config this)))
+
+(defn- ->key
+  "The Redis stream key for qname: the queue's prefix followed by qname."
+  [prefix qname]
+  (str prefix qname))
+
+(defn- ->qname
+  "Inverse of ->key: strips prefix from a Redis stream key."
+  [prefix key]
+  (if (and (seq prefix) (str/starts-with? key prefix))
+    (subs key (count prefix))
+    key))
 
 (defn- do-enqueue [this messages]
-  (borrow-from [^StatefulRedisConnection conn (-pool this)]
-               (let [commands (.async conn)]
-                 (wait-for-all [{:keys [qname message]} messages]
-                               (.xadd commands qname {"body" message})))))
+  (let [prefix (-prefix this)]
+    (borrow-from [^StatefulRedisConnection conn (-pool this)]
+                 (let [commands (.async conn)]
+                   (wait-for-all [{:keys [qname message]} messages]
+                                 (.xadd commands (->key prefix qname) {"body" message}))))))
 
-(def ^:private key-scan-args (.type (KeyScanArgs.) "stream"))
-(defn- all-keys [connection]
+(defn- ->key-scan-args
+  "Scans stream keys only; with a prefix, only keys beginning with it."
+  [prefix]
+  (let [args (KeyScanArgs.)]
+    (.type args "stream")
+    (when (seq prefix)
+      (.match args ^String (prefix-pattern prefix)))
+    args))
+
+(defn- all-keys [connection prefix]
   (let [commands (.sync connection)
-        iterator (ScanIterator/scan commands key-scan-args)]
+        iterator (ScanIterator/scan commands (->key-scan-args prefix))]
     (->> (repeatedly #(when (.hasNext iterator) (.next iterator)))
          (take-while some?))))
 
-(defn- StreamMessage->map [^StreamMessage message]
+(defn- StreamMessage->map [prefix ^StreamMessage message]
   {:id      (.getId message)
    :message (get (.getBody message) "body")
-   :qname   (.getStream message)})
+   :qname   (->qname prefix (.getStream message))})
 
 (defmacro ^:private thread-spawn [& body]
   `(doto (Thread. (fn [] ~@body)) .start))
@@ -70,7 +103,7 @@
   (.xtrim commands queue args))
 
 (defn- read-from [this qname last-id]
-  (let [offset  (XReadArgs$StreamOffset/from qname last-id)
+  (let [offset  (XReadArgs$StreamOffset/from (->key (-prefix this) qname) last-id)
         offsets (into-array [offset])
         args    (XReadArgs$Builder/block ^Long (:block-ms (.-config this)))]
     (borrow-from [^StatefulRedisConnection conn (-pool this)]
@@ -84,7 +117,7 @@
 (defn- flush-messages [this qname handler last-id]
   (mq/with-error-handling
     (->> (read-from this qname @last-id)
-         (map StreamMessage->map)
+         (map (partial StreamMessage->map (-prefix this)))
          (run! (partial flush-message handler last-id)))))
 
 (defn- ->handler-thread [this qname handler]
@@ -97,16 +130,16 @@
   (->> (->handler-thread this qname handler)
        (swap! (.-threads this) conj)))
 
-(defn- trim-older-than [pool millis]
+(defn- trim-older-than [pool prefix millis]
   (let [min-id (-> millis time/ago time/millis-since-epoch inc str)
         args   (.minId (XTrimArgs.) min-id)]
     (borrow-from [^StatefulRedisConnection conn pool]
                  (let [commands (.async conn)]
-                   (wait-for-all [queue (all-keys conn)]
+                   (wait-for-all [queue (all-keys conn prefix)]
                                  (xtrim commands queue args))))))
 
 (defn- do-clear [this]
-  (trim-older-than (-pool this) 0))
+  (trim-older-than (-pool this) (-prefix this) 0))
 
 (defn- do-stop [this]
   (reset! (.-is-running this) false)
@@ -117,26 +150,28 @@
 (defn- unbound-range [commands queue]
   (.xrange commands queue (Range/unbounded)))
 
-(defn- sorted-messages [messages]
+(defn- sorted-messages [prefix messages]
   (->> messages
-       (map StreamMessage->map)
+       (map (partial StreamMessage->map prefix))
        (sort-by :id)))
 
 (defn- do-read-queue-messages [this qname]
-  (sorted-messages
-    (borrow-from [^StatefulRedisConnection conn (-pool this)]
-                 (unbound-range (.sync conn) qname))))
+  (let [prefix (-prefix this)]
+    (sorted-messages
+      prefix
+      (borrow-from [^StatefulRedisConnection conn (-pool this)]
+                   (unbound-range (.sync conn) (->key prefix qname))))))
 
 (defn- collect-message-seqs [this]
   (borrow-from [^StatefulRedisConnection conn (-pool this)]
                (let [commands (.async conn)]
-                 (wait-for-all [queue (all-keys conn)]
+                 (wait-for-all [queue (all-keys conn (-prefix this))]
                                (unbound-range commands queue)))))
 
 (defn- do-read-all-messages [this]
   (->> (collect-message-seqs this)
        (apply concat)
-       sorted-messages))
+       (sorted-messages (-prefix this))))
 
 (deftype RedisMessageQueue [is-running config threads client pool]
   mq/MessageQueue
@@ -147,11 +182,11 @@
   (-queue-messages [this qname] (do-read-queue-messages this qname))
   (-all-messages [this] (do-read-all-messages this)))
 
-(defn- ->trim-task [is-running pool {:keys [max-age-ms block-ms]}]
+(defn- ->trim-task [is-running pool {:keys [prefix max-age-ms block-ms]}]
   (thread-spawn
     (while @is-running
       (mq/with-error-handling
-        (trim-older-than pool max-age-ms)
+        (trim-older-than pool prefix max-age-ms)
         (when (and @is-running (pos? block-ms))
           (Thread/sleep ^Long block-ms))))))
 
@@ -180,6 +215,9 @@
      host            - The host of the Redis service
      port            - The port of the Redis service
      tls?            - When true, uses a secure connection
+     prefix          - Optional string prepended to every queue's Redis key, e.g. \"poker:\".
+                       Lets several apps share one Redis: each app only reads, trims and
+                       clears keys under its own prefix. Handlers still see unprefixed qnames.
      min-connections - The minimum number of connections to hold
      max-connections - The maximum number of connections to hold
      max-age-ms      - The amount of time a message may live for
@@ -201,13 +239,13 @@
 ;region Lock
 
 (def ^:private lock-prefix "c3kit-wire-redis-lock-")
-(defn- ->keyname [key] (str lock-prefix key))
+(defn- ->keyname [prefix key] (str prefix lock-prefix key))
 
-(deftype RedisLock [^Redisson client]
+(deftype RedisLock [^Redisson client prefix]
   lock/Lock
   (-shutdown [_this] (.shutdown client))
-  (-clear [_this] (.deleteByPattern (.getKeys client) (->keyname "*")))
-  (-acquire [_this key] (doto (.getLock client (->keyname key)) .lock))
+  (-clear [_this] (.deleteByPattern (.getKeys client) (prefix-pattern (->keyname prefix ""))))
+  (-acquire [_this key] (doto (.getLock client (->keyname prefix key)) .lock))
   (-release [_this lock] (.unlock lock)))
 
 (defn- ->RedissonClient [uri]
@@ -222,14 +260,14 @@
   "Creates a Lock utilizing Redis
 
    options:
-     host - The host of the Redis service
-     port - The port of the Redis service
-     tls? - When true, uses a secure connection"
+     host   - The host of the Redis service
+     port   - The port of the Redis service
+     tls?   - When true, uses a secure connection
+     prefix - Optional string prepended to every lock's Redis key, e.g. \"poker:\".
+              Lets several apps share one Redis: clearing only removes this prefix's locks."
   [spec]
-  (-> (merge default-config spec)
-      ->redis-uri
-      ->RedissonClient
-      RedisLock.))
+  (let [config (merge default-config spec)]
+    (RedisLock. (->RedissonClient (->redis-uri config)) (:prefix config))))
 
 (defmethod lock/create :redis [spec] (->RedisLock spec))
 

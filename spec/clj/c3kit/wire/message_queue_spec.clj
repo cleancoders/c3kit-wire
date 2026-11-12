@@ -150,6 +150,57 @@
                          :max-age-ms 0
                          :block-ms   100})
 
+    (context "prefixed"
+      (test-message-queue {:impl       :redis
+                           :max-age-ms 0
+                           :block-ms   100
+                           :prefix     "test-app:"}))
+
+    (context "prefix isolation"
+      (with-impl {:impl :redis :max-age-ms 0 :block-ms 100 :prefix "app-a:"})
+      (with other (sut/create {:impl :redis :max-age-ms 0 :block-ms 100 :prefix "app-b:"}))
+      (with raw (sut/create {:impl :redis :max-age-ms 0 :block-ms 100}))
+      (after (sut/-clear @raw)
+             (sut/-stop @other)
+             (sut/-stop @raw))
+
+      (it "stores messages under prefixed keys"
+        (sut/enqueue "foo" "bar")
+        (should= [{:qname "app-a:foo" :message "bar"}]
+                 (map #(select-keys % [:qname :message]) (sut/-queue-messages @raw "app-a:foo"))))
+
+      (it "does not read another prefix's messages"
+        (sut/enqueue "foo" "bar")
+        (should-be empty? (sut/-queue-messages @other "foo"))
+        (should-be empty? (sut/-all-messages @other)))
+
+      (it "clears only its own prefix"
+        (sut/enqueue "foo" "bar")
+        (sut/-enqueue @other [(sut/->message "foo" "baz")])
+        (sut/-clear @other)
+        (should-be empty? (sut/-all-messages @other))
+        (should= [(sut/->message "foo" "bar")] (sut/messages)))
+
+      (it "handlers only receive their own prefix's messages"
+        (let [received (atom [])
+              flushed? (promise)]
+          (sut/-on-message @other "foo" (fn [m]
+                                          (swap! received conj (select-keys m [:qname :message]))
+                                          (deliver flushed? nil)))
+          (sut/enqueue "foo" "from-a")
+          (sut/-enqueue @other [(sut/->message "foo" "from-b")])
+          @flushed?
+          (should= [{:qname "foo" :message "from-b"}] @received)))
+
+      (it "escapes glob characters in the prefix"
+        (let [glob (sut/create {:impl :redis :max-age-ms 0 :block-ms 100 :prefix "glob*:"})]
+          (try
+            (sut/-enqueue @raw [(sut/->message "globX:foo" "bar")])
+            (should-be empty? (sut/-all-messages glob))
+            (sut/-clear glob)
+            (should= 1 (count (sut/-queue-messages @raw "globX:foo")))
+            (finally (sut/-stop glob))))))
+
     (it "secure client"
       (with-redefs [redis/->RedisClient (stub :->RedisClient)]
         (sut/create {:impl       :redis

@@ -82,4 +82,32 @@
 
     (tags :slow)
 
-    (test-lock {:impl :redis})))
+    (test-lock {:impl :redis})
+
+    (context "prefixed"
+      (test-lock {:impl :redis :prefix "test-app:"}))
+
+    (context "prefix isolation"
+      (with a (sut/create {:impl :redis :prefix "app-a:"}))
+      (with b (sut/create {:impl :redis :prefix "app-b:"}))
+      (after (sut/-clear @a)
+             (sut/-clear @b)
+             (sut/-shutdown @a)
+             (sut/-shutdown @b))
+
+      (it "stores locks under prefixed keys"
+        (let [lock (sut/-acquire @a "foo")]
+          (should= "app-a:c3kit-wire-redis-lock-foo" (.getName lock))
+          (sut/-release @a lock)))
+
+      (it "the same key under different prefixes are different locks"
+        (let [lock   (sut/-acquire @a "foo")
+              result (deref (future (sut/-release @b (sut/-acquire @b "foo")) :acquired) 2000 :blocked)]
+          (should= :acquired result)
+          (sut/-release @a lock)))
+
+      (it "clears only its own prefix's locks"
+        (let [lock (sut/-acquire @a "foo")]
+          (sut/-clear @b)
+          (should (.isLocked lock))
+          (sut/-release @a lock))))))
