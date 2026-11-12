@@ -1,4 +1,7 @@
-### 4.4.0
+### 4.4.1
+ * Same code as 4.4.0, which was never published: its release run failed mid-upload, and Clojars does not allow a release version to be redeployed. The SBOM is no longer uploaded to Clojars (it is still built and attested).
+
+### 4.4.0 (not published)
  * Adds an optional `:prefix` to the Redis message queue and lock (`{:impl :redis :prefix "poker:"}`) so several apps can share one Redis/Valkey server. The queue stores each stream under `prefix + qname`, and its reads, background trim task and `clear!` only touch keys under its own prefix; handlers and `messages` still see the unprefixed `:qname`. Lock keys become `prefix + "c3kit-wire-redis-lock-" + key`, and `clear!` only deletes that prefix's locks. Glob metacharacters in the prefix are escaped. Without a prefix, behavior and key names are unchanged.
  * Bumps jackson-core and jackson-databind to 2.22.4 (CVE-2026-89407, CVE-2026-89425).
 
