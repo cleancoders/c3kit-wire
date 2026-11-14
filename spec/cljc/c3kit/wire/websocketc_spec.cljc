@@ -450,7 +450,78 @@
                               (assoc-in [:foo :bar] "custom-csrf")
                               (assoc-in [:params :ws-csrf-token] "custom-csrf"))
                  response (sut/handler @state request {:read-csrf (comp :bar :foo)})]
-             (should= :channel response))))
+             (should= :channel response)))
+
+         (it "invalid csrf on a plain request opens no socket"
+           (sut/handler @state (assoc-in @request [:params :ws-csrf-token] "wrong"))
+           (sut/handler @state (-> @request (assoc :websocket? false) (assoc-in [:params :ws-csrf-token] "wrong")))
+           (should-not-have-invoked :httpkit/as-channel))
+
+         (it "invalid connection-id on a plain request opens no socket"
+           (sut/handler @state (assoc-in @request [:params :connection-id] nil))
+           (should-not-have-invoked :httpkit/as-channel))
+
+         (context "websocket upgrade"
+
+           (with request {:params      {:connection-id "client-123" :ws-csrf-token "csrf-blah"}
+                          :session/key "csrf-blah"
+                          :websocket?  true})
+
+           (it "invalid csrf completes the handshake, then closes"
+             (let [request  (assoc-in @request [:params :ws-csrf-token] "wrong")
+                   response (sut/handler @state request)
+                   [ch-request options] (stub/last-invocation-of :httpkit/as-channel)]
+               (should= :channel response)
+               (should= request ch-request)
+               (should= [:on-open] (keys options))
+               ((:on-open options) "a-socket")
+               (should-have-invoked :httpkit/close {:with ["a-socket"]})
+               (should-not-have-invoked :message-handler)
+               (should= {} (:connections @@state))))
+
+           (it "missing csrf completes the handshake, then closes"
+             (let [response (sut/handler @state (assoc-in @request [:params :ws-csrf-token] nil))
+                   [_ options] (stub/last-invocation-of :httpkit/as-channel)]
+               (should= :channel response)
+               (should= [:on-open] (keys options))))
+
+           (it "missing connection-id completes the handshake, then closes"
+             (let [request  (assoc-in @request [:params :connection-id] nil)
+                   response (sut/handler @state request)
+                   [ch-request options] (stub/last-invocation-of :httpkit/as-channel)]
+               (should= :channel response)
+               (should= request ch-request)
+               (should= [:on-open] (keys options))
+               ((:on-open options) "a-socket")
+               (should-have-invoked :httpkit/close {:with ["a-socket"]})
+               (should= {} (:connections @@state))))
+
+           (it "valid opens the connection"
+             (let [response (sut/handler @state @request)
+                   [ch-request options] (stub/last-invocation-of :httpkit/as-channel)]
+               (should= :channel response)
+               (should= @request ch-request)
+               (should= #{:on-receive :on-close :on-open} (set (keys options)))
+               ((:on-open options) "a-socket")
+               (should-not-have-invoked :httpkit/close)
+               (should= true (get-in @@state [:connections "client-123" :open?]))))))
+
+       (context "reject"
+
+         (it "plain request"
+           (should= nil (sut/reject @state @request))
+           (should= {:status 404} (sut/reject @state @request {:status 404}))
+           (should-not-have-invoked :httpkit/as-channel))
+
+         (it "websocket upgrade completes the handshake, then closes"
+           (let [request (assoc @request :websocket? true)]
+             (should= :channel (sut/reject @state request))
+             (should= :channel (sut/reject @state request {:status 404}))
+             (let [[ch-request options] (stub/last-invocation-of :httpkit/as-channel)]
+               (should= request ch-request)
+               (should= [:on-open] (keys options))
+               ((:on-open options) "a-socket")
+               (should-have-invoked :httpkit/close {:with ["a-socket"]})))))
 
        (context "on-open"
 

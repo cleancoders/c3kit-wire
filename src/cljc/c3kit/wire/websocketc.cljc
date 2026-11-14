@@ -42,7 +42,8 @@
      to run on another Ring server.
 
      :open  - (fn [request callbacks]) opens a socket from a ring request; callbacks
-              is {:on-receive :on-close :on-open}. Returns the ring response.
+              is {:on-receive :on-close :on-open}, any of which may be absent (reject
+              passes only :on-open). Returns the ring response.
      :send! - (fn [socket data]) sends data on the socket. Returns truthy on success.
      :close - (fn [socket]) closes the socket."
      {:open  httpkit/as-channel
@@ -188,6 +189,29 @@
 
      (defn- maybe-invalid-connection-id [connection-id] (when-not connection-id {:status 403 :body "Invalid connection id"}))
 
+     (defn reject
+       "Ring response that refuses a websocket connection without leaving a half-upgraded one behind.
+
+       http-kit switches a connection into websocket mode before the ring handler runs, so a plain
+       response (403, 404, ...) to an upgrade request leaves the connection open in websocket mode.
+       A load balancer that reuses backend connections (e.g. an AWS ALB) then sends an unrelated
+       request on it, http-kit rejects it as a bad frame and drops the connection, and the load
+       balancer answers 502.
+
+       So for an upgrade request ((:websocket? request) true) this completes the handshake through
+       the server's transport and closes the socket as soon as it opens. Any other request gets
+       response (default nil).
+
+       server   - server state atom (from create)
+       request  - ring request
+       response - (optional) the ring response for a plain, non-upgrade request"
+       ([server request] (reject server request nil))
+       ([server request response]
+        (if (:websocket? request)
+          (let [{:keys [open close]} (:transport @server)]
+            (open request {:on-open close}))
+          response)))
+
      ;(defn -channel-init [server connection-id ch] (log/debug "websocket channel init:" connection-id))
      ;(defn -channel-on-ping [server connection-id ch data] (log/debug "websocket channel on-ping:" connection-id data))
 
@@ -310,6 +334,9 @@
    (defn handler
      "Ring handler to open websocket connections in the specified server state atom.
 
+     A request with a missing or invalid ws-csrf-token, or no connection-id, is refused: a plain
+     request gets a 403; an upgrade request is closed right after the handshake (see reject).
+
      server  - server state atom (from create)
      request - ring request
      options -
@@ -317,16 +344,17 @@
      ([server request] (handler server request {}))
      ([server request options]
       (let [connection-id (-> request :params :connection-id)]
-        (or (maybe-invalid-csrf-token request options)
-            (maybe-invalid-connection-id connection-id)
-            (let [open (-> @server :transport :open)]
-              (open request {:on-receive (partial -data-received server connection-id)
-                             :on-close   (partial -channel-on-close server connection-id)
-                             :on-open    (partial -open-connection! server request connection-id)
-                             ;; Maybe delete the two below.  They don't seem used.
-                             ;:init       (partial -channel-init server connection-id)
-                             ;:on-ping    (partial -channel-on-ping server connection-id)
-                             }))))))
+        (if-let [forbidden (or (maybe-invalid-csrf-token request options)
+                               (maybe-invalid-connection-id connection-id))]
+          (reject server request forbidden)
+          (let [open (-> @server :transport :open)]
+            (open request {:on-receive (partial -data-received server connection-id)
+                           :on-close   (partial -channel-on-close server connection-id)
+                           :on-open    (partial -open-connection! server request connection-id)
+                           ;; Maybe delete the two below.  They don't seem used.
+                           ;:init       (partial -channel-init server connection-id)
+                           ;:on-ping    (partial -channel-on-ping server connection-id)
+                           }))))))
    :cljs
    (defn connect!
      "Open a websocket connection to the server.
