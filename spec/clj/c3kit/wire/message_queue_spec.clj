@@ -256,8 +256,10 @@
         (sut/enqueue "bar" "blah")
         (Thread/sleep 25)
         (should= 2 (count (sut/messages)))
-        (Thread/sleep 100)
-        (should-be empty? (sut/messages)))
+        ;; The trim thread runs every block-ms (50ms), so messages are removed
+        ;; somewhere between max-age (100ms) and max-age + one trim cycle.
+        ;; Poll rather than sleep a fixed amount that races the trim thread.
+        (should (wait-until #(empty? (sut/messages)))))
 
       (it "throws on trim task"
         (let [errors        (atom 0)
