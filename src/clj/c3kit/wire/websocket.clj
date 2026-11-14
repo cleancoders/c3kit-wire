@@ -16,6 +16,14 @@
   ([request] (wsc/handler @server request))
   ([request options] (wsc/handler @server request options)))
 
+(defn reject
+  "Refuses a websocket connection: call it instead of answering a websocket upgrade with a plain
+  response, e.g. when a signed-out user's client tries to connect.  An upgrade request completes
+  the handshake and is closed at once; any other request gets response (default nil).
+  See c3kit.wire.websocketc/reject."
+  ([request] (reject request nil))
+  ([request response] (wsc/reject @server request response)))
+
 ;; Referenced as a quoted symbol in `default-handlers`, which clj-kondo doesn't
 ;; track as usage.
 #_{:clj-kondo/ignore [:unused-private-var]}
