@@ -130,6 +130,31 @@ EMERGENCY_RELEASE=<the exact version in VERSION, e.g. 4.2.2> \
 mismatched or unset value aborts. It still refuses a dirty working tree and an
 already-tagged version.
 
+## WebSocket: refusing a connection
+
+Never answer a websocket upgrade request (`(:websocket? request)` true) with a plain
+response. http-kit switches the connection into websocket mode before your handler runs, so
+a plain 403/404 leaves it open in websocket mode. A load balancer that reuses backend
+connections (an AWS ALB, for example) then sends an unrelated request on it, http-kit drops
+it as a bad frame ("unmasked client to server frame"), and the load balancer answers 502 to
+whoever sent that request.
+
+`c3kit.wire.websocket/handler` handles its own refusals (missing or invalid `ws-csrf-token`, no
+`connection-id`): an upgrade request gets the handshake and is closed at once, and a plain
+request still gets its 403. When your app refuses a connection before calling `handler`, use
+`c3kit.wire.websocket/reject`. It does the same through the configured `:ws-transport`, and
+for a plain request it returns the response you pass in (nil by default):
+
+```clojure
+(defn websocket-open [request]
+  (if (user/current request)
+    (websocket/handler request {:read-csrf jwt/client-id})
+    (websocket/reject request)))           ; or (websocket/reject request {:status 404})
+```
+
+The client sees a websocket that opens and closes right away, and reconnects as it would after
+any close.
+
 ## Service Worker (offline caching)
 
 Two namespaces: `c3kit.wire.service-worker.core` runs inside the service worker

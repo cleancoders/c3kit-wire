@@ -1,3 +1,7 @@
+### 4.5.0
+ * Fix: `c3kit.wire.websocketc/handler` (and so `c3kit.wire.websocket/handler`) no longer answers a websocket upgrade with a plain response. http-kit switches a connection into websocket mode before the handler runs, so the 403 for a missing or invalid `ws-csrf-token` or a missing `connection-id` left the connection open in websocket mode. Behind a load balancer that reuses backend connections (AWS ALB), the next unrelated request on it was dropped by http-kit ("unmasked client to server frame") and answered 502. An upgrade request that is refused now completes the handshake through the server's transport and is closed at once. Plain (non-upgrade) requests still get the 403, and accepted upgrades are unchanged.
+ * Adds `c3kit.wire.websocket/reject` (and `c3kit.wire.websocketc/reject`) for apps that refuse a connection before calling `handler`, e.g. a signed-out user. For an upgrade request it completes the handshake and closes; for any other request it returns the optional response argument (nil by default).
+
 ### 4.4.1
  * Same code as 4.4.0, which was never published: its release run failed mid-upload, and Clojars does not allow a release version to be redeployed. The SBOM is no longer uploaded to Clojars (it is still built and attested).
 

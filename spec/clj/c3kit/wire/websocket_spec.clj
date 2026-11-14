@@ -69,6 +69,20 @@
     (it "stop removes the server"
       (should-not-contain :ws/server (sut/stop {:ws/server :a-server}))))
 
+  (context "reject"
+
+    (around [it] (with-redefs [app/app    (assoc app/app :ws/server :a-server)
+                               wsc/reject (stub :wsc/reject {:return :a-response})]
+                   (it)))
+
+    (it "delegates to the started server"
+      (should= :a-response (sut/reject {:websocket? true}))
+      (should-have-invoked :wsc/reject {:with [:a-server {:websocket? true} nil]}))
+
+    (it "with a response for plain requests"
+      (should= :a-response (sut/reject {:uri "/ws"} {:status 404}))
+      (should-have-invoked :wsc/reject {:with [:a-server {:uri "/ws"} {:status 404}]})))
+
   ;(it "handles :ws/close"
   ;  (with-redefs [ws/dispatch-closed-connection (stub :dispatch-closed-connection {:return {}})
   ;                ws/close! (stub :close!)]
